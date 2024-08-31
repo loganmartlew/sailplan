@@ -31,6 +31,15 @@
     ],
     "experiments": {
       "typedRoutes": true
-    }
+    },
+    "extra": {
+      "router": {
+        "origin": false
+      },
+      "eas": {
+        "projectId": "8ac3f863-10b2-4947-9af6-b0893ac0d10c"
+      }
+    },
+    "owner": "loganmartlew"
   }
 }
