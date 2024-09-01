@@ -1,6 +1,5 @@
 import { Text, View } from 'react-native';
-import { TestNavLinks } from '@/components/TestNavLinks';
-import Picker from 'react-native-ui-lib/picker';
+import { TestNavLinks } from '~/components/TestNavLinks';
 
 export default function Index() {
   return (

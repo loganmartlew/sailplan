@@ -1,5 +1,5 @@
 import { Text, View } from 'react-native';
-import { TestNavLinks } from '@/components/TestNavLinks';
+import { TestNavLinks } from '~/components/TestNavLinks';
 
 export default function Marks() {
   return (

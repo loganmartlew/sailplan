@@ -4,34 +4,48 @@ import {
   DrawerItemList,
 } from '@react-navigation/drawer';
 import { useState } from 'react';
-import { View } from 'react-native-ui-lib';
-import Picker from 'react-native-ui-lib/picker';
+import { View } from 'react-native';
+import { Label } from '~/components/ui';
+import {
+  Select,
+  SelectContent,
+  SelectGroup,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '~/components/ui/select';
 
 export function DrawerContent(props: DrawerContentComponentProps) {
-  const [boatProfile, setBoatProfile] = useState<string | undefined>();
-
   return (
-    <View style={{ flex: 1 }}>
-      <View style={{ marginVertical: 4, marginHorizontal: 10 }}>
-        <Picker
-          label='Boat Profile'
-          placeholder='Select a Boat Profile'
-          value={boatProfile}
-          onChange={value => setBoatProfile(`${value}`)}
-        >
-          <Picker.Item
-            label='Boogie Flash'
-            value='1763254'
-            labelStyle={{ marginVertical: 10 }}
-          />
-          <Picker.Item
-            label='Max Headroom'
-            value='4437623'
-            labelStyle={{ marginVertical: 10 }}
-          />
-        </Picker>
+    <View className='p-3 flex flex-col gap-3'>
+      <View>
+        <Label nativeID='boatProfile' className='mb-1'>
+          Boat Profile
+        </Label>
+        <Select>
+          <SelectTrigger>
+            <SelectValue
+              className='text-foreground text-sm native:text-lg'
+              placeholder='Select a Boat Profile'
+            />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectGroup>
+              <SelectItem label='Boogie Flash' value='13725' />
+              <SelectItem label='Max Headroom' value='73245' />
+            </SelectGroup>
+          </SelectContent>
+        </Select>
       </View>
-      <DrawerContentScrollView {...props}>
+      <DrawerContentScrollView
+        {...props}
+        contentContainerStyle={{
+          padding: 0,
+          flex: 1,
+          flexDirection: 'column',
+          gap: 4,
+        }}
+      >
         <DrawerItemList {...props} />
       </DrawerContentScrollView>
     </View>
