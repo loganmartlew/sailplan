@@ -2,7 +2,7 @@ import { Stack } from 'expo-router';
 import { Text, View } from 'react-native';
 import { TestNavLinks } from '@/components/TestNavLinks';
 
-export default function Index() {
+export default function Sails() {
   return (
     <View
       style={{
@@ -11,8 +11,8 @@ export default function Index() {
         alignItems: 'center',
       }}
     >
-      <Stack.Screen options={{ title: 'Calculate' }} />
-      <Text>Calculate</Text>
+      <Stack.Screen options={{ title: 'Sails' }} />
+      <Text>Sails</Text>
       <TestNavLinks />
     </View>
   );
