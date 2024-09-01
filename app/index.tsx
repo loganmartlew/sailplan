@@ -11,7 +11,6 @@ export default function Index() {
         alignItems: 'center',
       }}
     >
-      <Stack.Screen options={{ title: 'Calculate' }} />
       <Text>Calculate</Text>
       <TestNavLinks />
     </View>

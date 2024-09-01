@@ -11,7 +11,6 @@ export default function Sails() {
         alignItems: 'center',
       }}
     >
-      <Stack.Screen options={{ title: 'Sails' }} />
       <Text>Sails</Text>
       <TestNavLinks />
     </View>

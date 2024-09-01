@@ -11,7 +11,6 @@ export default function Marks() {
         alignItems: 'center',
       }}
     >
-      <Stack.Screen options={{ title: 'Marks' }} />
       <Text>Marks</Text>
       <TestNavLinks />
     </View>
