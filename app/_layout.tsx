@@ -13,6 +13,7 @@ import { useColorScheme } from '~/lib/useColorScheme';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { DrawerContent } from '~/features/navigation';
 import { PortalHost } from '@rn-primitives/portal';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 const LIGHT_THEME: Theme = {
   dark: false,
@@ -41,6 +42,8 @@ const drawerStyles = StyleSheet.create({
 export default function RootLayout() {
   const { colorScheme, setColorScheme, isDarkColorScheme } = useColorScheme();
   const [isColorSchemeLoaded, setIsColorSchemeLoaded] = React.useState(false);
+
+  const { top } = useSafeAreaInsets();
 
   React.useEffect(() => {
     (async () => {
@@ -73,13 +76,19 @@ export default function RootLayout() {
 
   return (
     <ThemeProvider value={isDarkColorScheme ? DARK_THEME : LIGHT_THEME}>
-      <StatusBar style={isDarkColorScheme ? 'light' : 'dark'} />
-      <GestureHandlerRootView style={{ flex: 1 }}>
+      <StatusBar
+        style={isDarkColorScheme ? 'light' : 'dark'}
+        backgroundColor={
+          isDarkColorScheme
+            ? NAV_THEME.dark.background
+            : NAV_THEME.light.background
+        }
+      />
+      <GestureHandlerRootView style={{ flex: 1, paddingTop: top }}>
         <Drawer drawerContent={DrawerContent}>
           <Drawer.Screen
             name='index'
             options={{
-              drawerLabel: 'Plan',
               title: 'Plan',
               drawerItemStyle: drawerStyles.drawerItem,
             }}
@@ -87,7 +96,6 @@ export default function RootLayout() {
           <Drawer.Screen
             name='sails'
             options={{
-              drawerLabel: 'Sails',
               title: 'Sails',
               drawerItemStyle: drawerStyles.drawerItem,
             }}
@@ -95,7 +103,6 @@ export default function RootLayout() {
           <Drawer.Screen
             name='marks'
             options={{
-              drawerLabel: 'Marks',
               title: 'Marks',
               drawerItemStyle: drawerStyles.drawerItem,
             }}
