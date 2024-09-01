@@ -4,7 +4,7 @@ import {
   DrawerItemList,
 } from '@react-navigation/drawer';
 import { View } from 'react-native';
-import { H1 } from '~/components/ui';
+import { H1, Separator } from '~/components/ui';
 import { BoatProfilePicker } from '../boatProfile';
 
 export function DrawerContent(props: DrawerContentComponentProps) {
@@ -14,6 +14,7 @@ export function DrawerContent(props: DrawerContentComponentProps) {
         <H1>SailPlan</H1>
       </View>
       <BoatProfilePicker navigation={props.navigation} />
+      <Separator />
       <DrawerContentScrollView
         {...props}
         contentContainerStyle={{

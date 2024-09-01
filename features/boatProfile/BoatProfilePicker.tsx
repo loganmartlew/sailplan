@@ -1,6 +1,5 @@
 import { DrawerNavigationHelpers } from '@react-navigation/drawer/lib/typescript/src/types';
 import { View } from 'react-native';
-import { Picker } from '@react-native-picker/picker';
 import {
   Label,
   Option,
@@ -10,10 +9,9 @@ import {
   SelectItem,
   SelectTrigger,
   SelectValue,
-  Text,
 } from '~/components/ui';
+import { Plus } from '~/lib/icons/Plus';
 import { useState } from 'react';
-import { Button } from '~/components/ui/button';
 
 interface BoatProfilePickerProps {
   navigation?: DrawerNavigationHelpers;
@@ -28,7 +26,7 @@ export function BoatProfilePicker({ navigation }: BoatProfilePickerProps) {
         Boat Profile
       </Label>
       <Select value={boatProfile ?? undefined} onValueChange={setBoatProfile}>
-        <SelectTrigger onPress={() => {}}>
+        <SelectTrigger>
           <SelectValue
             className='text-foreground text-sm native:text-lg'
             placeholder='Select a Boat Profile'
@@ -38,6 +36,12 @@ export function BoatProfilePicker({ navigation }: BoatProfilePickerProps) {
           <SelectGroup>
             <SelectItem label='Boogie Flash' value='13725' />
             <SelectItem label='Max Headroom' value='73245' />
+            <SelectItem
+              label='New Profile'
+              value='-1'
+              icon={<Plus />}
+              textClassName='italic'
+            />
           </SelectGroup>
         </SelectContent>
       </Select>
