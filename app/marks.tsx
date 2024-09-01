@@ -1,4 +1,3 @@
-import { Stack } from 'expo-router';
 import { Text, View } from 'react-native';
 import { TestNavLinks } from '@/components/TestNavLinks';
 

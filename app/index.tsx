@@ -1,6 +1,6 @@
-import { Stack } from 'expo-router';
 import { Text, View } from 'react-native';
 import { TestNavLinks } from '@/components/TestNavLinks';
+import Picker from 'react-native-ui-lib/picker';
 
 export default function Index() {
   return (
