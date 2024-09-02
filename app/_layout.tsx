@@ -3,18 +3,14 @@ import 'react-native-gesture-handler';
 
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Theme, ThemeProvider } from '@react-navigation/native';
-import { SplashScreen } from 'expo-router';
-import { Drawer } from 'expo-router/drawer';
+import { Slot, SplashScreen } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import * as React from 'react';
-import { Platform, StyleSheet } from 'react-native';
+import { Platform } from 'react-native';
 import { NAV_THEME } from '~/lib/constants';
 import { useColorScheme } from '~/lib/useColorScheme';
-import { GestureHandlerRootView } from 'react-native-gesture-handler';
-import { DrawerContent } from '~/features/navigation';
 import { PortalHost } from '@rn-primitives/portal';
 import { setAndroidNavigationBar } from '~/lib/android-navigation-bar';
-import { HeaderMenuButton } from '~/features/navigation/HeaderMenuButton';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { BoatProfileProvider } from '~/features/boatProfile/context/BoatProfileContext';
 
@@ -36,14 +32,6 @@ export {
 SplashScreen.preventAutoHideAsync();
 
 const queryClient = new QueryClient();
-
-const drawerStyles = StyleSheet.create({
-  drawerItem: {
-    marginHorizontal: 0,
-    marginVertical: 0,
-    marginBottom: 4,
-  },
-});
 
 export default function RootLayout() {
   const { colorScheme, setColorScheme, isDarkColorScheme } = useColorScheme();
@@ -92,42 +80,7 @@ export default function RootLayout() {
                 : NAV_THEME.light.background
             }
           />
-          <GestureHandlerRootView style={{ flex: 1 }}>
-            <Drawer
-              drawerContent={DrawerContent}
-              screenOptions={{
-                headerLeft: () => (
-                  <HeaderMenuButton
-                    color={
-                      isDarkColorScheme
-                        ? NAV_THEME.dark.text
-                        : NAV_THEME.light.text
-                    }
-                  />
-                ),
-                drawerItemStyle: drawerStyles.drawerItem,
-              }}
-            >
-              <Drawer.Screen
-                name='index'
-                options={{
-                  title: 'Plan',
-                }}
-              />
-              <Drawer.Screen
-                name='sails'
-                options={{
-                  title: 'Sails',
-                }}
-              />
-              <Drawer.Screen
-                name='marks'
-                options={{
-                  title: 'Marks',
-                }}
-              />
-            </Drawer>
-          </GestureHandlerRootView>
+          <Slot />
           <PortalHost />
         </ThemeProvider>
       </BoatProfileProvider>

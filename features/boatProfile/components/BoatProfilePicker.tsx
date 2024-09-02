@@ -35,7 +35,7 @@ export function BoatProfilePicker() {
   const { data: boatProfiles } = useBoatProfiles();
 
   return (
-    <View>
+    <View className='w-full'>
       <Label nativeID='boatProfile' className='mb-1'>
         Boat Profile
       </Label>
