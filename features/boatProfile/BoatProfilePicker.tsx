@@ -13,11 +13,7 @@ import {
 import { Plus } from '~/lib/icons/Plus';
 import { useState } from 'react';
 
-interface BoatProfilePickerProps {
-  navigation?: DrawerNavigationHelpers;
-}
-
-export function BoatProfilePicker({ navigation }: BoatProfilePickerProps) {
+export function BoatProfilePicker() {
   const [boatProfile, setBoatProfile] = useState<Option | null>(null);
 
   return (

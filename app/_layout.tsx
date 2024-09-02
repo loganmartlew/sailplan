@@ -13,7 +13,10 @@ import { useColorScheme } from '~/lib/useColorScheme';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { DrawerContent } from '~/features/navigation';
 import { PortalHost } from '@rn-primitives/portal';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { setAndroidNavigationBar } from '~/lib/android-navigation-bar';
+import { Menu } from '~/lib/icons/Menu';
+import { Button, Text } from '~/components/ui';
+import { HeaderMenuButton } from '~/features/navigation/HeaderMenuButton';
 
 const LIGHT_THEME: Theme = {
   dark: false,
@@ -36,14 +39,13 @@ const drawerStyles = StyleSheet.create({
   drawerItem: {
     marginHorizontal: 0,
     marginVertical: 0,
+    marginBottom: 4,
   },
 });
 
 export default function RootLayout() {
   const { colorScheme, setColorScheme, isDarkColorScheme } = useColorScheme();
   const [isColorSchemeLoaded, setIsColorSchemeLoaded] = React.useState(false);
-
-  const { top } = useSafeAreaInsets();
 
   React.useEffect(() => {
     (async () => {
@@ -53,11 +55,13 @@ export default function RootLayout() {
         document.documentElement.classList.add('bg-background');
       }
       if (!theme) {
+        setAndroidNavigationBar(colorScheme);
         AsyncStorage.setItem('theme', colorScheme);
         setIsColorSchemeLoaded(true);
         return;
       }
       const colorTheme = theme === 'dark' ? 'dark' : 'light';
+      setAndroidNavigationBar(colorTheme);
       if (colorTheme !== colorScheme) {
         setColorScheme(colorTheme);
 
@@ -84,27 +88,36 @@ export default function RootLayout() {
             : NAV_THEME.light.background
         }
       />
-      <GestureHandlerRootView style={{ flex: 1, paddingTop: top }}>
-        <Drawer drawerContent={DrawerContent}>
+      <GestureHandlerRootView style={{ flex: 1 }}>
+        <Drawer
+          drawerContent={DrawerContent}
+          screenOptions={{
+            headerLeft: () => (
+              <HeaderMenuButton
+                color={
+                  isDarkColorScheme ? NAV_THEME.dark.text : NAV_THEME.light.text
+                }
+              />
+            ),
+            drawerItemStyle: drawerStyles.drawerItem,
+          }}
+        >
           <Drawer.Screen
             name='index'
             options={{
               title: 'Plan',
-              drawerItemStyle: drawerStyles.drawerItem,
             }}
           />
           <Drawer.Screen
             name='sails'
             options={{
               title: 'Sails',
-              drawerItemStyle: drawerStyles.drawerItem,
             }}
           />
           <Drawer.Screen
             name='marks'
             options={{
               title: 'Marks',
-              drawerItemStyle: drawerStyles.drawerItem,
             }}
           />
         </Drawer>
