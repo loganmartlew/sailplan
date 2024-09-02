@@ -1,49 +1,19 @@
-import {
-  useSuspenseQuery,
-  UseSuspenseQueryOptions,
-} from '@tanstack/react-query';
-import { BoatProfile } from '../types/boatProfile';
+import { db } from '~/lib/db';
+import { useLiveQuery } from 'drizzle-orm/expo-sqlite';
+import { asc, eq } from 'drizzle-orm';
+import { boatProfile } from '~/schema';
 
-const boatProfiles: BoatProfile[] = [
-  {
-    id: '13725',
-    name: 'Boogie Flash',
-  },
-  {
-    id: '73245',
-    name: 'Max Headroom',
-  },
-  {
-    id: '87345',
-    name: 'Pretty Boy Floyd',
-  },
-  {
-    id: '99267',
-    name: 'Marshall Law',
-  },
-];
-
-export const boatProfilesQueryKey = ['boatProfiles'];
-
-export async function getBoatProfiles() {
-  return boatProfiles;
-}
-
-export async function getBoatProfile(id: string) {
-  return boatProfiles.find(boatProfile => boatProfile.id === id) || null;
-}
-
-export function useBoatProfiles(
-  options?: UseSuspenseQueryOptions<
-    BoatProfile[],
-    Error,
-    BoatProfile[],
-    string[]
-  >
-) {
-  return useSuspenseQuery({
-    ...options,
-    queryKey: boatProfilesQueryKey,
-    queryFn: getBoatProfiles,
+export async function getBoatProfile(id: number) {
+  const profile = await db.query.boatProfile.findFirst({
+    where: eq(boatProfile.id, id),
   });
+  return profile ?? null;
+}
+
+export function useBoatProfiles() {
+  return useLiveQuery(
+    db.query.boatProfile.findMany({
+      orderBy: [asc(boatProfile.name)],
+    })
+  );
 }

@@ -12,22 +12,27 @@ import {
 import { Plus } from '~/lib/icons/Plus';
 import { useBoatProfile } from '../hooks/useBoatProfile';
 import { useBoatProfiles } from '../api/getBoatProfiles';
-import { BoatProfile } from '../types/boatProfile';
 import { useState } from 'react';
 import {
   BoatProfileFormValues,
   NewBoatProfileDialog,
 } from './NewBoatProfileDialog';
+import { useColorScheme } from '~/lib/useColorScheme';
+import { NAV_THEME } from '~/lib/constants';
+import { BoatProfile } from '../model/boatProfile';
+import { createBoatProfile } from '../api/createBoatProfile';
 
 function boatProfileToOption(boatProfile: BoatProfile | null): Option {
   if (!boatProfile) return undefined;
   return {
     label: boatProfile.name,
-    value: boatProfile.id,
+    value: `${boatProfile.id}`,
   };
 }
 
 export function BoatProfilePicker() {
+  const { isDarkColorScheme } = useColorScheme();
+
   const { boatProfile, setBoatProfile } = useBoatProfile();
   const { data: boatProfiles } = useBoatProfiles();
 
@@ -45,13 +50,14 @@ export function BoatProfilePicker() {
     }
 
     const boatProfile = boatProfiles.find(
-      profile => profile.id === option.value
+      profile => profile.id === parseInt(option.value)
     );
     setBoatProfile(boatProfile ?? null);
   }
 
-  function handleNewProfile(data: BoatProfileFormValues) {
-    console.log(data);
+  async function handleNewProfile(data: BoatProfileFormValues) {
+    const boatProfile = await createBoatProfile(data.name);
+    setBoatProfile(boatProfile);
   }
 
   return (
@@ -75,13 +81,21 @@ export function BoatProfilePicker() {
               <SelectItem
                 key={profile.id}
                 label={profile.name}
-                value={profile.id}
+                value={`${profile.id}`}
               />
             ))}
             <SelectItem
               label='New Profile'
               value='-1'
-              icon={<Plus />}
+              icon={
+                <Plus
+                  color={
+                    isDarkColorScheme
+                      ? NAV_THEME.dark.text
+                      : NAV_THEME.light.text
+                  }
+                />
+              }
               textClassName='italic'
             />
           </SelectGroup>

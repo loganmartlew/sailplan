@@ -1,9 +1,8 @@
 import { createContext, PropsWithChildren, useEffect, useState } from 'react';
-import { BoatProfile } from '../types/boatProfile';
-import { useMMKVString } from 'react-native-mmkv';
-import { get } from 'react-native/Libraries/TurboModule/TurboModuleRegistry';
+import { useMMKVNumber } from 'react-native-mmkv';
 import { getBoatProfile } from '../api/getBoatProfiles';
 import { ActivityIndicator, View } from 'react-native';
+import { BoatProfile } from '../model/boatProfile';
 
 export interface BoatProfileContextType {
   boatProfile: BoatProfile | null;
@@ -16,13 +15,13 @@ export const BoatProfileContext = createContext<BoatProfileContextType | null>(
 
 export function BoatProfileProvider({ children }: PropsWithChildren) {
   const [boatProfile, setBoatProfile] = useState<BoatProfile | null>(null);
-  const [kvBoatProfileID, setKVBoatProfileID] = useMMKVString('boatProfileID');
+  const [kvBoatProfileID, setKVBoatProfileID] = useMMKVNumber('boatProfileID');
 
   const [isLoading, setIsLoading] = useState(false);
 
   function updateBoatProfile(boatProfile: BoatProfile | null) {
     setBoatProfile(boatProfile);
-    setKVBoatProfileID(boatProfile?.id ?? '');
+    setKVBoatProfileID(boatProfile?.id ?? undefined);
   }
 
   useEffect(() => {

@@ -24,9 +24,17 @@ export function FormInput<TFieldValues extends FieldValues = FieldValues>({
     <Controller
       control={control}
       name={name}
-      render={({ field, fieldState: { error } }) => (
+      render={({
+        field: { onChange, onBlur, value },
+        fieldState: { error },
+      }) => (
         <FormControlWrapper label={label} name={name} error={error}>
-          <Input {...field} {...props} />
+          <Input
+            onChangeText={value => onChange(value)}
+            onBlur={onBlur}
+            value={value}
+            {...props}
+          />
         </FormControlWrapper>
       )}
     />
