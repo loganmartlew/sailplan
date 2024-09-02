@@ -11,7 +11,7 @@ import { View, ViewProps } from 'react-native';
 type FormProps = PropsWithChildren<ViewProps>;
 
 export function useForm<TFieldValues extends FieldValues = FieldValues>(
-  props: UseFormProps<TFieldValues>
+  props?: UseFormProps<TFieldValues>
 ): [FC<FormProps>, UseFormReturn<TFieldValues>] {
   const form = useHookForm<TFieldValues>(props);
 
