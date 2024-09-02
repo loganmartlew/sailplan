@@ -1,7 +1,7 @@
 import { Drawer } from 'expo-router/drawer';
 import { StyleSheet, View } from 'react-native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
-import { H2 } from '~/components/ui';
+import { H2, Text } from '~/components/ui';
 import { BoatProfilePicker } from '~/features/boatProfile';
 import { useBoatProfile } from '~/features/boatProfile/hooks/useBoatProfile';
 import { DrawerContent } from '~/features/navigation';
@@ -41,6 +41,9 @@ export default function AppLayout() {
                 isDarkColorScheme ? NAV_THEME.dark.text : NAV_THEME.light.text
               }
             />
+          ),
+          headerRight: () => (
+            <Text className='italic mr-4'>{boatProfile.name}</Text>
           ),
           drawerItemStyle: drawerStyles.drawerItem,
         }}

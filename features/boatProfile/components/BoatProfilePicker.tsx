@@ -22,17 +22,21 @@ function boatProfileToOption(boatProfile: BoatProfile | null): Option {
   };
 }
 
-function optionToBoatProfile(option: Option): BoatProfile | null {
-  if (!option) return null;
-  return {
-    id: option.value,
-    name: option.label,
-  };
-}
-
 export function BoatProfilePicker() {
   const { boatProfile, setBoatProfile } = useBoatProfile();
   const { data: boatProfiles } = useBoatProfiles();
+
+  function handleValueChange(option: Option) {
+    if (!option) {
+      setBoatProfile(null);
+      return;
+    }
+
+    const boatProfile = boatProfiles.find(
+      profile => profile.id === option.value
+    );
+    setBoatProfile(boatProfile ?? null);
+  }
 
   return (
     <View className='w-full'>
@@ -41,7 +45,7 @@ export function BoatProfilePicker() {
       </Label>
       <Select
         value={boatProfileToOption(boatProfile) ?? undefined}
-        onValueChange={option => setBoatProfile(optionToBoatProfile(option))}
+        onValueChange={handleValueChange}
       >
         <SelectTrigger>
           <SelectValue

@@ -30,7 +30,6 @@ export async function getBoatProfiles() {
 }
 
 export async function getBoatProfile(id: string) {
-  await new Promise(resolve => setTimeout(resolve, 3000));
   return boatProfiles.find(boatProfile => boatProfile.id === id) || null;
 }
 
