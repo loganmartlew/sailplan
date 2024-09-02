@@ -4,10 +4,11 @@ import {
   DrawerItem,
   DrawerItemList,
 } from '@react-navigation/drawer';
-import { View } from 'react-native';
+import { ActivityIndicator, View } from 'react-native';
 import { H1, Separator, Text } from '~/components/ui';
 import { BoatProfilePicker } from '../boatProfile';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { Suspense } from 'react';
 
 export function DrawerContent(props: DrawerContentComponentProps) {
   const { top } = useSafeAreaInsets();
@@ -17,7 +18,9 @@ export function DrawerContent(props: DrawerContentComponentProps) {
       <View>
         <H1>SailPlan</H1>
       </View>
-      <BoatProfilePicker />
+      <Suspense fallback={<ActivityIndicator size='large' />}>
+        <BoatProfilePicker />
+      </Suspense>
       <Separator />
       <View className='flex flex-col gap-2'>
         <DrawerItemList {...props} />

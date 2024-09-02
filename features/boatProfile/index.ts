@@ -1,1 +1,1 @@
-export * from './BoatProfilePicker';
+export * from './components/BoatProfilePicker';
