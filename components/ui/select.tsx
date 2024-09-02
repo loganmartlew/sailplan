@@ -165,12 +165,12 @@ const SelectItem = React.forwardRef<
     {...props}
   >
     <View className='absolute left-2 native:left-3.5 flex h-3.5 native:pt-px w-3.5 items-center justify-center'>
+      {icon}
       <SelectPrimitive.ItemIndicator>
         <Check size={16} strokeWidth={3} className='text-popover-foreground' />
       </SelectPrimitive.ItemIndicator>
     </View>
     <View className='flex gap-2 flex-row items-center'>
-      {icon}
       <SelectPrimitive.ItemText
         className={cn(
           'text-sm native:text-lg text-popover-foreground native:text-base web:group-focus:text-accent-foreground',

@@ -15,8 +15,9 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { BoatProfileProvider } from '~/features/boatProfile/context/BoatProfileContext';
 import { useMigrations } from 'drizzle-orm/expo-sqlite/migrator';
 import migrations from '~/drizzle/migrations';
-import { db } from '~/lib/db';
+import { db, expoDb } from '~/lib/db';
 import { Text } from '~/components/ui';
+import { useDrizzleStudio } from 'expo-drizzle-studio-plugin';
 
 const LIGHT_THEME: Theme = {
   dark: false,
@@ -39,6 +40,7 @@ const queryClient = new QueryClient();
 
 export default function RootLayout() {
   const { success, error } = useMigrations(db, migrations);
+  useDrizzleStudio(expoDb);
 
   const { colorScheme, setColorScheme, isDarkColorScheme } = useColorScheme();
   const [isColorSchemeLoaded, setIsColorSchemeLoaded] = React.useState(false);
@@ -74,21 +76,6 @@ export default function RootLayout() {
     return null;
   }
 
-  if (error) {
-    return (
-      <View>
-        <Text>Migration error: {error.message}</Text>
-      </View>
-    );
-  }
-  if (!success) {
-    return (
-      <View>
-        <Text>Migration is in progress...</Text>
-      </View>
-    );
-  }
-
   return (
     <QueryClientProvider client={queryClient}>
       <BoatProfileProvider>
@@ -101,7 +88,17 @@ export default function RootLayout() {
                 : NAV_THEME.light.background
             }
           />
-          <Slot />
+          {error && (
+            <View>
+              <Text>Migration error: {error.message}</Text>
+            </View>
+          )}
+          {!success && (
+            <View>
+              <Text>Migration is in progress...</Text>
+            </View>
+          )}
+          {!error && success && <Slot />}
           <PortalHost />
         </ThemeProvider>
       </BoatProfileProvider>

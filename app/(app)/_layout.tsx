@@ -24,7 +24,14 @@ export default function AppLayout() {
 
   if (!boatProfile)
     return (
-      <View className='flex-1 justify-center items-center px-10 py-5'>
+      <View
+        className='flex-1 justify-center items-center px-10 py-5'
+        style={{
+          backgroundColor: isDarkColorScheme
+            ? NAV_THEME.dark.background
+            : NAV_THEME.light.background,
+        }}
+      >
         <H2 className='text-center mb-4'>Select a Boat Profile</H2>
         <BoatProfilePicker />
       </View>

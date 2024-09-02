@@ -34,6 +34,7 @@
     "drizzle-orm": "^0.33.0",
     "expo": "~51.0.28",
     "expo-constants": "~16.0.2",
+    "expo-drizzle-studio-plugin": "^0.0.2",
     "expo-font": "~12.0.9",
     "expo-linking": "~6.3.1",
     "expo-navigation-bar": "~3.0.7",

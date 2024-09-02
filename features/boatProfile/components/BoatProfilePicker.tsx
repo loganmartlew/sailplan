@@ -89,6 +89,7 @@ export function BoatProfilePicker() {
               value='-1'
               icon={
                 <Plus
+                  size={18}
                   color={
                     isDarkColorScheme
                       ? NAV_THEME.dark.text
