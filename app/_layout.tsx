@@ -6,7 +6,7 @@ import { Theme, ThemeProvider } from '@react-navigation/native';
 import { Slot, SplashScreen } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import * as React from 'react';
-import { Platform, View } from 'react-native';
+import { Platform, StyleSheet, View } from 'react-native';
 import { NAV_THEME } from '~/lib/constants';
 import { useColorScheme } from '~/lib/useColorScheme';
 import { PortalHost } from '@rn-primitives/portal';
@@ -27,6 +27,18 @@ const DARK_THEME: Theme = {
   dark: true,
   colors: NAV_THEME.dark,
 };
+
+const getErrorStyles = (isDarkColorScheme: boolean) =>
+  StyleSheet.create({
+    container: {
+      backgroundColor: isDarkColorScheme
+        ? NAV_THEME.dark.background
+        : NAV_THEME.light.background,
+      flex: 1,
+      justifyContent: 'center',
+      alignItems: 'center',
+    },
+  });
 
 export {
   // Catch any errors thrown by the Layout component.
@@ -72,6 +84,12 @@ export default function RootLayout() {
     });
   }, []);
 
+  React.useEffect(() => {
+    if (error) {
+      console.error(error);
+    }
+  }, [error]);
+
   if (!isColorSchemeLoaded) {
     return null;
   }
@@ -89,12 +107,12 @@ export default function RootLayout() {
             }
           />
           {error && (
-            <View>
+            <View style={getErrorStyles(isDarkColorScheme).container}>
               <Text>Migration error: {error.message}</Text>
             </View>
           )}
-          {!success && (
-            <View>
+          {!error && !success && (
+            <View style={getErrorStyles(isDarkColorScheme).container}>
               <Text>Migration is in progress...</Text>
             </View>
           )}
