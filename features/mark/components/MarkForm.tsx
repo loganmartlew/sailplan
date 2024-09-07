@@ -1,4 +1,5 @@
 import { zodResolver } from '@hookform/resolvers/zod';
+import { router } from 'expo-router';
 import { set, SubmitHandler } from 'react-hook-form';
 import { View } from 'react-native';
 import { z } from 'zod';
@@ -40,6 +41,11 @@ export function MarkForm({ onFormSubmit, markValues }: MarkFormProps) {
     reset(defaultValues);
   };
 
+  const onCancel = () => {
+    router.back();
+    reset(defaultValues);
+  };
+
   return (
     <Form className='flex gap-5 grow'>
       <TextInput name='name' label='Name' required />
@@ -48,6 +54,9 @@ export function MarkForm({ onFormSubmit, markValues }: MarkFormProps) {
       <View className='grow' />
       <Button onPress={handleSubmit(onSubmit)}>
         <Text>Save Mark</Text>
+      </Button>
+      <Button variant='secondary' onPress={onCancel}>
+        <Text>Cancel</Text>
       </Button>
     </Form>
   );
