@@ -1,15 +1,21 @@
-import { Link } from 'expo-router';
+import { Link, router } from 'expo-router';
 import { Alert, View } from 'react-native';
 import { ItemList } from '~/components/ItemList';
 import { Button, H2, Separator, Text } from '~/components/ui';
-import { useMarks, Mark, MarkListItem } from '~/features/mark';
-import { deleteMark } from '~/features/mark/api/deleteMark';
+import { useMarks, Mark, MarkListItem, deleteMark } from '~/features/mark';
 import { useConfirm } from '~/hooks/useConfirm';
 import { Plus } from '~/lib/icons/Plus';
 
 export default function Marks() {
   const confirm = useConfirm();
-  const marks = useMarks();
+  const marksQuery = useMarks();
+
+  const onMarkEdit = (mark: Mark) => {
+    router.navigate({
+      pathname: '/(stack)/marks/[markId]',
+      params: { markId: mark.id.toString() },
+    });
+  };
 
   const onMarkDelete = async (mark: Mark) => {
     const proceed = await confirm({
@@ -38,9 +44,13 @@ export default function Marks() {
       </View>
       <Separator />
       <ItemList<Mark>
-        items={marks?.data}
+        items={marksQuery?.data}
         renderItem={mark => (
-          <MarkListItem mark={mark} onDelete={onMarkDelete} />
+          <MarkListItem
+            mark={mark}
+            onDelete={onMarkDelete}
+            onEdit={onMarkEdit}
+          />
         )}
         noItemsMessage='No marks found'
       />

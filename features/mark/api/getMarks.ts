@@ -18,3 +18,18 @@ export function useMarks() {
     })
   );
 }
+
+export async function getMark(id: number) {
+  const foundMark = await db.query.mark.findFirst({
+    where: eq(mark.id, id),
+  });
+  return foundMark ?? null;
+}
+
+export function useMark(id: number) {
+  return useLiveQuery(
+    db.query.mark.findFirst({
+      where: eq(mark.id, id),
+    })
+  );
+}

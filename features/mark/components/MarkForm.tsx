@@ -1,9 +1,9 @@
 import { zodResolver } from '@hookform/resolvers/zod';
-import { SubmitHandler } from 'react-hook-form';
+import { set, SubmitHandler } from 'react-hook-form';
 import { View } from 'react-native';
 import { z } from 'zod';
 import { TextInput, NumberInput } from '~/components/form';
-import { Button, Text } from '~/components/ui';
+import { Button, Input, Text } from '~/components/ui';
 import { useForm } from '~/hooks/useForm';
 
 const markFormSchema = z.object({
@@ -22,13 +22,18 @@ const defaultValues: Partial<MarkFormValues> = {
 
 interface MarkFormProps {
   onFormSubmit: (data: MarkFormValues) => void;
+  markValues?: Partial<MarkFormValues>;
 }
 
-export function MarkForm({ onFormSubmit }: MarkFormProps) {
-  const [Form, { handleSubmit, reset }] = useForm<MarkFormValues>({
-    resolver: zodResolver(markFormSchema),
-    defaultValues,
-  });
+export function MarkForm({ onFormSubmit, markValues }: MarkFormProps) {
+  const [Form, { handleSubmit, reset, watch, setValue }] =
+    useForm<MarkFormValues>({
+      resolver: zodResolver(markFormSchema),
+      defaultValues: {
+        ...defaultValues,
+        ...markValues,
+      },
+    });
 
   const onSubmit: SubmitHandler<MarkFormValues> = data => {
     onFormSubmit(data);
