@@ -56,7 +56,7 @@ export function BoatProfilePicker() {
   }
 
   async function handleNewProfile(data: BoatProfileFormValues) {
-    const boatProfile = await createBoatProfile(data.name);
+    const boatProfile = await createBoatProfile({ name: data.name });
     setBoatProfile(boatProfile);
   }
 

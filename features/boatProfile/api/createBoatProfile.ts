@@ -2,11 +2,9 @@ import { db } from '~/lib/db';
 import { BoatProfile, BoatProfileInsert } from '../model/boatProfile';
 import { boatProfile } from '~/schema';
 
-export async function createBoatProfile(name: string): Promise<BoatProfile> {
-  const boatProfileInsert: BoatProfileInsert = {
-    name,
-  };
-
+export async function createBoatProfile(
+  boatProfileInsert: BoatProfileInsert
+): Promise<BoatProfile> {
   const profiles = await db
     .insert(boatProfile)
     .values(boatProfileInsert)

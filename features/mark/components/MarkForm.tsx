@@ -20,16 +20,18 @@ const defaultValues: Partial<MarkFormValues> = {
   longitude: 0,
 };
 
-interface MarkFormProps {}
+interface MarkFormProps {
+  onFormSubmit: (data: MarkFormValues) => void;
+}
 
-export function MarkForm() {
+export function MarkForm({ onFormSubmit }: MarkFormProps) {
   const [Form, { handleSubmit, reset }] = useForm<MarkFormValues>({
     resolver: zodResolver(markFormSchema),
     defaultValues,
   });
 
   const onSubmit: SubmitHandler<MarkFormValues> = data => {
-    console.log(data);
+    onFormSubmit(data);
     reset(defaultValues);
   };
 
