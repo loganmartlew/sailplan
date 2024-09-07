@@ -1,12 +1,29 @@
 import { Link } from 'expo-router';
-import { View } from 'react-native';
+import { Alert, View } from 'react-native';
 import { ItemList } from '~/components/ItemList';
 import { Button, H2, Separator, Text } from '~/components/ui';
 import { useMarks, Mark, MarkListItem } from '~/features/mark';
+import { deleteMark } from '~/features/mark/api/deleteMark';
+import { useConfirm } from '~/hooks/useConfirm';
 import { Plus } from '~/lib/icons/Plus';
 
 export default function Marks() {
+  const confirm = useConfirm();
   const marks = useMarks();
+
+  const onMarkDelete = async (mark: Mark) => {
+    const proceed = await confirm({
+      title: 'Delete Mark',
+      message: `Are you sure you want to delete ${mark.name}?`,
+      confirmText: 'Delete',
+      cancelText: 'Cancel',
+      destructive: true,
+    });
+
+    if (!proceed) return;
+
+    await deleteMark(mark.id);
+  };
 
   return (
     <View className='p-7 flex gap-5'>
@@ -22,7 +39,9 @@ export default function Marks() {
       <Separator />
       <ItemList<Mark>
         items={marks?.data}
-        renderItem={mark => <MarkListItem mark={mark} />}
+        renderItem={mark => (
+          <MarkListItem mark={mark} onDelete={onMarkDelete} />
+        )}
         noItemsMessage='No marks found'
       />
     </View>
