@@ -1,10 +1,4 @@
-import {
-  Control,
-  Controller,
-  FieldValues,
-  Path,
-  useFormContext,
-} from 'react-hook-form';
+import { Controller, FieldValues, Path, useFormContext } from 'react-hook-form';
 import { Input, InputProps } from '../ui';
 import { FormControlWrapper } from './FormControlWrapper';
 

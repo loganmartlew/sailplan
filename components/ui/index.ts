@@ -5,3 +5,6 @@ export * from './typography';
 export * from './button';
 export * from './separator';
 export * from './input';
+export * from './dialog';
+export * from './toggle';
+export * from './toggle-group';

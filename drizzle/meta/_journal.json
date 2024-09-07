@@ -15,6 +15,13 @@
       "when": 1725691955928,
       "tag": "0001_mature_ser_duncan",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "6",
+      "when": 1725696213581,
+      "tag": "0002_free_thunderball",
+      "breakpoints": true
     }
   ]
 }

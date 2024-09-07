@@ -1,5 +1,5 @@
 import { Link, router } from 'expo-router';
-import { Alert, View } from 'react-native';
+import { View } from 'react-native';
 import { ItemList } from '~/components/ItemList';
 import { Button, H2, Separator, Text } from '~/components/ui';
 import { useMarks, Mark, MarkListItem, deleteMark } from '~/features/mark';

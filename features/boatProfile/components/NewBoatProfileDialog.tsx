@@ -1,15 +1,16 @@
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { TextInput } from '~/components/form';
-import { Button, Text } from '~/components/ui';
 import {
+  Button,
+  Text,
   Dialog,
   DialogContent,
   DialogDescription,
   DialogFooter,
   DialogHeader,
   DialogTitle,
-} from '~/components/ui/dialog';
+} from '~/components/ui';
 import { useForm } from '~/hooks/useForm';
 
 const boatProfileFormSchema = z.object({
