@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { SubmitHandler } from 'react-hook-form';
 import { View } from 'react-native';
 import { TextInput } from '~/components/form';
@@ -6,19 +7,28 @@ import { useForm } from '~/hooks/useForm';
 
 interface PlanForm {
   tws: number;
-  twa: number;
+  twd: number;
+  bearing: number;
 }
 
 export default function Index() {
+  const [twa, setTwa] = useState<number | null>(null);
+
   const [Form, { handleSubmit }] = useForm<PlanForm>({
     defaultValues: {
       tws: 0,
-      twa: 0,
+      twd: 0,
     },
   });
 
   const onSubmit: SubmitHandler<PlanForm> = data => {
-    console.log(data);
+    const { bearing, twd } = data;
+
+    let twa = Math.abs(twd - bearing);
+    if (twa > 180) {
+      twa = twa - 180;
+    }
+    setTwa(twa);
   };
 
   return (
@@ -31,13 +41,15 @@ export default function Index() {
           placeholder='14'
         />
         <TextInput<PlanForm>
-          label='True Wind Angle'
-          name='twa'
+          label='True Wind Direction'
+          name='twd'
           placeholder='150'
         />
+        <TextInput<PlanForm> label='Bearing' name='bearing' placeholder='150' />
         <Button onPress={handleSubmit(onSubmit)}>
           <Text>Find</Text>
         </Button>
+        {twa && <Text className='text-center'>TWA: {twa} degrees</Text>}
       </Form>
     </View>
   );
