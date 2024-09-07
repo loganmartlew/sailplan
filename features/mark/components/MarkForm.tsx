@@ -1,10 +1,10 @@
 import { zodResolver } from '@hookform/resolvers/zod';
 import { router } from 'expo-router';
-import { set, SubmitHandler } from 'react-hook-form';
+import { SubmitHandler } from 'react-hook-form';
 import { View } from 'react-native';
 import { z } from 'zod';
-import { TextInput, NumberInput } from '~/components/form';
-import { Button, Input, Text } from '~/components/ui';
+import { TextInput, CoordinateInput } from '~/components/form';
+import { Button, Text } from '~/components/ui';
 import { useForm } from '~/hooks/useForm';
 
 const markFormSchema = z.object({
@@ -27,14 +27,13 @@ interface MarkFormProps {
 }
 
 export function MarkForm({ onFormSubmit, markValues }: MarkFormProps) {
-  const [Form, { handleSubmit, reset, watch, setValue }] =
-    useForm<MarkFormValues>({
-      resolver: zodResolver(markFormSchema),
-      defaultValues: {
-        ...defaultValues,
-        ...markValues,
-      },
-    });
+  const [Form, { handleSubmit, reset }] = useForm<MarkFormValues>({
+    resolver: zodResolver(markFormSchema),
+    defaultValues: {
+      ...defaultValues,
+      ...markValues,
+    },
+  });
 
   const onSubmit: SubmitHandler<MarkFormValues> = data => {
     onFormSubmit(data);
@@ -49,8 +48,18 @@ export function MarkForm({ onFormSubmit, markValues }: MarkFormProps) {
   return (
     <Form className='flex gap-5 grow'>
       <TextInput name='name' label='Name' required />
-      <NumberInput name='latitude' label='Latitude' required />
-      <NumberInput name='longitude' label='Longitude' required />
+      <CoordinateInput
+        name='latitude'
+        field='latitude'
+        label='Latitude'
+        required
+      />
+      <CoordinateInput
+        name='longitude'
+        field='longitude'
+        label='Longitude'
+        required
+      />
       <View className='grow' />
       <Button onPress={handleSubmit(onSubmit)}>
         <Text>Save Mark</Text>
