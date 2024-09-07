@@ -68,16 +68,9 @@ export default function AppLayout() {
           }}
         />
         <Drawer.Screen
-          name='marks/index'
+          name='marks'
           options={{
             title: 'Marks',
-          }}
-        />
-        <Drawer.Screen
-          name='marks/(stack)'
-          options={{
-            title: 'Marks',
-            drawerItemStyle: { display: 'none' },
           }}
         />
       </Drawer>

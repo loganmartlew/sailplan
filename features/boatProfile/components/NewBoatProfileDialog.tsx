@@ -1,10 +1,9 @@
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { FormInput } from '~/components/form';
+import { TextInput } from '~/components/form';
 import { Button, Text } from '~/components/ui';
 import {
   Dialog,
-  DialogClose,
   DialogContent,
   DialogDescription,
   DialogFooter,
@@ -14,7 +13,7 @@ import {
 import { useForm } from '~/hooks/useForm';
 
 const boatProfileFormSchema = z.object({
-  name: z.string({ message: 'Name is required' }),
+  name: z.string({ message: 'Name is required' }).min(1, 'Name is required'),
 });
 
 export type BoatProfileFormValues = z.infer<typeof boatProfileFormSchema>;
@@ -58,7 +57,7 @@ export function NewBoatProfileDialog({
               Enter details to create a new Boat Profile.
             </DialogDescription>
           </DialogHeader>
-          <FormInput label='Name' name='name' />
+          <TextInput<BoatProfileFormValues> label='Name' name='name' />
           <DialogFooter>
             <Button variant='outline' onPress={onCancel}>
               <Text>Cancel</Text>
