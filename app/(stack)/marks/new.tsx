@@ -1,7 +1,7 @@
 import { router, Stack } from 'expo-router';
 import { View } from 'react-native';
 import { H2, Separator } from '~/components/ui';
-import { useBoatProfile } from '~/features/boatProfile/hooks/useBoatProfile';
+import { useBoatProfile } from '~/features/boatProfile';
 import { createMark, MarkForm, MarkFormValues } from '~/features/mark';
 
 export default function NewMark() {
