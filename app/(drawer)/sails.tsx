@@ -10,10 +10,17 @@ export default function Sails() {
   const confirm = useConfirm();
   const sailsQuery = useSails();
 
-  const onSailEdit = (sail: Sail) => {
+  const onSailPress = (sail: Sail) => {
     router.navigate({
       pathname: '/(stack)/sails/[sailId]',
       params: { sailId: sail.id.toString() },
+    });
+  };
+
+  const onSailEdit = (sail: Sail) => {
+    router.navigate({
+      pathname: '/(stack)/sails/[sailId]',
+      params: { sailId: sail.id.toString(), edit: 'true' },
     });
   };
 
@@ -50,6 +57,7 @@ export default function Sails() {
             sail={sail}
             onDelete={onSailDelete}
             onEdit={onSailEdit}
+            onPress={onSailPress}
           />
         )}
         noItemsMessage='No sails found'

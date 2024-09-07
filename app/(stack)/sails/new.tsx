@@ -21,12 +21,16 @@ export default function NewSail() {
     router.navigate('/(drawer)/sails');
   };
 
+  const onFormCancel = () => {
+    router.back();
+  };
+
   return (
     <View className='p-7 flex gap-5 h-full'>
       <Stack.Screen options={{ title: 'Sails' }} />
       <H2>New Sail</H2>
       <Separator />
-      <SailForm onFormSubmit={onFormSubmit} />
+      <SailForm onFormSubmit={onFormSubmit} onFormCancel={onFormCancel} />
     </View>
   );
 }

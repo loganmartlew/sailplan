@@ -1,11 +1,24 @@
 import { router, Stack, useLocalSearchParams } from 'expo-router';
+import { useState } from 'react';
 import { ActivityIndicator, View } from 'react-native';
-import { H2, Separator } from '~/components/ui';
-import { SailForm, SailFormValues, updateSail, useSail } from '~/features/sail';
+import { Button, H2, Separator } from '~/components/ui';
+import {
+  SailDetails,
+  SailForm,
+  SailFormValues,
+  updateSail,
+  useSail,
+} from '~/features/sail';
+import { Pencil } from '~/lib/icons/Pencil';
 
-export default function SailDetails() {
-  const { sailId } = useLocalSearchParams<{ sailId: string }>();
+export default function SailDetailsPage() {
+  const { sailId, edit } = useLocalSearchParams<{
+    sailId: string;
+    edit?: string;
+  }>();
   const { data: sail } = useSail(parseInt(sailId));
+
+  const [editMode, setEditMode] = useState(!!edit);
 
   const onFormSubmit = async (data: SailFormValues) => {
     if (!sail) {
@@ -19,7 +32,19 @@ export default function SailDetails() {
       symmetrical: data.symmetrical === 'symmetrical',
     });
 
-    router.navigate('/(drawer)/sails');
+    if (!!edit) {
+      router.navigate('/(drawer)/sails');
+    } else {
+      setEditMode(false);
+    }
+  };
+
+  const onFormCancel = () => {
+    if (!!edit) {
+      router.back();
+    } else {
+      setEditMode(false);
+    }
   };
 
   if (!sail) {
@@ -30,20 +55,34 @@ export default function SailDetails() {
     );
   }
 
+  const editSlot = (
+    <SailForm
+      onFormSubmit={onFormSubmit}
+      onFormCancel={onFormCancel}
+      sailValues={{
+        name: sail.name,
+        color: sail.color,
+        sailArea: sail.sailArea ?? undefined,
+        symmetrical: sail.symmetrical ? 'symmetrical' : 'asymmetrical',
+      }}
+    />
+  );
+
+  const detailsSlot = <SailDetails sail={sail} />;
+
   return (
     <View className='p-7 flex gap-5 h-full'>
       <Stack.Screen options={{ title: 'Sails' }} />
-      <H2>{sail.name}</H2>
+      <View className='flex flex-row justify-between'>
+        <H2>{sail.name}</H2>
+        {!editMode && (
+          <Button variant='ghost' size='icon' onPress={() => setEditMode(true)}>
+            <Pencil className='text-foreground' size={18} />
+          </Button>
+        )}
+      </View>
       <Separator />
-      <SailForm
-        onFormSubmit={onFormSubmit}
-        sailValues={{
-          name: sail.name,
-          color: sail.color,
-          sailArea: sail.sailArea ?? undefined,
-          symmetrical: sail.symmetrical ? 'symmetrical' : 'asymmetrical',
-        }}
-      />
+      {editMode ? editSlot : detailsSlot}
     </View>
   );
 }

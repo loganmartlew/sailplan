@@ -1,4 +1,4 @@
-import { View } from 'react-native';
+import { Pressable, View } from 'react-native';
 import { Sail } from '../model/sail';
 import { Button, H3 } from '~/components/ui';
 import { Pencil } from '~/lib/icons/Pencil';
@@ -8,11 +8,17 @@ interface SailListItemProps {
   sail: Sail;
   onEdit?: (sail: Sail) => void;
   onDelete?: (sail: Sail) => void;
+  onPress?: (sail: Sail) => void;
 }
 
-export function SailListItem({ sail, onEdit, onDelete }: SailListItemProps) {
-  return (
-    <View className='flex flex-row gap-3 justify-between'>
+export function SailListItem({
+  sail,
+  onEdit,
+  onDelete,
+  onPress,
+}: SailListItemProps) {
+  const content = (
+    <>
       <H3>{sail.name}</H3>
       <View className='flex flex-row gap-1'>
         {onEdit && (
@@ -26,6 +32,21 @@ export function SailListItem({ sail, onEdit, onDelete }: SailListItemProps) {
           </Button>
         )}
       </View>
-    </View>
+    </>
+  );
+
+  return (
+    <>
+      {onPress ? (
+        <Pressable
+          className='flex flex-row gap-3 justify-between'
+          onPress={() => onPress(sail)}
+        >
+          {content}
+        </Pressable>
+      ) : (
+        <View className='flex flex-row gap-3 justify-between'>{content}</View>
+      )}
+    </>
   );
 }

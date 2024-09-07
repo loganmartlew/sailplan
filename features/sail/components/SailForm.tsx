@@ -33,10 +33,15 @@ const defaultValues: Partial<SailFormValues> = {
 
 interface SailFormProps {
   onFormSubmit: (data: SailFormValues) => void;
+  onFormCancel: () => void;
   sailValues?: Partial<SailFormValues>;
 }
 
-export function SailForm({ onFormSubmit, sailValues }: SailFormProps) {
+export function SailForm({
+  onFormSubmit,
+  onFormCancel,
+  sailValues,
+}: SailFormProps) {
   const [Form, { handleSubmit, reset }] = useForm<SailFormValues>({
     resolver: zodResolver(sailFormSchema),
     defaultValues: {
@@ -51,7 +56,7 @@ export function SailForm({ onFormSubmit, sailValues }: SailFormProps) {
   };
 
   const onCancel = () => {
-    router.back();
+    onFormCancel();
     reset(defaultValues);
   };
 
