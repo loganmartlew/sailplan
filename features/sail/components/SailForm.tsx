@@ -11,6 +11,10 @@ const SailTypeEnum = z.enum(['asymmetrical', 'symmetrical'], {
   message: 'Sail type is required',
 });
 
+const RigTypeEnum = z.enum(['masthead', 'fractional'], {
+  message: 'Rig type is required',
+});
+
 const sailFormSchema = z.object({
   name: z.string({ message: 'Name is required' }).min(1, 'Name is required'),
   color: z
@@ -20,6 +24,7 @@ const sailFormSchema = z.object({
     .number({ message: 'Sail area is must be a number', coerce: true })
     .optional(),
   symmetrical: SailTypeEnum,
+  masthead: RigTypeEnum,
 });
 
 export type SailFormValues = z.infer<typeof sailFormSchema>;
@@ -29,6 +34,7 @@ const defaultValues: Partial<SailFormValues> = {
   color: '',
   sailArea: 0,
   symmetrical: 'symmetrical',
+  masthead: 'fractional',
 };
 
 interface SailFormProps {
@@ -67,9 +73,19 @@ export function SailForm({
       <NumberInput name='sailArea' label='Sail Area' />
       <ToggleGroup
         name='symmetrical'
+        label='Sail Type'
         options={[
           { label: 'Symmetrical', value: 'symmetrical' },
           { label: 'Asymmetrical', value: 'asymmetrical' },
+        ]}
+        growChildren
+      />
+      <ToggleGroup
+        name='masthead'
+        label='Rig Type'
+        options={[
+          { label: 'Fractional', value: 'fractional' },
+          { label: 'Masthead', value: 'masthead' },
         ]}
         growChildren
       />

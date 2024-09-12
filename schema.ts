@@ -25,6 +25,7 @@ export const sail = sqliteTable('sail', {
   symmetrical: integer('symmetrical', { mode: 'boolean' })
     .notNull()
     .default(false),
+  masthead: integer('masthead', { mode: 'boolean' }).notNull().default(false),
   boatProfileId: integer('boatProfileId')
     .notNull()
     .references(() => boatProfile.id),

@@ -1,0 +1,1 @@
+ALTER TABLE `sail` ADD `masthead` integer DEFAULT false NOT NULL;

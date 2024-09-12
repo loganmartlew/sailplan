@@ -30,6 +30,7 @@ export default function SailDetailsPage() {
       color: data.color,
       sailArea: data.sailArea,
       symmetrical: data.symmetrical === 'symmetrical',
+      masthead: data.masthead === 'masthead',
     });
 
     if (!!edit) {
@@ -64,6 +65,7 @@ export default function SailDetailsPage() {
         color: sail.color,
         sailArea: sail.sailArea ?? undefined,
         symmetrical: sail.symmetrical ? 'symmetrical' : 'asymmetrical',
+        masthead: sail.masthead ? 'masthead' : 'fractional',
       }}
     />
   );
