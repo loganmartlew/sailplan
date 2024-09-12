@@ -70,10 +70,7 @@ export function BoatProfilePicker() {
         onValueChange={handleValueChange}
       >
         <SelectTrigger>
-          <SelectValue
-            className='text-foreground text-sm native:text-lg'
-            placeholder='Select a Boat Profile'
-          />
+          <SelectValue placeholder='Select a Boat Profile' />
         </SelectTrigger>
         <SelectContent>
           <SelectGroup>

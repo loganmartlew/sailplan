@@ -7,6 +7,9 @@ import { ChevronDown } from '~/lib/icons/ChevronDown';
 import { ChevronUp } from '~/lib/icons/ChevronUp';
 import { cn } from '~/lib/utils';
 
+export interface SelectProps
+  extends React.ComponentPropsWithoutRef<typeof SelectPrimitive.Root> {}
+
 type Option = SelectPrimitive.Option;
 
 const Select = SelectPrimitive.Root;
