@@ -11,3 +11,8 @@ export interface Coordinate {
   latitude: number;
   longitude: number;
 }
+
+export interface TWA {
+  angle: number;
+  tack: 'port' | 'starboard' | null;
+}

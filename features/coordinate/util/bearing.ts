@@ -1,4 +1,4 @@
-import { Coordinate } from './types';
+import { Coordinate, TWA } from './types';
 
 const degreesToRadians = (degrees: number) => (degrees * Math.PI) / 180;
 
@@ -16,4 +16,31 @@ export function coordsToBearing(from: Coordinate, to: Coordinate): number {
   const brng = ((θ * 180) / Math.PI + 360) % 360; // in degrees
 
   return brng;
+}
+
+export function getTwa(twd: number, bearing: number): TWA {
+  // Normalize the angles to be between 0 and 360 degrees
+  const normalizedTWD = ((twd % 360) + 360) % 360;
+  const normalizedBearing = ((bearing % 360) + 360) % 360;
+
+  // Calculate the difference between TWD and bearing
+  let angle = normalizedTWD - normalizedBearing;
+
+  // Normalize the angle to the range of -180 to 180
+  if (angle > 180) {
+    angle -= 360;
+  } else if (angle < -180) {
+    angle += 360;
+  }
+
+  // Calculate absolute angle
+  const trueWindAngle = Math.abs(angle);
+
+  // Determine the tack
+  const tack: TWA['tack'] = angle > 0 ? 'starboard' : 'port';
+
+  return {
+    angle: trueWindAngle,
+    tack: trueWindAngle === 0 || trueWindAngle === 180 ? null : tack,
+  };
 }

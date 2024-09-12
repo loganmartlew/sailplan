@@ -2,7 +2,7 @@ import { SubmitHandler } from 'react-hook-form';
 import { View } from 'react-native';
 import { Option, SelectInput, TextInput } from '~/components/form';
 import { Button, H2, Text } from '~/components/ui';
-import { Coordinate, coordsToBearing } from '~/features/coordinate';
+import { Coordinate, coordsToBearing, getTwa } from '~/features/coordinate';
 import { Mark, useMarks } from '~/features/mark';
 import { useForm } from '~/hooks/useForm';
 
@@ -41,7 +41,9 @@ export default function Index() {
 
     const bearing = coordsToBearing(fromCoords, toCoords);
 
-    console.log('Bearing:', bearing);
+    const twa = getTwa(data.twd, bearing);
+
+    console.log(twa);
   };
 
   const markOptions: Option[] = marks?.map(mark => ({
