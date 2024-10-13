@@ -1,4 +1,5 @@
 import { zodResolver } from '@hookform/resolvers/zod';
+import { useRouter } from 'expo-router';
 import { SubmitHandler } from 'react-hook-form';
 import { View } from 'react-native';
 import { z } from 'zod';
@@ -17,11 +18,19 @@ function markToCoords(mark: Mark): Coordinate {
 
 const planFormSchema = z.object({
   tws: z
-    .number({ message: 'TWS must be a number', coerce: true })
+    .number({
+      required_error: 'TWS is required',
+      invalid_type_error: 'TWS must be a number',
+      coerce: true,
+    })
     .int()
     .min(0, 'TWS must be greater than 0'),
   twd: z
-    .number({ message: 'TWD must be a number', coerce: true })
+    .number({
+      required_error: 'TWD is required',
+      invalid_type_error: 'TWD must be a number',
+      coerce: true,
+    })
     .int()
     .min(0, 'TWD must be between 0 and 360')
     .max(360, 'TWD must be between 0 and 360'),
@@ -41,17 +50,11 @@ const planFormSchema = z.object({
 
 type PlanForm = z.infer<typeof planFormSchema>;
 
-export default function Index() {
+export default function PlanPage() {
   const { data: marks } = useMarks();
+  const router = useRouter();
 
-  const [
-    Form,
-    {
-      handleSubmit,
-      watch,
-      formState: { errors },
-    },
-  ] = useForm<PlanForm>({
+  const [Form, { handleSubmit }] = useForm<PlanForm>({
     resolver: zodResolver(planFormSchema),
     defaultValues: {
       tws: 0,
@@ -72,7 +75,7 @@ export default function Index() {
 
     const twa = getTwa(data.twd, bearing);
 
-    console.log(twa);
+    router.push('/(stack)/plan');
   };
 
   const markOptions: Option[] = marks?.map(mark => ({
