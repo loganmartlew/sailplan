@@ -53,7 +53,7 @@ export function SelectInput<TFieldValues extends FieldValues = FieldValues>({
             onValueChange={value => onChange(value)}
             {...props}
           >
-            <SelectTrigger onBlur={onBlur}>
+            <SelectTrigger onBlur={onBlur} error={!!error}>
               <SelectValue placeholder={placeholder ?? 'Choose an option'} />
             </SelectTrigger>
             <SelectContent>
