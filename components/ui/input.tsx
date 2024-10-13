@@ -22,7 +22,7 @@ const Input = React.forwardRef<React.ElementRef<typeof TextInput>, InputProps>(
       >
         <TextInput
           ref={ref}
-          className='flex-1 w-full h-full bg-transparent grow'
+          className='flex-1 w-full h-full bg-transparent grow text-foreground placeholder:text-muted-foreground'
           placeholderClassName={cn(
             'text-muted-foreground',
             placeholderClassName
