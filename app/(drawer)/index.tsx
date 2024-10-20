@@ -7,6 +7,7 @@ import { Option, SelectInput, TextInput, ToggleGroup } from '~/components/form';
 import { Button, H2, Separator, Text } from '~/components/ui';
 import { Coordinate, coordsToBearing, getTwa } from '~/features/coordinate';
 import { Mark, useMarks } from '~/features/mark';
+import { PlanData, serializePlanData } from '~/features/plan';
 import { useForm } from '~/hooks/useForm';
 
 function markToCoords(mark: Mark): Coordinate {
@@ -68,14 +69,19 @@ export default function PlanPage() {
 
     if (!fromMark || !toMark) return;
 
-    const fromCoords = markToCoords(fromMark);
-    const toCoords = markToCoords(toMark);
+    const planData: PlanData = {
+      tws: data.tws,
+      twd: data.twd,
+      from: fromMark,
+      to: toMark,
+    };
 
-    const bearing = coordsToBearing(fromCoords, toCoords);
+    const serializedPlanData = serializePlanData(planData);
 
-    const twa = getTwa(data.twd, bearing);
-
-    router.push('/(stack)/plan');
+    router.push({
+      pathname: '/(stack)/plan',
+      params: { planData: serializedPlanData },
+    });
   };
 
   const markOptions: Option[] = marks?.map(mark => ({
