@@ -9,3 +9,4 @@ export * from './dialog';
 export * from './toggle';
 export * from './toggle-group';
 export * from './badge';
+export * from './card';

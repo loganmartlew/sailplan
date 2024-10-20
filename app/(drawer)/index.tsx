@@ -3,19 +3,11 @@ import { useRouter } from 'expo-router';
 import { SubmitHandler } from 'react-hook-form';
 import { View } from 'react-native';
 import { z } from 'zod';
-import { Option, SelectInput, TextInput, ToggleGroup } from '~/components/form';
+import { Option, SelectInput, TextInput } from '~/components/form';
 import { Button, H2, Separator, Text } from '~/components/ui';
-import { Coordinate, coordsToBearing, getTwa } from '~/features/coordinate';
-import { Mark, useMarks } from '~/features/mark';
+import { useMarks } from '~/features/mark';
 import { PlanData, serializePlanData } from '~/features/plan';
 import { useForm } from '~/hooks/useForm';
-
-function markToCoords(mark: Mark): Coordinate {
-  return {
-    latitude: mark.latitude,
-    longitude: mark.longitude,
-  };
-}
 
 const planFormSchema = z.object({
   tws: z
