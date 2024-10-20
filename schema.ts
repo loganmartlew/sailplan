@@ -31,9 +31,27 @@ export const sail = sqliteTable('sail', {
     .references(() => boatProfile.id),
 });
 
-export const sailRelations = relations(sail, ({ one }) => ({
+export const sailRelations = relations(sail, ({ one, many }) => ({
   boatProfile: one(boatProfile, {
     fields: [sail.boatProfileId],
     references: [boatProfile.id],
+  }),
+  sailPolars: many(sailPolar),
+}));
+
+export const sailPolar = sqliteTable('sailPolar', {
+  id: integer('id').primaryKey(),
+  tws: real('tws').notNull(),
+  twa: real('twa').notNull(),
+  speed: real('speed').notNull(),
+  sailId: integer('sailId')
+    .notNull()
+    .references(() => sail.id),
+});
+
+export const sailPolarRelations = relations(sailPolar, ({ one }) => ({
+  sail: one(sail, {
+    fields: [sailPolar.sailId],
+    references: [sail.id],
   }),
 }));
