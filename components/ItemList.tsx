@@ -1,4 +1,4 @@
-import { ScrollView } from 'react-native-gesture-handler';
+import { ScrollView } from 'react-native';
 import { Text } from './ui';
 import { ReactNode } from 'react';
 import { View } from 'react-native';

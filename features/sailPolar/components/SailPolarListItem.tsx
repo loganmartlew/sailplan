@@ -18,6 +18,8 @@ export function SailPolarListItem({
       <View>
         <Text>TWA: {formatAngle(sailPolar.twa)}</Text>
         <Text>TWS: {formatSpeed(sailPolar.tws)}</Text>
+      </View>
+      <View>
         <Text>Boat Speed: {formatSpeed(sailPolar.speed)}</Text>
       </View>
       <View className='flex flex-row gap-1'>
