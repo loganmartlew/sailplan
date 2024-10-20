@@ -9,6 +9,7 @@ import {
   updateSail,
   useSail,
 } from '~/features/sail';
+import { SailPolars } from '~/features/sail/components/SailPolars';
 import { Pencil } from '~/lib/icons/Pencil';
 
 export default function SailDetailsPage() {
@@ -70,7 +71,12 @@ export default function SailDetailsPage() {
     />
   );
 
-  const detailsSlot = <SailDetails sail={sail} />;
+  const detailsSlot = (
+    <>
+      <SailDetails sail={sail} />
+      <SailPolars sail={sail} />
+    </>
+  );
 
   return (
     <View className='p-7 flex gap-5 h-full'>

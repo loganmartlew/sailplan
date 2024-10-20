@@ -3,11 +3,7 @@ import { useLiveQuery } from 'drizzle-orm/expo-sqlite';
 import { db } from '~/lib/db';
 import { sailPolar } from '~/schema';
 
-export function useSailPolars(sailId: number | null) {
-  if (!sailId) {
-    return null;
-  }
-
+export function useSailPolars(sailId: number) {
   return useLiveQuery(
     db.query.sailPolar.findMany({
       where: eq(sailPolar.sailId, sailId),
