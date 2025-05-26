@@ -16,6 +16,7 @@ type ToggleGroupProps<TFieldValues extends FieldValues = FieldValues> = Omit<
   name: Path<TFieldValues>;
   options: { label: string; value: string }[];
   growChildren?: boolean;
+  deselectable?: boolean;
 };
 
 export function ToggleGroup<TFieldValues extends FieldValues = FieldValues>({
@@ -23,6 +24,7 @@ export function ToggleGroup<TFieldValues extends FieldValues = FieldValues>({
   name,
   options,
   growChildren,
+  deselectable = false,
   ...props
 }: ToggleGroupProps<TFieldValues>) {
   const { control } = useFormContext<TFieldValues>();
@@ -30,16 +32,16 @@ export function ToggleGroup<TFieldValues extends FieldValues = FieldValues>({
     <Controller
       control={control}
       name={name}
-      render={({
-        field: { onChange, onBlur, value },
-        fieldState: { error },
-      }) => (
+      render={({ field: { onChange, value }, fieldState: { error } }) => (
         <FormControlWrapper label={label} name={name} error={error}>
           <BaseToggleGroup
             {...props}
             type='single'
             value={value}
-            onValueChange={value => onChange(value)}
+            onValueChange={value => {
+              if (!deselectable && !value) return;
+              onChange(value);
+            }}
           >
             {options.map(option => (
               <ToggleGroupItem

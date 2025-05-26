@@ -17,7 +17,7 @@ const drawerStyles = StyleSheet.create({
   },
 });
 
-export default function AppLayout() {
+export default function DrawerLayout() {
   const { isDarkColorScheme } = useColorScheme();
 
   const { boatProfile } = useBoatProfile();

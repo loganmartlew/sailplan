@@ -67,6 +67,8 @@ export function CoordinateForm({
 
   const coordFormat = watch('coordFormat');
 
+  console.log(coordFormat);
+
   const onSubmit = (data: CoordinateFormValues) => {
     const { degrees, minutes, seconds, coordFormat, compassDirection } = data;
 

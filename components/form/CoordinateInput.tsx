@@ -1,9 +1,12 @@
 import { Button } from '../ui';
 import { NumberInput, NumberInputProps } from './NumberInput';
 import { Pencil } from '~/lib/icons/Pencil';
-import { useState } from 'react';
+import { useState, lazy, Suspense } from 'react';
 import { useFormContext } from 'react-hook-form';
-import { CoordinateDialog } from '~/features/coordinate';
+
+const CoordinateDialog = lazy(() =>
+  import('~/features/coordinate').then(m => ({ default: m.CoordinateDialog }))
+);
 
 interface CoordinateInputProps extends NumberInputProps {
   field: 'latitude' | 'longitude';
@@ -30,13 +33,15 @@ export function CoordinateInput({ field, ...props }: CoordinateInputProps) {
         }
       />
       {open && (
-        <CoordinateDialog
-          field={field}
-          open={open}
-          onOpenChange={setOpen}
-          onFormSubmit={onFormSubmit}
-          decimalDegrees={`${value}`}
-        />
+        <Suspense>
+          <CoordinateDialog
+            field={field}
+            open={open}
+            onOpenChange={setOpen}
+            onFormSubmit={onFormSubmit}
+            decimalDegrees={`${value}`}
+          />
+        </Suspense>
       )}
     </>
   );

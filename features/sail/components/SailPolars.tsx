@@ -48,8 +48,6 @@ export function SailPolars({ sail }: SailPolarsProps) {
     });
   }
 
-  console.log(sailPolars);
-
   return (
     <View className='flex gap-5'>
       <View className='flex flex-row gap-3 items-center justify-between'>
