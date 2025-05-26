@@ -2,7 +2,7 @@ import { z } from 'zod';
 import { markSchema } from '~/features/mark';
 
 export const planDataSchema = z.object({
-  tws: z.number().int().min(0),
+  tws: z.number().int().min(0).optional(),
   twd: z.number().int().min(0).max(360),
   from: markSchema,
   to: markSchema,

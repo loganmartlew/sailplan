@@ -87,7 +87,9 @@ export default function PlanResults() {
         <CardContent>
           <View className='flex flex-row gap-2'>
             <Text className='text-lg w-[50%]'>TWS:</Text>
-            <Text className='text-lg w-[50%]'>{formatSpeed(planData.tws)}</Text>
+            <Text className='text-lg w-[50%]'>
+              {planData.tws ? formatSpeed(planData.tws) : '-'}
+            </Text>
           </View>
           <View className='flex flex-row gap-2'>
             <Text className='text-lg w-[50%]'>TWD:</Text>
