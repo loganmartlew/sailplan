@@ -2,7 +2,7 @@ import '~/global.css';
 import 'react-native-gesture-handler';
 
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { Theme, ThemeProvider } from '@react-navigation/native';
+import { Theme, ThemeProvider, DefaultTheme } from '@react-navigation/native';
 import { Slot, SplashScreen } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import * as React from 'react';
@@ -22,10 +22,12 @@ import { useDrizzleStudio } from 'expo-drizzle-studio-plugin';
 const LIGHT_THEME: Theme = {
   dark: false,
   colors: NAV_THEME.light,
+  fonts: DefaultTheme.fonts,
 };
 const DARK_THEME: Theme = {
   dark: true,
   colors: NAV_THEME.dark,
+  fonts: DefaultTheme.fonts,
 };
 
 const getErrorStyles = (isDarkColorScheme: boolean) =>
@@ -56,6 +58,8 @@ export default function RootLayout() {
 
   const { colorScheme, setColorScheme, isDarkColorScheme } = useColorScheme();
   const [isColorSchemeLoaded, setIsColorSchemeLoaded] = React.useState(false);
+
+  console.log('load app');
 
   React.useEffect(() => {
     (async () => {
