@@ -5,6 +5,7 @@ import { Button, H2, Separator, Text } from '~/components/ui';
 import { useMarks, Mark, MarkListItem, deleteMark } from '~/features/mark';
 import { useConfirm } from '~/hooks/useConfirm';
 import { Plus } from '~/lib/icons/Plus';
+import { MapPin } from '~/lib/icons/MapPin';
 
 export default function Marks() {
   const confirm = useConfirm();
@@ -34,7 +35,13 @@ export default function Marks() {
   return (
     <View className='p-7 flex gap-5'>
       <View className='flex gap-2'>
-        <H2>Marks</H2>
+        <View className='flex flex-row justify-between gap-2'>
+          <H2>Marks</H2>
+          <Button size='sm' variant='secondary' className='flex flex-row gap-1'>
+            <Text>View on map</Text>
+            <MapPin className='text-secondary-foreground' size={15} />
+          </Button>
+        </View>
         <Link href='/marks/new' asChild>
           <Button className='flex flex-row gap-2'>
             <Plus className='text-primary-foreground' />
