@@ -1,19 +1,20 @@
-import { Stack, useLocalSearchParams } from 'expo-router';
+import { Link, Stack, useLocalSearchParams } from 'expo-router';
 import { ActivityIndicator, View } from 'react-native';
 import {
   Badge,
+  Button,
   Card,
   CardContent,
   CardHeader,
   CardTitle,
   H2,
-  H3,
   Text,
 } from '~/components/ui';
 import { Coordinate, coordsToBearing, getTwa } from '~/features/coordinate';
 import { Mark, useMark } from '~/features/mark';
 import { deserializePlanData } from '~/features/plan';
 import { formatAngle, formatSpeed } from '~/lib/format';
+import { MapPin } from '~/lib/icons/MapPin';
 
 function markToCoords(mark: Mark): Coordinate {
   return {
@@ -115,6 +116,21 @@ export default function PlanResults() {
           </View>
         </CardContent>
       </Card>
+      <Link
+        href={{
+          pathname: '/marks/map',
+          params: {
+            fromMarkId: fromMark?.id.toString(),
+            toMarkId: toMark?.id.toString(),
+          },
+        }}
+        asChild
+      >
+        <Button size='lg' variant='secondary' className='flex flex-row gap-2'>
+          <Text>View on map</Text>
+          <MapPin className='text-secondary-foreground' size={18} />
+        </Button>
+      </Link>
     </View>
   );
 }

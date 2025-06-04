@@ -1,6 +1,7 @@
 import { Coordinate, TWA } from './types';
 
-const degreesToRadians = (degrees: number) => (degrees * Math.PI) / 180;
+export const degreesToRadians = (degrees: number) => (degrees * Math.PI) / 180;
+export const radiansToDegrees = (degrees: number) => (degrees * 180) / Math.PI;
 
 export function coordsToBearing(from: Coordinate, to: Coordinate): number {
   const φ1 = degreesToRadians(from.latitude);
