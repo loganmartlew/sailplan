@@ -87,9 +87,9 @@ android {
     buildToolsVersion rootProject.ext.buildToolsVersion
     compileSdk rootProject.ext.compileSdkVersion
 
-    namespace 'com.loganmartlew.sailplan'
+    namespace 'com.loganmartlew.sailplan.dev'
     defaultConfig {
-        applicationId 'com.loganmartlew.sailplan'
+        applicationId 'com.loganmartlew.sailplan.dev'
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
         versionCode 1

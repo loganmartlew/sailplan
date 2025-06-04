@@ -1,4 +1,4 @@
-package com.loganmartlew.sailplan
+package com.loganmartlew.sailplan.dev
 import expo.modules.splashscreen.SplashScreenManager
 
 import android.os.Build
