@@ -38,10 +38,16 @@
       "expo-sqlite",
       "expo-web-browser",
       [
-        "expo-maps",
+        "react-native-maps",
         {
-          "requestLocationPermission": true,
-          "locationPermission": "Allow SailPlan to use your location"
+          "iosGoogleMapsApiKey": "AIzaSyCjUdd7DzepEyKS3Jl2mFIX2i_U0cra69s",
+          "androidGoogleMapsApiKey": "AIzaSyCjUdd7DzepEyKS3Jl2mFIX2i_U0cra69s"
+        }
+      ],
+      [
+        "expo-location",
+        {
+          "locationAlwaysAndWhenInUsePermission": "Allow SailPlan to use your location."
         }
       ]
     ],
