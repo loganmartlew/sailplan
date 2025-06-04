@@ -37,10 +37,16 @@ export default function Marks() {
       <View className='flex gap-2'>
         <View className='flex flex-row justify-between gap-2'>
           <H2>Marks</H2>
-          <Button size='sm' variant='secondary' className='flex flex-row gap-1'>
-            <Text>View on map</Text>
-            <MapPin className='text-secondary-foreground' size={15} />
-          </Button>
+          <Link href='/marks/map' asChild>
+            <Button
+              size='sm'
+              variant='secondary'
+              className='flex flex-row gap-1'
+            >
+              <Text>View on map</Text>
+              <MapPin className='text-secondary-foreground' size={15} />
+            </Button>
+          </Link>
         </View>
         <Link href='/marks/new' asChild>
           <Button className='flex flex-row gap-2'>

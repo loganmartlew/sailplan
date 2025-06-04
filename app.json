@@ -20,7 +20,12 @@
         "foregroundImage": "./assets/images/adaptive-icon.png",
         "backgroundColor": "#ffffff"
       },
-      "package": "com.loganmartlew.sailplan"
+      "package": "com.loganmartlew.sailplan",
+      "config": {
+        "googleMaps": {
+          "apiKey": "AIzaSyCjUdd7DzepEyKS3Jl2mFIX2i_U0cra69s"
+        }
+      }
     },
     "web": {
       "bundler": "metro",
@@ -31,7 +36,14 @@
       "expo-router",
       "expo-font",
       "expo-sqlite",
-      "expo-web-browser"
+      "expo-web-browser",
+      [
+        "expo-maps",
+        {
+          "requestLocationPermission": true,
+          "locationPermission": "Allow SailPlan to use your location"
+        }
+      ]
     ],
     "experiments": {
       "typedRoutes": true
