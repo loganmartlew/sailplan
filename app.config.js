@@ -34,6 +34,10 @@ export default {
   android: {
     package: pkg,
     versionCode: 1,
+    adaptiveIcon: {
+      foregroundImage: './assets/images/adaptive-icon.png',
+      backgroundColor: '#ffffff',
+    },
     config: {
       googleMaps: {
         apiKey: 'AIzaSyCjUdd7DzepEyKS3Jl2mFIX2i_U0cra69s',
