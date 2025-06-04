@@ -19,8 +19,6 @@ export default function MarkMap() {
     );
   }
 
-  console.log(location);
-
   return (
     <View className='flex-1'>
       <Stack.Screen options={{ title: 'Marks' }} />
@@ -43,11 +41,13 @@ export default function MarkMap() {
             }}
             tappable={false}
           >
-            <View className='bg-primary px-2 py-1 rounded-md shadow-sm relative'>
-              <Text className='color-primary-foreground text-sm'>
-                {mark.name}
-              </Text>
-              <View className='bg-red absolute w-10 h-10 block top-20'></View>
+            <View className='relative overflow-visible pb-2'>
+              <View className='bg-primary px-2 py-1 rounded-md shadow-sm'>
+                <Text className='color-primary-foreground text-sm'>
+                  {mark.name}
+                </Text>
+              </View>
+              <View className='absolute w-5 h-5 bg-primary bottom-2 left-1 rotate-45' />
             </View>
           </Marker>
         ))}
