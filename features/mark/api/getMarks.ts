@@ -11,6 +11,14 @@ export function useMarks() {
   );
 }
 
+export function useMark(id: number) {
+  return useLiveQuery(
+    db.query.mark.findFirst({
+      where: eq(mark.id, id),
+    })
+  );
+}
+
 export async function getMark(id: number) {
   const foundMark = await db.query.mark.findFirst({
     where: eq(mark.id, id),
@@ -18,10 +26,9 @@ export async function getMark(id: number) {
   return foundMark ?? null;
 }
 
-export function useMark(id: number) {
-  return useLiveQuery(
-    db.query.mark.findFirst({
-      where: eq(mark.id, id),
-    })
-  );
+export async function getMarks() {
+  const marks = await db.query.mark.findMany({
+    orderBy: [asc(mark.name)],
+  });
+  return marks;
 }

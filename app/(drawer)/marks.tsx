@@ -2,14 +2,24 @@ import { Link, router } from 'expo-router';
 import { View } from 'react-native';
 import { ItemList } from '~/components/ItemList';
 import { Button, H2, Separator, Text } from '~/components/ui';
-import { useMarks, Mark, MarkListItem, deleteMark } from '~/features/mark';
+import {
+  useMarks,
+  Mark,
+  MarkListItem,
+  deleteMark,
+  MarkShareDialog,
+} from '~/features/mark';
 import { useConfirm } from '~/hooks/useConfirm';
 import { Plus } from '~/lib/icons/Plus';
 import { MapPin } from '~/lib/icons/MapPin';
+import { Share2 } from '~/lib/icons/Share2';
+import { useState } from 'react';
 
 export default function Marks() {
   const confirm = useConfirm();
   const marksQuery = useMarks();
+
+  const [shareDialogOpen, setShareDialogOpen] = useState(false);
 
   const onMarkEdit = (mark: Mark) => {
     router.navigate({
@@ -54,6 +64,14 @@ export default function Marks() {
             <Text>New Mark</Text>
           </Button>
         </Link>
+        <Button
+          className='flex flex-row gap-2'
+          variant='secondary'
+          onPress={() => setShareDialogOpen(true)}
+        >
+          <Share2 className='text-secondary-foreground' />
+          <Text>Share</Text>
+        </Button>
       </View>
       <Separator />
       <ItemList<Mark>
@@ -66,6 +84,10 @@ export default function Marks() {
           />
         )}
         noItemsMessage='No marks found'
+      />
+      <MarkShareDialog
+        open={shareDialogOpen}
+        onOpenChange={val => setShareDialogOpen(val)}
       />
     </View>
   );

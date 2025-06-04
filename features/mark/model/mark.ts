@@ -10,3 +10,9 @@ export const markSchema: z.ZodType<Mark> = z.object({
   latitude: z.number(),
   longitude: z.number(),
 });
+
+export const markInsertSchema: z.ZodType<MarkInsert> = z.object({
+  name: z.string(),
+  latitude: z.number(),
+  longitude: z.number(),
+});

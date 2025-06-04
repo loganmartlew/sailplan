@@ -5,3 +5,5 @@ export * from './api/updateMark';
 export * from './api/deleteMark';
 export * from './model/mark';
 export * from './components/MarkListItem';
+export * from './util/sharing';
+export * from './components/MarkShareDialog';

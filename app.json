@@ -37,6 +37,8 @@
       "expo-font",
       "expo-sqlite",
       "expo-web-browser",
+      "expo-file-system",
+      "expo-document-picker",
       [
         "react-native-maps",
         {
