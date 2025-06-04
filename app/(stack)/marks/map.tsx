@@ -30,8 +30,8 @@ export default function MarkMap() {
         initialRegion={{
           latitude: location?.coords.latitude || 0,
           longitude: location?.coords.longitude || 0,
-          latitudeDelta: 0.0922,
-          longitudeDelta: 0.0421,
+          latitudeDelta: 0.15,
+          longitudeDelta: 0.05,
         }}
       >
         {marksQuery.data?.map(mark => (
@@ -43,10 +43,11 @@ export default function MarkMap() {
             }}
             tappable={false}
           >
-            <View className='bg-primary px-2 py-1 rounded-md shadow-sm'>
+            <View className='bg-primary px-2 py-1 rounded-md shadow-sm relative'>
               <Text className='color-primary-foreground text-sm'>
                 {mark.name}
               </Text>
+              <View className='bg-red absolute w-10 h-10 block top-20'></View>
             </View>
           </Marker>
         ))}
