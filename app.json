@@ -1,36 +1,29 @@
 {
   "expo": {
-    "name": "sailplan",
+    "name": "SailPlan",
     "slug": "sailplan",
     "version": "1.0.0",
+    "owner": "loganmartlew",
+    "description": "An app for checking angles between marks, and selecting the best sail.",
+    "githubUrl": "https://github.com/loganmartlew/sailplan",
+    "platforms": ["android"],
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
-    "scheme": "myapp",
+    "scheme": "sailplan",
     "userInterfaceStyle": "automatic",
     "splash": {
       "image": "./assets/images/splash.png",
       "resizeMode": "contain",
       "backgroundColor": "#ffffff"
     },
-    "ios": {
-      "supportsTablet": true
-    },
     "android": {
-      "adaptiveIcon": {
-        "foregroundImage": "./assets/images/adaptive-icon.png",
-        "backgroundColor": "#ffffff"
-      },
       "package": "com.loganmartlew.sailplan",
+      "versionCode": 1,
       "config": {
         "googleMaps": {
           "apiKey": "AIzaSyCjUdd7DzepEyKS3Jl2mFIX2i_U0cra69s"
         }
       }
-    },
-    "web": {
-      "bundler": "metro",
-      "output": "static",
-      "favicon": "./assets/images/favicon.png"
     },
     "plugins": [
       "expo-router",
@@ -63,7 +56,6 @@
       "eas": {
         "projectId": "8ac3f863-10b2-4947-9af6-b0893ac0d10c"
       }
-    },
-    "owner": "loganmartlew"
+    }
   }
 }
