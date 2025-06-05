@@ -18,7 +18,11 @@ export default function MarkDetails() {
       longitude: data.longitude,
     });
 
-    router.navigate('/(drawer)/marks');
+    router.dismissTo('/marks');
+  };
+
+  const onFormCancel = () => {
+    router.dismissTo('/marks');
   };
 
   if (!mark) {
@@ -31,11 +35,11 @@ export default function MarkDetails() {
 
   return (
     <View className='p-7 flex gap-5 h-full'>
-      <Stack.Screen options={{ title: 'Marks' }} />
       <H2>{mark.name}</H2>
       <Separator />
       <MarkForm
         onFormSubmit={onFormSubmit}
+        onFormCancel={onFormCancel}
         markValues={{
           name: mark.name,
           latitude: mark.latitude,

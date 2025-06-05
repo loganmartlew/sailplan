@@ -3,7 +3,7 @@ import 'react-native-gesture-handler';
 
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Theme, ThemeProvider, DefaultTheme } from '@react-navigation/native';
-import { Slot, SplashScreen } from 'expo-router';
+import { SplashScreen } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import * as React from 'react';
 import { Platform, StyleSheet, View } from 'react-native';
@@ -16,8 +16,13 @@ import { BoatProfileProvider } from '~/features/boatProfile/context/BoatProfileC
 import { useMigrations } from 'drizzle-orm/expo-sqlite/migrator';
 import migrations from '~/drizzle/migrations';
 import { db, expoDb } from '~/lib/db';
-import { Text } from '~/components/ui';
+import { H2, Text } from '~/components/ui';
 import { useDrizzleStudio } from 'expo-drizzle-studio-plugin';
+import { BoatProfilePicker, useBoatProfile } from '~/features/boatProfile';
+import { GestureHandlerRootView } from 'react-native-gesture-handler';
+import Drawer from 'expo-router/drawer';
+import { BoatProfileLabel, DrawerContent } from '~/features/navigation';
+import { SafeAreaView } from 'react-native-safe-area-context';
 
 const LIGHT_THEME: Theme = {
   dark: false,
@@ -52,7 +57,7 @@ SplashScreen.preventAutoHideAsync();
 
 const queryClient = new QueryClient();
 
-export default function RootLayout() {
+export default function RootLayoutLogic() {
   const { success, error } = useMigrations(db, migrations);
   useDrizzleStudio(expoDb);
 
@@ -118,10 +123,71 @@ export default function RootLayout() {
               <Text>Migration is in progress...</Text>
             </View>
           )}
-          {!error && success && <Slot />}
+          {!error && success && <RootLayout />}
           <PortalHost />
         </ThemeProvider>
       </BoatProfileProvider>
     </QueryClientProvider>
+  );
+}
+
+const drawerStyles = StyleSheet.create({
+  drawerItem: {
+    marginHorizontal: 0,
+    marginVertical: 0,
+    marginBottom: 4,
+  },
+});
+
+function RootLayout() {
+  const { isDarkColorScheme } = useColorScheme();
+  const { boatProfile } = useBoatProfile();
+
+  if (!boatProfile)
+    return (
+      <View
+        className='flex-1 justify-center items-center px-10 py-5'
+        style={{
+          backgroundColor: isDarkColorScheme
+            ? NAV_THEME.dark.background
+            : NAV_THEME.light.background,
+        }}
+      >
+        <H2 className='text-center mb-4'>Select a Boat Profile</H2>
+        <BoatProfilePicker />
+      </View>
+    );
+
+  return (
+    <GestureHandlerRootView style={{ flex: 1 }}>
+      <SafeAreaView style={{ flex: 1 }}>
+        <Drawer
+          drawerContent={DrawerContent}
+          screenOptions={{
+            headerShown: false,
+            drawerItemStyle: drawerStyles.drawerItem,
+          }}
+        >
+          <Drawer.Screen
+            name='(plan)'
+            options={{
+              title: 'Plan',
+            }}
+          />
+          <Drawer.Screen
+            name='sails'
+            options={{
+              title: 'Sails',
+            }}
+          />
+          <Drawer.Screen
+            name='marks'
+            options={{
+              title: 'Marks',
+            }}
+          />
+        </Drawer>
+      </SafeAreaView>
+    </GestureHandlerRootView>
   );
 }

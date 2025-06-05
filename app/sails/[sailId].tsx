@@ -35,7 +35,7 @@ export default function SailDetailsPage() {
     });
 
     if (!!edit) {
-      router.navigate('/(drawer)/sails');
+      router.dismissTo('/sails');
     } else {
       setEditMode(false);
     }
@@ -43,7 +43,7 @@ export default function SailDetailsPage() {
 
   const onFormCancel = () => {
     if (!!edit) {
-      router.back();
+      router.dismissTo('/sails');
     } else {
       setEditMode(false);
     }
@@ -80,7 +80,6 @@ export default function SailDetailsPage() {
 
   return (
     <View className='p-7 flex gap-5 h-full'>
-      <Stack.Screen options={{ title: 'Sails' }} />
       <View className='flex flex-row justify-between'>
         <H2>{sail.name}</H2>
         {!editMode && (

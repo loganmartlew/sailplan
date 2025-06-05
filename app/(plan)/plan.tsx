@@ -43,7 +43,6 @@ export default function PlanResults() {
   if (isLoading) {
     return (
       <View className='p-10'>
-        <Stack.Screen options={{ title: 'Plan Results' }} />
         <ActivityIndicator />
       </View>
     );
@@ -53,7 +52,6 @@ export default function PlanResults() {
     console.error(fromMarkError, toMarkError);
     return (
       <View>
-        <Stack.Screen options={{ title: 'Plan Results' }} />
         <Text>Error loading data</Text>
       </View>
     );
@@ -62,7 +60,6 @@ export default function PlanResults() {
   if (!bearing || !twa) {
     return (
       <View>
-        <Stack.Screen options={{ title: 'Plan Results' }} />
         <Text>Error calculating bearing and twa</Text>
       </View>
     );
@@ -70,7 +67,6 @@ export default function PlanResults() {
 
   return (
     <View className='p-7 flex gap-5 h-full'>
-      <Stack.Screen options={{ title: 'Plan Results' }} />
       <H2>Plan Results</H2>
       <View className='flex flex-row gap-2 items-center'>
         <Badge variant='secondary' className='flex-grow'>
@@ -124,6 +120,7 @@ export default function PlanResults() {
             toMarkId: toMark?.id.toString(),
           },
         }}
+        push
         asChild
       >
         <Button size='lg' variant='secondary' className='flex flex-row gap-2'>

@@ -22,8 +22,8 @@ export default function Marks() {
   const [shareDialogOpen, setShareDialogOpen] = useState(false);
 
   const onMarkEdit = (mark: Mark) => {
-    router.navigate({
-      pathname: '/(stack)/marks/[markId]',
+    router.push({
+      pathname: '/marks/[markId]',
       params: { markId: mark.id.toString() },
     });
   };
@@ -47,7 +47,7 @@ export default function Marks() {
       <View className='flex gap-2'>
         <View className='flex flex-row justify-between gap-2'>
           <H2>Marks</H2>
-          <Link href='/marks/map' asChild>
+          <Link href='/marks/map' push asChild>
             <Button
               size='sm'
               variant='secondary'
@@ -58,7 +58,7 @@ export default function Marks() {
             </Button>
           </Link>
         </View>
-        <Link href='/marks/new' asChild>
+        <Link href='/marks/new' push asChild>
           <Button className='flex flex-row gap-2'>
             <Plus className='text-primary-foreground' />
             <Text>New Mark</Text>

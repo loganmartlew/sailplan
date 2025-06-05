@@ -1,5 +1,5 @@
 import { Stack, useLocalSearchParams } from 'expo-router';
-import { View } from 'react-native';
+import { ActivityIndicator, View } from 'react-native';
 import { useMemo } from 'react';
 import { useMarks } from '~/features/mark';
 import { useGeoLocation } from '~/hooks/useGeoLocation';
@@ -53,8 +53,7 @@ export default function MarkMap() {
   if (loading) {
     return (
       <View className='flex-1 justify-center items-center'>
-        <Stack.Screen options={{ title: 'Marks' }} />
-        <Text>Loading...</Text>
+        <ActivityIndicator />
       </View>
     );
   }
@@ -63,11 +62,12 @@ export default function MarkMap() {
     <View className='flex-1'>
       <Stack.Screen
         options={{
-          title: 'Marks',
-          headerRight: () =>
-            fromMark && toMark ? (
-              <Text className='italic float-end'>{`${fromMark.name} - ${toMark.name}`}</Text>
-            ) : null,
+          headerRight:
+            fromMark && toMark
+              ? () => (
+                  <Text className='italic float-end'>{`${fromMark.name} - ${toMark.name}`}</Text>
+                )
+              : undefined,
         }}
       />
       <MapView

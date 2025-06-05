@@ -192,7 +192,7 @@ const SelectItem = React.forwardRef<
     <View className='flex gap-2 flex-row items-center'>
       <SelectPrimitive.ItemText
         className={cn(
-          'text-sm native:text-lg text-popover-foreground native:text-base web:group-focus:text-accent-foreground',
+          'text-sm native:text-lg text-popover-foreground web:group-focus:text-accent-foreground',
           textClassName
         )}
       />

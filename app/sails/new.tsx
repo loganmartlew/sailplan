@@ -18,16 +18,15 @@ export default function NewSail() {
       boatProfileId: boatProfile.id,
     });
 
-    router.navigate('/(drawer)/sails');
+    router.dismissTo('/sails');
   };
 
   const onFormCancel = () => {
-    router.back();
+    router.dismissTo('/sails');
   };
 
   return (
     <View className='p-7 flex gap-5 h-full'>
-      <Stack.Screen options={{ title: 'Sails' }} />
       <H2>New Sail</H2>
       <Separator />
       <SailForm onFormSubmit={onFormSubmit} onFormCancel={onFormCancel} />

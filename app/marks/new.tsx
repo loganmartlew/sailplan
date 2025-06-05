@@ -11,7 +11,11 @@ export default function NewMark() {
       longitude: data.longitude,
     });
 
-    router.navigate('/(drawer)/marks');
+    router.dismissTo('/marks');
+  };
+
+  const onFormCancel = () => {
+    router.dismissTo('/marks');
   };
 
   return (
@@ -19,7 +23,7 @@ export default function NewMark() {
       <Stack.Screen options={{ title: 'Marks' }} />
       <H2>New Mark</H2>
       <Separator />
-      <MarkForm onFormSubmit={onFormSubmit} />
+      <MarkForm onFormSubmit={onFormSubmit} onFormCancel={onFormCancel} />
     </View>
   );
 }

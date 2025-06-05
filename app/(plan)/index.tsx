@@ -76,7 +76,7 @@ export default function PlanPage() {
     });
 
     router.push({
-      pathname: '/(stack)/plan',
+      pathname: '/plan',
       params: { planData: serializedPlanData },
     });
   };

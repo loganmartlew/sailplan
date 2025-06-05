@@ -23,10 +23,15 @@ const defaultValues: Partial<MarkFormValues> = {
 
 interface MarkFormProps {
   onFormSubmit: (data: MarkFormValues) => void;
+  onFormCancel: () => void;
   markValues?: Partial<MarkFormValues>;
 }
 
-export function MarkForm({ onFormSubmit, markValues }: MarkFormProps) {
+export function MarkForm({
+  onFormSubmit,
+  onFormCancel,
+  markValues,
+}: MarkFormProps) {
   const [Form, { handleSubmit, reset }] = useForm<MarkFormValues>({
     resolver: zodResolver(markFormSchema),
     defaultValues: {
@@ -41,7 +46,7 @@ export function MarkForm({ onFormSubmit, markValues }: MarkFormProps) {
   };
 
   const onCancel = () => {
-    router.back();
+    onFormCancel();
     reset(defaultValues);
   };
 

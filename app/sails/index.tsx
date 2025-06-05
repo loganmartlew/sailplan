@@ -11,15 +11,15 @@ export default function Sails() {
   const sailsQuery = useSails();
 
   const onSailPress = (sail: Sail) => {
-    router.navigate({
-      pathname: '/(stack)/sails/[sailId]',
+    router.push({
+      pathname: '/sails/[sailId]',
       params: { sailId: sail.id.toString() },
     });
   };
 
   const onSailEdit = (sail: Sail) => {
-    router.navigate({
-      pathname: '/(stack)/sails/[sailId]',
+    router.push({
+      pathname: '/sails/[sailId]',
       params: { sailId: sail.id.toString(), edit: 'true' },
     });
   };
@@ -42,7 +42,7 @@ export default function Sails() {
     <View className='p-7 flex gap-5'>
       <View className='flex gap-2'>
         <H2>Sails</H2>
-        <Link href='/sails/new' asChild>
+        <Link href='/sails/new' push asChild>
           <Button className='flex flex-row gap-2'>
             <Plus className='text-primary-foreground' />
             <Text>New Sail</Text>
