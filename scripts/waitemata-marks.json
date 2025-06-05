@@ -1,0 +1,288 @@
+[
+  {
+    "name": "Westhaven",
+    "latitude": {
+      "deg": -36,
+      "min": 49.9
+    },
+    "longitude": {
+      "deg": 174,
+      "min": 44.91
+    }
+  },
+  {
+    "name": "Bayswater",
+    "latitude": {
+      "deg": -36,
+      "min": 49.78
+    },
+    "longitude": {
+      "deg": 174,
+      "min": 45.77
+    }
+  },
+  {
+    "name": "Stanley Point",
+    "latitude": {
+      "deg": -36,
+      "min": 49.85
+    },
+    "longitude": {
+      "deg": 174,
+      "min": 46.59
+    }
+  },
+  {
+    "name": "Devonport",
+    "latitude": {
+      "deg": -36,
+      "min": 50.0
+    },
+    "longitude": {
+      "deg": 174,
+      "min": 47.4
+    }
+  },
+  {
+    "name": "Torpedo Bay",
+    "latitude": {
+      "deg": -36,
+      "min": 50.11
+    },
+    "longitude": {
+      "deg": 174,
+      "min": 48.38
+    }
+  },
+  {
+    "name": "North Head",
+    "latitude": {
+      "deg": -36,
+      "min": 49.63
+    },
+    "longitude": {
+      "deg": 174,
+      "min": 49.08
+    }
+  },
+  {
+    "name": "Rough Rock",
+    "latitude": {
+      "deg": -36,
+      "min": 49.07
+    },
+    "longitude": {
+      "deg": 174,
+      "min": 49.5
+    }
+  },
+  {
+    "name": "Narrow Neck",
+    "latitude": {
+      "deg": -36,
+      "min": 47.83
+    },
+    "longitude": {
+      "deg": 174,
+      "min": 48.51
+    }
+  },
+  {
+    "name": "Cable",
+    "latitude": {
+      "deg": -36,
+      "min": 47.61
+    },
+    "longitude": {
+      "deg": 174,
+      "min": 47.28
+    }
+  },
+  {
+    "name": "McKenzie",
+    "latitude": {
+      "deg": -36,
+      "min": 46.84
+    },
+    "longitude": {
+      "deg": 174,
+      "min": 49.05
+    }
+  },
+  {
+    "name": "Salt Works",
+    "latitude": {
+      "deg": -36,
+      "min": 47.8
+    },
+    "longitude": {
+      "deg": 174,
+      "min": 49.36
+    }
+  },
+  {
+    "name": "Flax Point",
+    "latitude": {
+      "deg": -36,
+      "min": 48.41
+    },
+    "longitude": {
+      "deg": 174,
+      "min": 49.95
+    }
+  },
+  {
+    "name": "Rangitoto",
+    "latitude": {
+      "deg": -36,
+      "min": 48.8
+    },
+    "longitude": {
+      "deg": 174,
+      "min": 50.84
+    }
+  },
+  {
+    "name": "Northern Leading",
+    "latitude": {
+      "deg": -36,
+      "min": 49.33
+    },
+    "longitude": {
+      "deg": 174,
+      "min": 50.6
+    }
+  },
+  {
+    "name": "Bean Rock",
+    "latitude": {
+      "deg": -36,
+      "min": 50.19
+    },
+    "longitude": {
+      "deg": 174,
+      "min": 49.63
+    }
+  },
+  {
+    "name": "Bastion",
+    "latitude": {
+      "deg": -36,
+      "min": 50.41
+    },
+    "longitude": {
+      "deg": 174,
+      "min": 49.36
+    }
+  },
+  {
+    "name": "Orakei",
+    "latitude": {
+      "deg": -36,
+      "min": 50.54
+    },
+    "longitude": {
+      "deg": 174,
+      "min": 48.72
+    }
+  },
+  {
+    "name": "Resolution",
+    "latitude": {
+      "deg": -36,
+      "min": 50.66
+    },
+    "longitude": {
+      "deg": 174,
+      "min": 47.89
+    }
+  },
+  {
+    "name": "Chelsea",
+    "latitude": {
+      "deg": -36,
+      "min": 49.68
+    },
+    "longitude": {
+      "deg": 174,
+      "min": 43.8
+    }
+  },
+  {
+    "name": "Meola",
+    "latitude": {
+      "deg": -36,
+      "min": 49.81
+    },
+    "longitude": {
+      "deg": 174,
+      "min": 42.66
+    }
+  },
+  {
+    "name": "Gulf Harbour",
+    "latitude": {
+      "deg": -36,
+      "min": 39.13
+    },
+    "longitude": {
+      "deg": 174,
+      "min": 48.03
+    }
+  },
+  {
+    "name": "Torbay",
+    "latitude": {
+      "deg": -36,
+      "min": 42.5
+    },
+    "longitude": {
+      "deg": 174,
+      "min": 47.3
+    }
+  },
+  {
+    "name": "Illomama",
+    "latitude": {
+      "deg": -36,
+      "min": 48.7
+    },
+    "longitude": {
+      "deg": 174,
+      "min": 52.62
+    }
+  },
+  {
+    "name": "Sergeant Channel",
+    "latitude": {
+      "deg": -36,
+      "min": 49.3
+    },
+    "longitude": {
+      "deg": 174,
+      "min": 57.4
+    }
+  },
+  {
+    "name": "Rocky Bay",
+    "latitude": {
+      "deg": -36,
+      "min": 49.98
+    },
+    "longitude": {
+      "deg": 175,
+      "min": 3.3
+    }
+  },
+  {
+    "name": "Motukorea",
+    "latitude": {
+      "deg": -36,
+      "min": 49.8
+    },
+    "longitude": {
+      "deg": 174,
+      "min": 52.0
+    }
+  }
+]

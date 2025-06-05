@@ -1,0 +1,132 @@
+[
+  {
+    "name": "Westhaven",
+    "latitude": -36.83166667,
+    "longitude": 174.7485
+  },
+  {
+    "name": "Bayswater",
+    "latitude": -36.82966667,
+    "longitude": 174.76283333
+  },
+  {
+    "name": "Stanley Point",
+    "latitude": -36.83083333,
+    "longitude": 174.7765
+  },
+  {
+    "name": "Devonport",
+    "latitude": -36.83333333,
+    "longitude": 174.79
+  },
+  {
+    "name": "Torpedo Bay",
+    "latitude": -36.83516667,
+    "longitude": 174.80633333
+  },
+  {
+    "name": "North Head",
+    "latitude": -36.82716667,
+    "longitude": 174.818
+  },
+  {
+    "name": "Rough Rock",
+    "latitude": -36.81783333,
+    "longitude": 174.825
+  },
+  {
+    "name": "Narrow Neck",
+    "latitude": -36.79716667,
+    "longitude": 174.8085
+  },
+  {
+    "name": "Cable",
+    "latitude": -36.7935,
+    "longitude": 174.788
+  },
+  {
+    "name": "McKenzie",
+    "latitude": -36.78066667,
+    "longitude": 174.8175
+  },
+  {
+    "name": "Salt Works",
+    "latitude": -36.79666667,
+    "longitude": 174.82266667
+  },
+  {
+    "name": "Flax Point",
+    "latitude": -36.80683333,
+    "longitude": 174.8325
+  },
+  {
+    "name": "Rangitoto",
+    "latitude": -36.81333333,
+    "longitude": 174.84733333
+  },
+  {
+    "name": "Northern Leading",
+    "latitude": -36.82216667,
+    "longitude": 174.84333333
+  },
+  {
+    "name": "Bean Rock",
+    "latitude": -36.8365,
+    "longitude": 174.82716667
+  },
+  {
+    "name": "Bastion",
+    "latitude": -36.84016667,
+    "longitude": 174.82266667
+  },
+  {
+    "name": "Orakei",
+    "latitude": -36.84233333,
+    "longitude": 174.812
+  },
+  {
+    "name": "Resolution",
+    "latitude": -36.84433333,
+    "longitude": 174.79816667
+  },
+  {
+    "name": "Chelsea",
+    "latitude": -36.828,
+    "longitude": 174.73
+  },
+  {
+    "name": "Meola",
+    "latitude": -36.83016667,
+    "longitude": 174.711
+  },
+  {
+    "name": "Gulf Harbour",
+    "latitude": -36.65216667,
+    "longitude": 174.8005
+  },
+  {
+    "name": "Torbay",
+    "latitude": -36.70833333,
+    "longitude": 174.78833333
+  },
+  {
+    "name": "Illomama",
+    "latitude": -36.81166667,
+    "longitude": 174.877
+  },
+  {
+    "name": "Sergeant Channel",
+    "latitude": -36.82166667,
+    "longitude": 174.95666667
+  },
+  {
+    "name": "Rocky Bay",
+    "latitude": -36.833,
+    "longitude": 175.055
+  },
+  {
+    "name": "Motukorea",
+    "latitude": -36.83,
+    "longitude": 174.86666667
+  }
+]
