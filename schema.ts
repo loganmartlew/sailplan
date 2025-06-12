@@ -70,9 +70,7 @@ export const sailPolarRelations = relations(sailPolar, ({ one }) => ({
 export const course = sqliteTable('course', {
   id: integer('id').primaryKey(),
   name: text('name').notNull(),
-  courseGroupId: integer('courseGroupId')
-    .notNull()
-    .references(() => courseGroup.id),
+  courseGroupId: integer('courseGroupId').references(() => courseGroup.id),
 });
 
 export const courseRelations = relations(course, ({ many, one }) => ({
