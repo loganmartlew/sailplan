@@ -1,5 +1,12 @@
 import { relations } from 'drizzle-orm';
-import { sqliteTable, text, integer, real } from 'drizzle-orm/sqlite-core';
+import {
+  sqliteTable,
+  text,
+  integer,
+  real,
+  SQLiteColumn,
+  SQLiteTableWithColumns,
+} from 'drizzle-orm/sqlite-core';
 
 export const boatProfile = sqliteTable('boatProfile', {
   id: integer('id').primaryKey(),
@@ -16,6 +23,10 @@ export const mark = sqliteTable('mark', {
   latitude: real('latitude').notNull(),
   longitude: real('longitude').notNull(),
 });
+
+export const markRelations = relations(mark, ({ many }) => ({
+  courseMarks: many(courseMark),
+}));
 
 export const sail = sqliteTable('sail', {
   id: integer('id').primaryKey(),
@@ -54,4 +65,52 @@ export const sailPolarRelations = relations(sailPolar, ({ one }) => ({
     fields: [sailPolar.sailId],
     references: [sail.id],
   }),
+}));
+
+export const course = sqliteTable('course', {
+  id: integer('id').primaryKey(),
+  name: text('name').notNull(),
+  courseGroupId: integer('courseGroupId')
+    .notNull()
+    .references(() => courseGroup.id),
+});
+
+export const courseRelations = relations(course, ({ many, one }) => ({
+  courseMarks: many(courseMark),
+  courseGroup: one(courseGroup, {
+    fields: [course.courseGroupId],
+    references: [courseGroup.id],
+  }),
+}));
+
+export const courseMark = sqliteTable('courseMark', {
+  id: integer('id').primaryKey(),
+  courseId: integer('courseId')
+    .notNull()
+    .references(() => course.id),
+  markId: integer('markId')
+    .notNull()
+    .references(() => mark.id),
+  order: integer('order').notNull(),
+  direction: text('direction'),
+});
+
+export const courseMarkRelations = relations(courseMark, ({ one }) => ({
+  course: one(course, {
+    fields: [courseMark.courseId],
+    references: [course.id],
+  }),
+  mark: one(mark, {
+    fields: [courseMark.markId],
+    references: [mark.id],
+  }),
+}));
+
+export const courseGroup = sqliteTable('courseGroup', {
+  id: integer('id').primaryKey(),
+  name: text('name').notNull(),
+});
+
+export const courseGroupRelations = relations(courseGroup, ({ many }) => ({
+  courses: many(course),
 }));
