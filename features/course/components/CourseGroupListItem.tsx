@@ -13,8 +13,8 @@ export function CourseGroupListItem({
   onDelete,
 }: CourseGroupListItemProps) {
   return (
-    <View className='flex flex-row gap-3 justify-between'>
-      <View className='flex flex-row gap-2'>
+    <View className='flex flex-row gap-3 justify-between items-center'>
+      <View className='flex gap-1'>
         <H3>{courseGroup.name}</H3>
         <Text className='text-muted-foreground'>
           {courseGroup.courseCount} course

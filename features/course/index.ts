@@ -6,3 +6,4 @@ export * from './api/deleteCourse';
 export * from './api/updateCourse';
 export * from './api/getCourses';
 export * from './components/CourseGroupListItem';
+export * from './components/NewCourseGroupDialog';
