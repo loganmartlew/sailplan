@@ -17,6 +17,17 @@ export function useCourses({ courseGroupId }: UseCoursesOptions = {}) {
   );
 }
 
+export function useCourse(id: number) {
+  return useLiveQuery(
+    db.query.course.findFirst({
+      where: eq(course.id, id),
+      with: {
+        courseGroup: true,
+      },
+    })
+  );
+}
+
 export function useCourseGroups() {
   return useLiveQuery(
     db

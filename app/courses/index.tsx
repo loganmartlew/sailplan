@@ -71,6 +71,8 @@ export default function Courses() {
     return courseGroups;
   }, [courseGroupsQuery?.data, ungroupedCoursesQuery?.data]);
 
+  console.log(courseGroups);
+
   return (
     <View className='p-7 flex gap-5'>
       <View className='flex gap-2'>
@@ -85,12 +87,12 @@ export default function Courses() {
             <Plus className='text-secondary-foreground' />
             <Text>New Group</Text>
           </Button>
-          {/* <Link href='/courses/new' push asChild> */}
-          <Button className='flex flex-1 flex-row gap-2'>
-            <Plus className='text-primary-foreground' />
-            <Text>New Course</Text>
-          </Button>
-          {/* </Link> */}
+          <Link href='/courses/new' push asChild>
+            <Button className='flex flex-1 flex-row gap-2'>
+              <Plus className='text-primary-foreground' />
+              <Text>New Course</Text>
+            </Button>
+          </Link>
         </View>
       </View>
       <Separator />

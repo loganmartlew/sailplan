@@ -18,6 +18,18 @@ export default function Layout() {
           ),
         }}
       />
+      <Stack.Screen
+        name='(course)/new'
+        options={{
+          title: 'New Course',
+        }}
+      />
+      <Stack.Screen
+        name='(course)/[courseId]'
+        options={{
+          title: 'Course',
+        }}
+      />
     </Stack>
   );
 }

@@ -18,7 +18,10 @@ export async function createCourseGroup(
     .insert(courseGroup)
     .values(courseGroupInsert)
     .returning();
-  return courseGroups[0];
+  return {
+    ...courseGroups[0],
+    courseCount: 0,
+  };
 }
 
 export async function createCourseMark(
