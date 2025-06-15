@@ -17,6 +17,14 @@ export function useCourses({ courseGroupId }: UseCoursesOptions = {}) {
   );
 }
 
+export function getCourses({ courseGroupId }: UseCoursesOptions = {}) {
+  return db.query.course.findMany({
+    ...(courseGroupId && { where: eq(course.courseGroupId, courseGroupId) }),
+    ...(courseGroupId === null && { where: isNull(course.courseGroupId) }),
+    orderBy: [asc(course.name)],
+  });
+}
+
 export function useCourse(id: number) {
   return useLiveQuery(
     db.query.course.findFirst({
@@ -30,14 +38,20 @@ export function useCourse(id: number) {
 
 export function useCourseGroups() {
   return useLiveQuery(
-    db
-      .select({
-        id: courseGroup.id,
-        name: courseGroup.name,
-        courseCount: count(course.id),
-      })
-      .from(courseGroup)
-      .leftJoin(course, eq(course.courseGroupId, courseGroup.id))
-      .groupBy(courseGroup.id)
+    db.query.courseGroup.findMany({
+      orderBy: [asc(courseGroup.name)],
+      with: {
+        courses: true,
+      },
+    }),
+    [courseGroup, course]
+  );
+}
+
+export function useCourseGroup(id: number) {
+  return useLiveQuery(
+    db.query.courseGroup.findFirst({
+      where: eq(courseGroup.id, id),
+    })
   );
 }

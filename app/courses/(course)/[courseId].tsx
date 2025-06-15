@@ -38,7 +38,11 @@ export default function CourseDetailsPage() {
     await courseMutation.mutateAsync(data);
 
     if (!!edit) {
-      router.dismissTo('/courses');
+      if (router.canGoBack()) {
+        router.back();
+      } else {
+        router.dismissTo('/courses');
+      }
     } else {
       setEditMode(false);
     }

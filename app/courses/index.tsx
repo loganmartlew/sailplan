@@ -1,13 +1,14 @@
-import { Link } from 'expo-router';
+import { Link, router } from 'expo-router';
 import { View } from 'react-native';
 import { Button, H2, Separator, Text } from '~/components/ui';
 import { Plus } from '~/lib/icons/Plus';
 import {
-  CourseGroup,
   CourseGroupInsert,
   CourseGroupListItem,
+  CourseGroupWithCourses,
   createCourseGroup,
   deleteCourseGroup,
+  getCourses,
   NewCourseGroupDialog,
   useCourseGroups,
   useCourses,
@@ -26,26 +27,31 @@ export default function Courses() {
 
   const [newGroupDialogOpen, setNewGroupDialogOpen] = useState(false);
 
-  const onCourseGroupDelete = async (courseGroup: CourseGroup) => {
-    let proceed = true;
+  const onCourseGroupPress = (courseGroup: CourseGroupWithCourses) => {
+    router.push({
+      pathname: '/courses/courseGroups/[courseGroupId]',
+      params: { courseGroupId: courseGroup.id.toString() },
+    });
+  };
 
-    if (courseGroup.courseCount > 0) {
-      proceed = await alert({
+  const onCourseGroupDelete = async (courseGroup: CourseGroupWithCourses) => {
+    const courses = await getCourses({ courseGroupId: courseGroup.id });
+
+    if (courses.length > 0) {
+      await alert({
         title: 'Cannot Delete Course Group',
         message: `Course group "${courseGroup.name}" has existing courses. Please delete the courses first.`,
         confirmText: 'Ok',
       });
+      return;
     }
-
-    if (proceed) {
-      proceed = await confirm({
-        title: 'Delete Course Group',
-        message: `Are you sure you want to delete ${courseGroup.name}?`,
-        confirmText: 'Delete',
-        cancelText: 'Cancel',
-        destructive: true,
-      });
-    }
+    const proceed = await confirm({
+      title: 'Delete Course Group',
+      message: `Are you sure you want to delete ${courseGroup.name}?`,
+      confirmText: 'Delete',
+      cancelText: 'Cancel',
+      destructive: true,
+    });
 
     if (!proceed) return;
 
@@ -58,20 +64,18 @@ export default function Courses() {
   });
 
   const courseGroups = useMemo(() => {
-    const courseGroups = courseGroupsQuery?.data || [];
+    const courseGroups = [...courseGroupsQuery?.data];
 
     if (ungroupedCoursesQuery?.data?.length > 0) {
       courseGroups.push({
-        id: 0,
+        id: -1,
         name: 'Ungrouped Courses',
-        courseCount: ungroupedCoursesQuery.data.length,
-      } as CourseGroup);
+        courses: ungroupedCoursesQuery.data,
+      } as CourseGroupWithCourses);
     }
 
     return courseGroups;
   }, [courseGroupsQuery?.data, ungroupedCoursesQuery?.data]);
-
-  console.log(courseGroups);
 
   return (
     <View className='p-7 flex gap-5'>
@@ -96,12 +100,13 @@ export default function Courses() {
         </View>
       </View>
       <Separator />
-      <ItemList<CourseGroup>
+      <ItemList<CourseGroupWithCourses>
         items={courseGroups}
         renderItem={courseGroup => (
           <CourseGroupListItem
             courseGroup={courseGroup}
-            onDelete={onCourseGroupDelete}
+            onDelete={courseGroup.id !== -1 ? onCourseGroupDelete : undefined}
+            onPress={onCourseGroupPress}
           />
         )}
         noItemsMessage='No course groups found'
