@@ -6,6 +6,7 @@ import { Button, H2, Separator } from '~/components/ui';
 import {
   CourseForm,
   CourseFormValues,
+  CourseMarks,
   updateCourse,
   useCourse,
 } from '~/features/course';
@@ -80,7 +81,7 @@ export default function CourseDetailsPage() {
     />
   );
 
-  const detailsSlot = null;
+  const detailsSlot = <CourseMarks course={course} />;
 
   return (
     <View className='p-7 flex gap-5 h-full'>

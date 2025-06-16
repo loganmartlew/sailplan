@@ -9,3 +9,5 @@ export * from './components/CourseGroupListItem';
 export * from './components/NewCourseGroupDialog';
 export * from './components/CourseForm';
 export * from './components/CourseListItem';
+export * from './components/CourseMarks';
+export * from './components/CourseMarkListItem';

@@ -1,8 +1,10 @@
 import { z } from 'zod';
+import { Mark } from '~/features/mark';
 import { courseMark } from '~/schema';
 
 export type CourseMark = typeof courseMark.$inferSelect;
 export type CourseMarkInsert = typeof courseMark.$inferInsert;
+export type CourseMarkWithMark = CourseMark & { mark: Mark };
 
 export const courseMarkDirection = z.enum(['port', 'starboard']).nullable();
 

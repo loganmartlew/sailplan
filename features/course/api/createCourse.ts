@@ -3,6 +3,7 @@ import { Course, CourseInsert } from '../model/course';
 import { CourseGroup, CourseGroupInsert } from '../model/courseGroup';
 import { CourseMark, CourseMarkInsert } from '../model/courseMark';
 import { course, courseGroup, courseMark } from '~/schema';
+import { eq, max } from 'drizzle-orm';
 
 export async function createCourse(
   courseInsert: CourseInsert
@@ -18,18 +19,26 @@ export async function createCourseGroup(
     .insert(courseGroup)
     .values(courseGroupInsert)
     .returning();
-  return {
-    ...courseGroups[0],
-    courseCount: 0,
-  };
+  return courseGroups[0];
 }
 
 export async function createCourseMark(
-  courseMarkInsert: CourseMarkInsert
+  courseMarkInsert: Omit<CourseMarkInsert, 'order'> & { order?: number }
 ): Promise<CourseMark> {
+  let order = courseMarkInsert.order;
+
+  if (order === undefined || order === null) {
+    const maxOrders = await db
+      .select({ maxOrder: max(courseMark.order) })
+      .from(courseMark)
+      .where(eq(courseMark.courseId, courseMarkInsert.courseId));
+
+    order = maxOrders[0]?.maxOrder ? maxOrders[0].maxOrder + 1 : 0;
+  }
+
   const courseMarks = await db
     .insert(courseMark)
-    .values(courseMarkInsert)
+    .values({ ...courseMarkInsert, order })
     .returning();
   return courseMarks[0];
 }
