@@ -3,9 +3,10 @@ import { useCourseMarks } from '../api/getCourses';
 import { Course } from '../model/course';
 import { useState } from 'react';
 import { deleteCourseMark } from '../api/deleteCourse';
-import { FlatList, View } from 'react-native';
+import { Pressable, View } from 'react-native';
 import { Button, H3, Text } from '~/components/ui';
 import { Plus } from '~/lib/icons/Plus';
+import { GripVertical } from '~/lib/icons/GripVertical';
 import {
   CourseMark,
   CourseMarkInsert,
@@ -19,6 +20,10 @@ import {
 import { useMutation } from '@tanstack/react-query';
 import { createCourseMark } from '../api/createCourse';
 import { updateCourseMark } from '../api/updateCourse';
+import DraggableFlatList, {
+  ScaleDecorator,
+} from 'react-native-draggable-flatlist';
+import { cn } from '~/lib/utils';
 
 interface CourseMarksProps {
   course: Course;
@@ -73,6 +78,29 @@ export function CourseMarks({ course }: CourseMarksProps) {
     setNewCourseMarkDialogOpen(true);
   }
 
+  async function onReorderCourseMarks(params: { from: number; to: number }) {
+    const { from, to } = params;
+    const marks = [...courseMarks];
+
+    const movedItem = marks[from];
+    const remainingItems = marks.filter((_, index) => index !== from);
+
+    const reorderedItems = [
+      ...remainingItems.slice(0, to),
+      movedItem,
+      ...remainingItems.slice(to),
+    ];
+
+    await Promise.all(
+      reorderedItems.map((mark, index) =>
+        updateCourseMarkMutation.mutateAsync({
+          id: mark.id,
+          data: { order: index },
+        })
+      )
+    );
+  }
+
   async function handleSaveCourseMark(data: CourseMarkFormValues) {
     const markId = data.mark.value ? parseInt(data.mark.value) : null;
     if (!markId) {
@@ -97,7 +125,7 @@ export function CourseMarks({ course }: CourseMarksProps) {
   }
 
   return (
-    <View className='flex gap-5'>
+    <View className='flex gap-5 overflow-visible'>
       <View className='flex flex-row gap-3 items-center justify-between'>
         <H3>Marks</H3>
         <Button
@@ -109,15 +137,28 @@ export function CourseMarks({ course }: CourseMarksProps) {
           <Plus className='text-foreground' size={18} />
         </Button>
       </View>
-      <FlatList
+      <DraggableFlatList
+        className='-mx-7'
         data={courseMarks}
         keyExtractor={item => item.id.toString()}
-        renderItem={({ item }) => (
-          <CourseMarkListItem
-            courseMark={item}
-            onDelete={onCourseMarkDelete}
-            onEdit={onCourseMarkEdit}
-          />
+        onDragEnd={onReorderCourseMarks}
+        renderItem={({ item, drag, isActive }) => (
+          <ScaleDecorator activeScale={1.05}>
+            <Pressable
+              onLongPress={drag}
+              className={cn(
+                'px-7 flex flex-row gap-2 items-center',
+                isActive && 'opacity-70'
+              )}
+            >
+              <GripVertical className='text-secondary-foreground' size={20} />
+              <CourseMarkListItem
+                courseMark={item}
+                onDelete={onCourseMarkDelete}
+                onEdit={onCourseMarkEdit}
+              />
+            </Pressable>
+          </ScaleDecorator>
         )}
         ListEmptyComponent={
           <View className='flex items-center justify-center p-5'>
