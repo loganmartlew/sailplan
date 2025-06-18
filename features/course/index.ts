@@ -11,3 +11,4 @@ export * from './components/CourseForm';
 export * from './components/CourseListItem';
 export * from './components/CourseMarks';
 export * from './components/CourseMarkListItem';
+export * from './components/NewCourseMarkDialog';

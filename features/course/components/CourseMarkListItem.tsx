@@ -1,4 +1,4 @@
-import { Button, H3 } from '~/components/ui';
+import { Button, H3, H4, Text } from '~/components/ui';
 import { CourseMarkWithMark } from '../model/courseMark';
 import { Pressable, View } from 'react-native';
 import { Pencil } from '~/lib/icons/Pencil';
@@ -24,17 +24,17 @@ export function CourseMarkListItem({
 
   const content = (
     <>
-      <View className='flex flex-row gap-1'>
-        <H3>{courseMark.mark.name}</H3>
+      <View className='flex flex-row gap-3 items-center'>
+        <H4>{courseMark.mark.name}</H4>
         {directionText && (
-          <H3
+          <Text
             className={cn({
               'text-green-400': courseMark.direction === 'starboard',
               'text-red-400': courseMark.direction === 'port',
             })}
           >
             {directionText}
-          </H3>
+          </Text>
         )}
       </View>
       <View className='flex flex-row gap-1'>

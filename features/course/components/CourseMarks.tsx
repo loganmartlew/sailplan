@@ -7,8 +7,18 @@ import { View } from 'react-native';
 import { Button, H3 } from '~/components/ui';
 import { Plus } from '~/lib/icons/Plus';
 import { ItemList } from '~/components/ItemList';
-import { CourseMark, CourseMarkWithMark } from '../model/courseMark';
+import {
+  CourseMark,
+  CourseMarkInsert,
+  CourseMarkWithMark,
+} from '../model/courseMark';
 import { CourseMarkListItem } from './CourseMarkListItem';
+import {
+  CourseMarkFormValues,
+  NewCourseMarkDialog,
+} from './NewCourseMarkDialog';
+import { useMutation } from '@tanstack/react-query';
+import { createCourseMark } from '../api/createCourse';
 
 interface CourseMarksProps {
   course: Course;
@@ -19,6 +29,11 @@ export function CourseMarks({ course }: CourseMarksProps) {
   const { data: courseMarks } = useCourseMarks(course.id);
 
   const [newCourseMarkDialogOpen, setNewCourseMarkDialogOpen] = useState(false);
+
+  const createCourseMarkMutation = useMutation({
+    mutationFn: (data: Omit<CourseMarkInsert, 'order'>) =>
+      createCourseMark(data),
+  });
 
   async function onCourseMarkDelete(courseMark: CourseMark) {
     const proceed = await confirm({
@@ -34,11 +49,20 @@ export function CourseMarks({ course }: CourseMarksProps) {
     await deleteCourseMark(courseMark.id);
   }
 
-  async function handleNewCourseMark(data: any) {
-    // Implement the logic to create a new course mark
-    // This function should handle the form submission for creating a new course mark
-    // You can use the data parameter to access the form values
-    console.log('New Course Mark Data:', data);
+  async function handleNewCourseMark(data: CourseMarkFormValues) {
+    const markId = data.mark.value ? parseInt(data.mark.value) : null;
+    if (!markId) {
+      console.error('Mark ID is required to create a new course mark');
+      return;
+    }
+
+    const courseMarkInsert: Omit<CourseMarkInsert, 'order'> = {
+      courseId: course.id,
+      markId,
+      direction: data.direction === 'none' ? null : data.direction,
+    };
+
+    await createCourseMarkMutation.mutateAsync(courseMarkInsert);
   }
 
   return (
@@ -49,6 +73,7 @@ export function CourseMarks({ course }: CourseMarksProps) {
           variant='secondary'
           size='icon'
           onPress={() => setNewCourseMarkDialogOpen(true)}
+          disabled={createCourseMarkMutation.isPending}
         >
           <Plus className='text-foreground' size={18} />
         </Button>
@@ -63,11 +88,11 @@ export function CourseMarks({ course }: CourseMarksProps) {
         )}
         noItemsMessage='No marks found'
       />
-      {/* <NewCourseMarkDialog
+      <NewCourseMarkDialog
         open={newCourseMarkDialogOpen}
         onOpenChange={setNewCourseMarkDialogOpen}
         onFormSubmit={handleNewCourseMark}
-      /> */}
+      />
     </View>
   );
 }
