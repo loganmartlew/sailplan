@@ -3,10 +3,9 @@ import { useCourseMarks } from '../api/getCourses';
 import { Course } from '../model/course';
 import { useState } from 'react';
 import { deleteCourseMark } from '../api/deleteCourse';
-import { View } from 'react-native';
-import { Button, H3 } from '~/components/ui';
+import { FlatList, View } from 'react-native';
+import { Button, H3, Text } from '~/components/ui';
 import { Plus } from '~/lib/icons/Plus';
-import { ItemList } from '~/components/ItemList';
 import {
   CourseMark,
   CourseMarkInsert,
@@ -110,16 +109,21 @@ export function CourseMarks({ course }: CourseMarksProps) {
           <Plus className='text-foreground' size={18} />
         </Button>
       </View>
-      <ItemList<CourseMarkWithMark>
-        items={courseMarks}
-        renderItem={courseMark => (
+      <FlatList
+        data={courseMarks}
+        keyExtractor={item => item.id.toString()}
+        renderItem={({ item }) => (
           <CourseMarkListItem
-            courseMark={courseMark}
+            courseMark={item}
             onDelete={onCourseMarkDelete}
             onEdit={onCourseMarkEdit}
           />
         )}
-        noItemsMessage='No marks found'
+        ListEmptyComponent={
+          <View className='flex items-center justify-center p-5'>
+            <Text>No marks found</Text>
+          </View>
+        }
       />
       <NewCourseMarkDialog
         open={newCourseMarkDialogOpen}

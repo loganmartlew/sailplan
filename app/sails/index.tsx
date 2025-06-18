@@ -1,6 +1,5 @@
 import { Link, router } from 'expo-router';
-import { View } from 'react-native';
-import { ItemList } from '~/components/ItemList';
+import { View, FlatList } from 'react-native';
 import { Button, H2, Separator, Text } from '~/components/ui';
 import { deleteSail, Sail, SailListItem, useSails } from '~/features/sail';
 import { useConfirm } from '~/hooks/useConfirm';
@@ -50,17 +49,22 @@ export default function Sails() {
         </Link>
       </View>
       <Separator />
-      <ItemList<Sail>
-        items={sailsQuery?.data}
-        renderItem={sail => (
+      <FlatList
+        data={sailsQuery?.data}
+        keyExtractor={item => item.id.toString()}
+        renderItem={({ item }) => (
           <SailListItem
-            sail={sail}
+            sail={item}
             onDelete={onSailDelete}
             onEdit={onSailEdit}
             onPress={onSailPress}
           />
         )}
-        noItemsMessage='No sails found'
+        ListEmptyComponent={() => (
+          <View className='flex items-center justify-center p-5'>
+            <Text>No sails found</Text>
+          </View>
+        )}
       />
     </View>
   );

@@ -1,6 +1,5 @@
 import { Link, router } from 'expo-router';
-import { View } from 'react-native';
-import { ItemList } from '~/components/ItemList';
+import { View, FlatList } from 'react-native';
 import { Button, H2, Separator, Text } from '~/components/ui';
 import {
   useMarks,
@@ -74,16 +73,21 @@ export default function Marks() {
         </Button>
       </View>
       <Separator />
-      <ItemList<Mark>
-        items={marksQuery?.data}
-        renderItem={mark => (
+      <FlatList
+        data={marksQuery.data}
+        keyExtractor={item => item.id.toString()}
+        renderItem={({ item }) => (
           <MarkListItem
-            mark={mark}
+            mark={item}
             onDelete={onMarkDelete}
             onEdit={onMarkEdit}
           />
         )}
-        noItemsMessage='No marks found'
+        ListEmptyComponent={
+          <View className='flex items-center justify-center p-5'>
+            <Text>No marks found</Text>
+          </View>
+        }
       />
       <MarkShareDialog
         open={shareDialogOpen}

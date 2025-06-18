@@ -1,5 +1,5 @@
 import { Link, router } from 'expo-router';
-import { View } from 'react-native';
+import { View, FlatList } from 'react-native';
 import { Button, H2, Separator, Text } from '~/components/ui';
 import { Plus } from '~/lib/icons/Plus';
 import {
@@ -13,7 +13,6 @@ import {
   useCourseGroups,
   useCourses,
 } from '~/features/course';
-import { ItemList } from '~/components/ItemList';
 import { useAlert } from '~/hooks/useAlert';
 import { useMemo, useState } from 'react';
 import { useMutation } from '@tanstack/react-query';
@@ -100,16 +99,21 @@ export default function Courses() {
         </View>
       </View>
       <Separator />
-      <ItemList<CourseGroupWithCourses>
-        items={courseGroups}
-        renderItem={courseGroup => (
+      <FlatList
+        data={courseGroups}
+        keyExtractor={item => item.id.toString()}
+        renderItem={({ item }) => (
           <CourseGroupListItem
-            courseGroup={courseGroup}
-            onDelete={courseGroup.id !== -1 ? onCourseGroupDelete : undefined}
+            courseGroup={item}
+            onDelete={item.id !== -1 ? onCourseGroupDelete : undefined}
             onPress={onCourseGroupPress}
           />
         )}
-        noItemsMessage='No course groups found'
+        ListEmptyComponent={
+          <View className='flex items-center justify-center p-5'>
+            <Text>No course groups found</Text>
+          </View>
+        }
       />
       <NewCourseGroupDialog
         open={newGroupDialogOpen}

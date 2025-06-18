@@ -1,6 +1,5 @@
 import { Link, router, useLocalSearchParams } from 'expo-router';
-import { ActivityIndicator, View } from 'react-native';
-import { ItemList } from '~/components/ItemList';
+import { ActivityIndicator, View, FlatList } from 'react-native';
 import { Button, H2, Separator, Text } from '~/components/ui';
 import {
   Course,
@@ -89,17 +88,22 @@ export default function CourseGroupDetailsPage() {
         )}
       </View>
       <Separator />
-      <ItemList<Course>
-        items={coursesQuery.data}
-        renderItem={course => (
+      <FlatList
+        data={coursesQuery.data}
+        keyExtractor={item => item.id.toString()}
+        renderItem={({ item }) => (
           <CourseListItem
-            course={course}
+            course={item}
             onEdit={onCourseEdit}
             onDelete={onCourseDelete}
             onPress={onCoursePress}
           />
         )}
-        noItemsMessage='No courses found'
+        ListEmptyComponent={
+          <View className='flex items-center justify-center p-5'>
+            <Text>No courses found</Text>
+          </View>
+        }
       />
     </View>
   );

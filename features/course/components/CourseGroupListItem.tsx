@@ -53,13 +53,13 @@ export function CourseGroupListItem({
     <>
       {onPress ? (
         <Pressable
-          className='flex flex-row gap-3 justify-between items-center'
+          className='flex flex-row gap-3 justify-between items-center py-2'
           onPress={() => onPress(courseGroup)}
         >
           {content}
         </Pressable>
       ) : (
-        <View className='flex flex-row gap-3 justify-between items-center'>
+        <View className='flex flex-row gap-3 justify-between items-center py-2'>
           {content}
         </View>
       )}

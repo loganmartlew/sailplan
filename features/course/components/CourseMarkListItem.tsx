@@ -64,13 +64,13 @@ export function CourseMarkListItem({
     <>
       {onPress ? (
         <Pressable
-          className='flex flex-row gap-3 justify-between items-center'
+          className='flex flex-row gap-3 justify-between items-center py-2'
           onPress={() => onPress(courseMark)}
         >
           {content}
         </Pressable>
       ) : (
-        <View className='flex flex-row gap-3 justify-between items-center'>
+        <View className='flex flex-row gap-3 justify-between items-center py-2'>
           {content}
         </View>
       )}
