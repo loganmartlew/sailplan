@@ -13,8 +13,10 @@ import {
 } from '~/components/ui';
 import { useMarks } from '~/features/mark';
 import { SelectInput, ToggleGroup } from '~/components/form';
+import { useEffect } from 'react';
 
 const courseMarkFormSchema = z.object({
+  courseMarkId: z.number().optional(),
   mark: z.object(
     {
       value: z.string(),
@@ -56,6 +58,13 @@ export function NewCourseMarkDialog({
     },
   });
 
+  useEffect(() => {
+    reset({
+      ...defaultValues,
+      ...courseMarkValues,
+    });
+  }, [courseMarkValues, reset]);
+
   const isEditing = !!courseMarkValues;
 
   function onSubmit(data: CourseMarkFormValues) {
@@ -80,7 +89,7 @@ export function NewCourseMarkDialog({
       <DialogContent className='w-[500px] max-w-[100vw]'>
         <Form className='flex flex-col gap-5'>
           <DialogHeader>
-            <DialogTitle>New Course Mark</DialogTitle>
+            <DialogTitle>{isEditing ? 'Edit' : 'New'} Course Mark</DialogTitle>
           </DialogHeader>
           <SelectInput<CourseMarkFormValues>
             name='mark'

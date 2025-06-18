@@ -19,6 +19,7 @@ import {
 } from './NewCourseMarkDialog';
 import { useMutation } from '@tanstack/react-query';
 import { createCourseMark } from '../api/createCourse';
+import { updateCourseMark } from '../api/updateCourse';
 
 interface CourseMarksProps {
   course: Course;
@@ -29,10 +30,22 @@ export function CourseMarks({ course }: CourseMarksProps) {
   const { data: courseMarks } = useCourseMarks(course.id);
 
   const [newCourseMarkDialogOpen, setNewCourseMarkDialogOpen] = useState(false);
+  const [courseMarkToEdit, setCourseMarkToEdit] =
+    useState<CourseMarkFormValues | null>(null);
 
   const createCourseMarkMutation = useMutation({
     mutationFn: (data: Omit<CourseMarkInsert, 'order'>) =>
       createCourseMark(data),
+  });
+
+  const updateCourseMarkMutation = useMutation({
+    mutationFn: ({
+      id,
+      data,
+    }: {
+      id: number;
+      data: Partial<CourseMarkInsert>;
+    }) => updateCourseMark(id, data),
   });
 
   async function onCourseMarkDelete(courseMark: CourseMark) {
@@ -49,7 +62,19 @@ export function CourseMarks({ course }: CourseMarksProps) {
     await deleteCourseMark(courseMark.id);
   }
 
-  async function handleNewCourseMark(data: CourseMarkFormValues) {
+  async function onCourseMarkEdit(courseMark: CourseMarkWithMark) {
+    setCourseMarkToEdit({
+      courseMarkId: courseMark.id,
+      mark: {
+        label: courseMark.mark.name,
+        value: courseMark.mark.id.toString(),
+      },
+      direction: (courseMark.direction as 'port' | 'starboard') || 'none',
+    });
+    setNewCourseMarkDialogOpen(true);
+  }
+
+  async function handleSaveCourseMark(data: CourseMarkFormValues) {
     const markId = data.mark.value ? parseInt(data.mark.value) : null;
     if (!markId) {
       console.error('Mark ID is required to create a new course mark');
@@ -62,7 +87,14 @@ export function CourseMarks({ course }: CourseMarksProps) {
       direction: data.direction === 'none' ? null : data.direction,
     };
 
-    await createCourseMarkMutation.mutateAsync(courseMarkInsert);
+    if (data.courseMarkId) {
+      await updateCourseMarkMutation.mutateAsync({
+        id: data.courseMarkId,
+        data: courseMarkInsert,
+      });
+    } else {
+      await createCourseMarkMutation.mutateAsync(courseMarkInsert);
+    }
   }
 
   return (
@@ -84,14 +116,21 @@ export function CourseMarks({ course }: CourseMarksProps) {
           <CourseMarkListItem
             courseMark={courseMark}
             onDelete={onCourseMarkDelete}
+            onEdit={onCourseMarkEdit}
           />
         )}
         noItemsMessage='No marks found'
       />
       <NewCourseMarkDialog
         open={newCourseMarkDialogOpen}
-        onOpenChange={setNewCourseMarkDialogOpen}
-        onFormSubmit={handleNewCourseMark}
+        onOpenChange={value => {
+          setNewCourseMarkDialogOpen(value);
+          if (!value) {
+            setCourseMarkToEdit(null);
+          }
+        }}
+        onFormSubmit={handleSaveCourseMark}
+        courseMarkValues={courseMarkToEdit ?? undefined}
       />
     </View>
   );

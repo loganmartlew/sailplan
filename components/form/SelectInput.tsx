@@ -83,6 +83,7 @@ export function SelectInput<TFieldValues extends FieldValues = FieldValues>({
               },
             }}
             useNativeAndroidPickerStyle={false}
+            disabled={props.disabled}
           />
         </FormControlWrapper>
       )}
