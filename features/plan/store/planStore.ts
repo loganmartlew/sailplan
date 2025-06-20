@@ -2,17 +2,17 @@ import { useMemo } from 'react';
 import { create } from 'zustand';
 import { useBoatProfile } from '~/features/boatProfile';
 
-interface PlanFormState {
-  tws: number | null;
+interface PlanState {
+  // tws: number | null;
   twd: number;
 }
 
-interface PlanFormStore {
-  states: Record<number, PlanFormState>;
-  addState: (boatProfileId: number, state: PlanFormState) => void;
+interface PlanStore {
+  states: Record<number, PlanState>;
+  addState: (boatProfileId: number, state: PlanState) => void;
 }
 
-const usePlanFormStore = create<PlanFormStore>((set, get) => ({
+const usePlanStore = create<PlanStore>((set, get) => ({
   states: {},
   addState: (boatProfileId, state) =>
     set(s => ({
@@ -23,14 +23,13 @@ const usePlanFormStore = create<PlanFormStore>((set, get) => ({
     })),
 }));
 
-export const usePlanFormState = () => {
+export const usePlanState = () => {
   const { boatProfile } = useBoatProfile();
 
-  const states = usePlanFormStore(s => s.states);
-  const addState = usePlanFormStore(s => s.addState);
+  const states = usePlanStore(s => s.states);
+  const addState = usePlanStore(s => s.addState);
 
-  const add = (state: { tws: number | null; twd: number }) =>
-    addState(boatProfile?.id ?? 0, state);
+  const add = (state: { twd: number }) => addState(boatProfile?.id ?? 0, state);
 
   const currentState = useMemo(() => {
     if (!boatProfile) return null;
