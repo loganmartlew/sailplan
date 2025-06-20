@@ -16,7 +16,7 @@ switch (variant) {
 export default {
   name: name,
   slug: 'sailplan',
-  version: '1.0.0',
+  version: '1.1.0',
   owner: 'loganmartlew',
   description:
     'An app for checking angles between marks, and selecting the best sail.',
@@ -33,7 +33,7 @@ export default {
   },
   android: {
     package: pkg,
-    versionCode: 1,
+    versionCode: 2,
     adaptiveIcon: {
       foregroundImage: './assets/images/adaptive-icon.png',
       backgroundColor: '#ffffff',

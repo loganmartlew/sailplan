@@ -1,7 +1,7 @@
 {
   "name": "sailplan",
   "main": "expo-router/entry",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "scripts": {
     "android": "cross-env APP_VARIANT=development expo run:android",
     "ios": "cross-env APP_VARIANT=development expo run:ios",
