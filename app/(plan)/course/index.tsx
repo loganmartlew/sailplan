@@ -111,9 +111,6 @@ export default function PlanCoursePage() {
 
   const mapMarks = courseMarks.map(courseMark => courseMark.mark) ?? [];
 
-  const values = watch();
-  console.log(values);
-
   return (
     <ScrollView>
       <View className='flex-1 justify-center items-center'>

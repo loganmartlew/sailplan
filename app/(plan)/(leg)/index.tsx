@@ -1,7 +1,7 @@
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useRouter } from 'expo-router';
 import { SubmitHandler } from 'react-hook-form';
-import { View } from 'react-native';
+import { ScrollView, View } from 'react-native';
 import { z } from 'zod';
 import { SelectInput, TextInput } from '~/components/form';
 import { Button, H2, Option, Separator, Text } from '~/components/ui';
@@ -91,32 +91,34 @@ export default function PlanLegPage() {
   }));
 
   return (
-    <View className='flex-1 justify-center items-center'>
-      <Form className='w-full px-10 py-5 pb-20 flex flex-col gap-4'>
-        <H2>Plan Leg</H2>
-        <Separator />
-        {/* <TextInput<PlanLegForm> label='True Wind Speed (kn)' name='tws' /> */}
-        <TextInput<PlanLegForm>
-          label='True Wind Direction (°)'
-          name='twd'
-          required
-        />
-        <SelectInput<PlanLegForm>
-          label='From'
-          name='from'
-          options={markOptions}
-          required
-        />
-        <SelectInput<PlanLegForm>
-          label='To'
-          name='to'
-          options={markOptions}
-          required
-        />
-        <Button onPress={handleSubmit(onSubmit)}>
-          <Text>Plan</Text>
-        </Button>
-      </Form>
-    </View>
+    <ScrollView>
+      <View className='flex-1 justify-center items-center'>
+        <Form className='w-full px-10 py-5 pb-20 flex flex-col gap-4'>
+          <H2>Plan Leg</H2>
+          <Separator />
+          {/* <TextInput<PlanLegForm> label='True Wind Speed (kn)' name='tws' /> */}
+          <TextInput<PlanLegForm>
+            label='True Wind Direction (°)'
+            name='twd'
+            required
+          />
+          <SelectInput<PlanLegForm>
+            label='From'
+            name='from'
+            options={markOptions}
+            required
+          />
+          <SelectInput<PlanLegForm>
+            label='To'
+            name='to'
+            options={markOptions}
+            required
+          />
+          <Button onPress={handleSubmit(onSubmit)}>
+            <Text>Plan</Text>
+          </Button>
+        </Form>
+      </View>
+    </ScrollView>
   );
 }
