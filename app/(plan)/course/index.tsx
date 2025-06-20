@@ -65,6 +65,8 @@ export default function PlanCoursePage() {
     defaultValues: {
       // tws: (currentState?.tws?.toString() as unknown as number) ?? undefined,
       twd: currentState?.twd.toString() as unknown as number | undefined,
+      finishLocation: null,
+      startLocation: null,
     },
   });
 

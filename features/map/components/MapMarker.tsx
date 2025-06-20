@@ -1,19 +1,16 @@
-import { Key } from 'react';
 import { View } from 'react-native';
 import { Marker } from 'react-native-maps';
 import { Text } from '~/components/ui';
 import { Coordinate } from '../../coordinate';
 
 interface MapMarkerProps {
-  key?: Key;
   name: string;
   coords: Coordinate;
 }
 
-export function MapMarker({ key, name, coords }: MapMarkerProps) {
+export function MapMarker({ name, coords }: MapMarkerProps) {
   return (
     <Marker
-      key={key}
       coordinate={{
         latitude: coords.latitude,
         longitude: coords.longitude,

@@ -43,6 +43,8 @@ export function SelectInput<TFieldValues extends FieldValues = FieldValues>({
               value: null,
             }}
             disabled={props.disabled}
+            error={!!error}
+            {...props}
           />
         </FormControlWrapper>
       )}
