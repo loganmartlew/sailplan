@@ -7,12 +7,14 @@ interface TextInputProps<TFieldValues extends FieldValues = FieldValues>
   label?: string;
   name: Path<TFieldValues>;
   required?: boolean;
+  containerClassName?: string;
 }
 
 export function TextInput<TFieldValues extends FieldValues = FieldValues>({
   label,
   name,
   required,
+  containerClassName,
   ...props
 }: TextInputProps<TFieldValues>) {
   const { control } = useFormContext<TFieldValues>();
@@ -29,6 +31,7 @@ export function TextInput<TFieldValues extends FieldValues = FieldValues>({
           name={name}
           error={error}
           required={required}
+          className={containerClassName}
         >
           <Input
             onChangeText={value => onChange(value)}

@@ -1,10 +1,12 @@
 import { z } from 'zod';
-import { courseSchema } from '~/features/course';
+import { markInsertSchema } from '~/features/mark';
 
 export const coursePlanDataSchema = z.object({
   // tws: z.number().int().min(0).optional(),
   twd: z.number().int().min(0).max(360),
-  course: courseSchema,
+  courseId: z.number(),
+  startLocation: markInsertSchema.nullable(),
+  finishLocation: markInsertSchema.nullable(),
 });
 
 export type CoursePlanData = z.infer<typeof coursePlanDataSchema>;

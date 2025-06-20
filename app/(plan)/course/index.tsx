@@ -16,6 +16,7 @@ import {
   ToggleGroupItem,
 } from '~/components/ui';
 import { useCourseGroups, useCourseMarks, useCourses } from '~/features/course';
+import { getMark } from '~/features/mark';
 import {
   CoursePlanData,
   CustomLocation,
@@ -79,17 +80,48 @@ export default function PlanCoursePage() {
     course?.value ? parseInt(course.value) : null
   );
 
-  const onSubmit: SubmitHandler<PlanCourseForm> = data => {
-    const course = courses.find(
-      course => course.id === parseInt(data.course.value)
-    );
+  const onSubmit: SubmitHandler<PlanCourseForm> = async data => {
+    let startLocation: CoursePlanData['startLocation'] | null = null;
+    if (
+      data.startLocation?.locationType === 'mark' &&
+      data.startLocation.markId
+    ) {
+      startLocation = await getMark(data.startLocation.markId);
+    }
 
-    if (!course) return;
+    if (
+      data.startLocation?.locationType === 'custom' &&
+      data.startLocation.location
+    ) {
+      startLocation = {
+        name: 'Start',
+        ...data.startLocation.location,
+      };
+    }
+
+    let finishLocation: CoursePlanData['finishLocation'] | null = null;
+    if (
+      data.finishLocation?.locationType === 'mark' &&
+      data.finishLocation.markId
+    ) {
+      finishLocation = await getMark(data.finishLocation.markId);
+    }
+    if (
+      data.finishLocation?.locationType === 'custom' &&
+      data.finishLocation.location
+    ) {
+      finishLocation = {
+        name: 'Finish',
+        ...data.finishLocation.location,
+      };
+    }
 
     const planData: CoursePlanData = {
       // tws: data.tws,
       twd: data.twd,
-      course: course,
+      courseId: parseInt(data.course.value),
+      startLocation,
+      finishLocation,
     };
 
     const serializedPlanData = serializeCoursePlanData(planData);
@@ -99,7 +131,7 @@ export default function PlanCoursePage() {
     });
 
     router.push({
-      pathname: '/plan',
+      pathname: '/course/plan',
       params: { planData: serializedPlanData },
     });
   };
@@ -122,6 +154,7 @@ export default function PlanCoursePage() {
             label='True Wind Direction (°)'
             name='twd'
             required
+            inputMode='numeric'
           />
           {courseGroups.length > 0 && (
             <FormControlWrapper label='Course Group' name='courseGroup'>
@@ -152,7 +185,7 @@ export default function PlanCoursePage() {
                 label='Start Location'
                 name='startLocation'
                 error={error}
-                value={value}
+                value={value ?? null}
                 onChange={onChange}
                 mapMarks={mapMarks}
               />
@@ -165,7 +198,7 @@ export default function PlanCoursePage() {
                 label='Finish Location'
                 name='finishLocation'
                 error={error}
-                value={value}
+                value={value ?? null}
                 onChange={onChange}
                 mapMarks={mapMarks}
               />
