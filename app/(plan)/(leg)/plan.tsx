@@ -12,8 +12,8 @@ import {
 } from '~/components/ui';
 import { Coordinate, coordsToBearing, getTwa } from '~/features/coordinate';
 import { Mark, useMark } from '~/features/mark';
-import { deserializePlanData } from '~/features/plan';
-import { formatAngle, formatSpeed } from '~/lib/format';
+import { deserializeLegPlanData } from '~/features/plan';
+import { formatAngle } from '~/lib/format';
 import { MapPin } from '~/lib/icons/MapPin';
 
 function markToCoords(mark: Mark): Coordinate {
@@ -23,9 +23,9 @@ function markToCoords(mark: Mark): Coordinate {
   };
 }
 
-export default function PlanResults() {
+export default function LegPlanResults() {
   const { planData: data } = useLocalSearchParams<{ planData: string }>();
-  const planData = deserializePlanData(data);
+  const planData = deserializeLegPlanData(data);
 
   const { data: fromMark, error: fromMarkError } = useMark(planData.from.id);
   const { data: toMark, error: toMarkError } = useMark(planData.to.id);
@@ -67,7 +67,7 @@ export default function PlanResults() {
 
   return (
     <View className='p-7 flex gap-5 h-full'>
-      <H2>Plan Results</H2>
+      <H2>Leg Plan</H2>
       <View className='flex flex-row gap-2 items-center'>
         <Badge variant='secondary' className='flex-grow'>
           <Text className='text-md'>{fromMark?.name}</Text>
@@ -82,12 +82,12 @@ export default function PlanResults() {
           <CardTitle>True Wind</CardTitle>
         </CardHeader>
         <CardContent>
-          <View className='flex flex-row gap-2'>
+          {/* <View className='flex flex-row gap-2'>
             <Text className='text-lg w-[50%]'>TWS:</Text>
             <Text className='text-lg w-[50%]'>
               {planData.tws ? formatSpeed(planData.tws) : '-'}
             </Text>
-          </View>
+          </View> */}
           <View className='flex flex-row gap-2'>
             <Text className='text-lg w-[50%]'>TWD:</Text>
             <Text className='text-lg w-[50%]'>{formatAngle(planData.twd)}</Text>
@@ -114,7 +114,7 @@ export default function PlanResults() {
       </Card>
       <Link
         href={{
-          pathname: '/marks/map',
+          pathname: '/map',
           params: {
             fromMarkId: fromMark?.id.toString(),
             toMarkId: toMark?.id.toString(),

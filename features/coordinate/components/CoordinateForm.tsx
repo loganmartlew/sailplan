@@ -138,7 +138,7 @@ export function CoordinateForm({
         />
       )}
       <ButtonWrapper>
-        <Button variant='outline' onPress={onCancel}>
+        <Button variant='secondary' onPress={onCancel}>
           <Text>Cancel</Text>
         </Button>
         <Button onPress={handleSubmit(onSubmit)}>

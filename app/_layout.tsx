@@ -186,6 +186,12 @@ function RootLayout() {
               title: 'Marks',
             }}
           />
+          <Drawer.Screen
+            name='courses'
+            options={{
+              title: 'Courses',
+            }}
+          />
         </Drawer>
       </SafeAreaView>
     </GestureHandlerRootView>

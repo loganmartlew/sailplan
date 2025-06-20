@@ -12,7 +12,7 @@ interface MarkListItemProps {
 
 export function MarkListItem({ mark, onEdit, onDelete }: MarkListItemProps) {
   return (
-    <View className='flex flex-row gap-3 justify-between'>
+    <View className='flex flex-row gap-3 justify-between py-2'>
       <H3>{mark.name}</H3>
       <View className='flex flex-row gap-1'>
         {onEdit && (

@@ -1,4 +1,4 @@
-import { View } from 'react-native';
+import { View, FlatList } from 'react-native';
 import { Badge, Button, H3, Text } from '~/components/ui';
 import { Sail } from '../model/sail';
 import {
@@ -10,7 +10,6 @@ import {
   SailPolarListItem,
   useSailPolars,
 } from '~/features/sailPolar';
-import { ItemList } from '~/components/ItemList';
 import { useConfirm } from '~/hooks/useConfirm';
 import { Plus } from '~/lib/icons/Plus';
 import { useState } from 'react';
@@ -60,15 +59,17 @@ export function SailPolars({ sail }: SailPolarsProps) {
           <Plus className='text-foreground' size={18} />
         </Button>
       </View>
-      <ItemList<SailPolar>
-        items={sailPolars}
-        renderItem={sailPolar => (
-          <SailPolarListItem
-            sailPolar={sailPolar}
-            onDelete={onSailPolarDelete}
-          />
+      <FlatList
+        data={sailPolars}
+        keyExtractor={item => item.id.toString()}
+        renderItem={({ item }) => (
+          <SailPolarListItem sailPolar={item} onDelete={onSailPolarDelete} />
         )}
-        noItemsMessage='No polars found'
+        ListEmptyComponent={
+          <View className='flex items-center justify-center p-5'>
+            <Text>No polars found</Text>
+          </View>
+        }
       />
       <NewSailPolarDialog
         open={newPolarDialogOpen}

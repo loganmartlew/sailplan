@@ -14,7 +14,7 @@ export function SailPolarListItem({
   onDelete,
 }: SailPolarListItemProps) {
   return (
-    <View className='flex flex-row gap-3 justify-between'>
+    <View className='flex flex-row gap-3 justify-between py-2'>
       <View>
         <Text>TWA: {formatAngle(sailPolar.twa)}</Text>
         <Text>TWS: {formatSpeed(sailPolar.tws)}</Text>

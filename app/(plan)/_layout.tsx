@@ -1,29 +1,32 @@
-import { DrawerToggleButton } from '@react-navigation/drawer';
-import { Stack } from 'expo-router';
-import { BoatProfileLabel } from '~/features/navigation';
+import { Tabs } from 'expo-router';
+import { Map } from '~/lib/icons/Map';
+import { Navigation } from '~/lib/icons/Navigation';
 
 export default function Layout() {
   return (
-    <Stack
+    <Tabs
       screenOptions={{
-        headerRight: () => <BoatProfileLabel />,
+        headerShown: false,
       }}
     >
-      <Stack.Screen
-        name='index'
+      <Tabs.Screen
+        name='(leg)'
         options={{
-          title: 'Plan',
-          headerLeft: ({ tintColor }) => (
-            <DrawerToggleButton tintColor={tintColor} />
+          title: 'Leg',
+          tabBarIcon: ({ color, size }) => (
+            <Navigation color={color} size={size - 3} />
           ),
         }}
       />
-      <Stack.Screen
-        name='plan'
+      <Tabs.Screen
+        name='course'
         options={{
-          title: 'Plan Results',
+          title: 'Course',
+          tabBarIcon: ({ color, size }) => (
+            <Map color={color} size={size - 3} />
+          ),
         }}
       />
-    </Stack>
+    </Tabs>
   );
 }

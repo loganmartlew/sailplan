@@ -1,29 +1,18 @@
 import { View } from 'react-native';
-import {
-  Label,
-  Option,
-  Select,
-  SelectContent,
-  SelectGroup,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '~/components/ui';
-import { Plus } from '~/lib/icons/Plus';
+import { Label, Option, Select } from '~/components/ui';
 import { useBoatProfile } from '../hooks/useBoatProfile';
 import { useBoatProfiles } from '../api/getBoatProfiles';
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import {
   BoatProfileFormValues,
   NewBoatProfileDialog,
 } from './NewBoatProfileDialog';
 import { useColorScheme } from '~/lib/useColorScheme';
-import { NAV_THEME } from '~/lib/constants';
 import { BoatProfile } from '../model/boatProfile';
 import { createBoatProfile } from '../api/createBoatProfile';
 
-function boatProfileToOption(boatProfile: BoatProfile | null): Option {
-  if (!boatProfile) return undefined;
+function boatProfileToOption(boatProfile: BoatProfile | null): Option | null {
+  if (!boatProfile) return null;
   return {
     label: boatProfile.name,
     value: `${boatProfile.id}`,
@@ -38,19 +27,19 @@ export function BoatProfilePicker() {
 
   const [newDialogOpen, setNewDialogOpen] = useState(false);
 
-  function handleValueChange(option: Option) {
-    if (!option) {
+  function handleValueChange(value: string | null) {
+    if (!value) {
       setBoatProfile(null);
       return;
     }
 
-    if (option.value === '-1') {
+    if (value === '-1') {
       setNewDialogOpen(true);
       return;
     }
 
     const boatProfile = boatProfiles.find(
-      profile => profile.id === parseInt(option.value)
+      profile => profile.id === parseInt(value)
     );
     setBoatProfile(boatProfile ?? null);
   }
@@ -60,45 +49,30 @@ export function BoatProfilePicker() {
     setBoatProfile(boatProfile);
   }
 
+  const options: Option[] = useMemo(
+    () => [
+      {
+        label: 'New Profile  +',
+        value: '-1',
+      },
+      ...boatProfiles.map(profile => ({
+        label: profile.name,
+        value: `${profile.id}`,
+      })),
+    ],
+    [boatProfiles, isDarkColorScheme]
+  );
+
   return (
     <View className='w-full'>
       <Label nativeID='boatProfile' className='mb-1'>
         Boat Profile
       </Label>
       <Select
-        value={boatProfileToOption(boatProfile) ?? undefined}
+        options={options}
         onValueChange={handleValueChange}
-      >
-        <SelectTrigger>
-          <SelectValue placeholder='Select a Boat Profile' />
-        </SelectTrigger>
-        <SelectContent>
-          <SelectGroup>
-            {boatProfiles.map(profile => (
-              <SelectItem
-                key={profile.id}
-                label={profile.name}
-                value={`${profile.id}`}
-              />
-            ))}
-            <SelectItem
-              label='New Profile'
-              value='-1'
-              icon={
-                <Plus
-                  size={18}
-                  color={
-                    isDarkColorScheme
-                      ? NAV_THEME.dark.text
-                      : NAV_THEME.light.text
-                  }
-                />
-              }
-              textClassName='italic'
-            />
-          </SelectGroup>
-        </SelectContent>
-      </Select>
+        value={boatProfileToOption(boatProfile)?.value ?? null}
+      />
       <NewBoatProfileDialog
         open={newDialogOpen}
         onOpenChange={setNewDialogOpen}
