@@ -13,7 +13,8 @@ export function useCourses({ courseGroupId }: UseCoursesOptions = {}) {
       ...(courseGroupId && { where: eq(course.courseGroupId, courseGroupId) }),
       ...(courseGroupId === null && { where: isNull(course.courseGroupId) }),
       orderBy: [asc(course.name)],
-    })
+    }),
+    [courseGroupId]
   );
 }
 
@@ -56,14 +57,15 @@ export function useCourseGroup(id: number) {
   );
 }
 
-export function useCourseMarks(courseId: number) {
+export function useCourseMarks(courseId?: number | null) {
   return useLiveQuery(
     db.query.courseMark.findMany({
-      where: eq(courseMark.courseId, courseId),
+      where: eq(courseMark.courseId, courseId ?? -1),
       orderBy: [asc(courseMark.order)],
       with: {
         mark: true,
       },
-    })
+    }),
+    [courseId]
   );
 }
