@@ -24,6 +24,12 @@ export default function Layout() {
           title: 'Leg Plan',
         }}
       />
+      <Stack.Screen
+        name='map'
+        options={{
+          title: 'Leg Map',
+        }}
+      />
     </Stack>
   );
 }
