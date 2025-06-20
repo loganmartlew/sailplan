@@ -5,16 +5,7 @@ import { Controller, SubmitHandler } from 'react-hook-form';
 import { ScrollView, View } from 'react-native';
 import { z } from 'zod';
 import { FormControlWrapper, SelectInput, TextInput } from '~/components/form';
-import {
-  Button,
-  H2,
-  Option,
-  Select,
-  Separator,
-  Text,
-  ToggleGroup,
-  ToggleGroupItem,
-} from '~/components/ui';
+import { Button, H2, Option, Select, Separator, Text } from '~/components/ui';
 import { useCourseGroups, useCourseMarks, useCourses } from '~/features/course';
 import { getMark } from '~/features/mark';
 import {

@@ -3,7 +3,7 @@ import { useLocalSearchParams } from 'expo-router';
 import { useMemo, useState } from 'react';
 import { ActivityIndicator, ScrollView, View } from 'react-native';
 import { z } from 'zod';
-import { FormControlWrapper, TextInput } from '~/components/form';
+import { TextInput } from '~/components/form';
 import {
   Button,
   Card,
@@ -11,7 +11,6 @@ import {
   CardHeader,
   CardTitle,
   H2,
-  Input,
   Separator,
   Text,
 } from '~/components/ui';
