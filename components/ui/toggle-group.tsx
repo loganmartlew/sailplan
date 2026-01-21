@@ -21,7 +21,10 @@ const ToggleGroup = React.forwardRef<
 >(({ className, variant, size, children, ...props }, ref) => (
   <ToggleGroupPrimitive.Root
     ref={ref}
-    className={cn('flex flex-row items-center justify-center gap-1', className)}
+    className={cn(
+      'flex flex-row items-center justify-center gap-1 bg-card p-1.5 rounded-full',
+      className,
+    )}
     {...props}
   >
     <ToggleGroupContext.Provider value={{ variant, size }}>
@@ -36,7 +39,7 @@ function useToggleGroupContext() {
   const context = React.useContext(ToggleGroupContext);
   if (context === null) {
     throw new Error(
-      'ToggleGroup compound components cannot be rendered outside the ToggleGroup component'
+      'ToggleGroup compound components cannot be rendered outside the ToggleGroup component',
     );
   }
   return context;
@@ -56,7 +59,7 @@ const ToggleGroupItem = React.forwardRef<
         toggleTextVariants({ variant, size }),
         ToggleGroupPrimitive.utils.getIsSelected(value, props.value)
           ? 'text-accent-foreground'
-          : 'web:group-hover:text-muted-foreground'
+          : 'web:group-hover:text-muted-foreground',
       )}
     >
       <ToggleGroupPrimitive.Item
@@ -68,8 +71,11 @@ const ToggleGroupItem = React.forwardRef<
           }),
           props.disabled && 'web:pointer-events-none opacity-50',
           ToggleGroupPrimitive.utils.getIsSelected(value, props.value) &&
-            'bg-accent',
-          className
+            ((context.variant || variant) === 'primary'
+              ? 'bg-primary'
+              : 'bg-accent'),
+          'rounded-full',
+          className,
         )}
         {...props}
       >

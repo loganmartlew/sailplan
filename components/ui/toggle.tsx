@@ -11,11 +11,12 @@ const toggleVariants = cva(
     variants: {
       variant: {
         default: 'bg-transparent',
+        primary: '',
         outline:
           'border border-input bg-transparent web:hover:bg-accent active:bg-accent active:bg-accent',
       },
       size: {
-        default: 'h-10 px-3 native:h-12 native:px-[12]',
+        default: 'h-8 px-3 native:h-10 native:px-[12]',
         sm: 'h-9 px-2.5 native:h-10 native:px-[9]',
         lg: 'h-11 px-5 native:h-14 native:px-6',
       },
@@ -24,36 +25,44 @@ const toggleVariants = cva(
       variant: 'default',
       size: 'default',
     },
-  }
+  },
 );
 
-const toggleTextVariants = cva('text-sm native:text-base text-foreground font-medium', {
-  variants: {
-    variant: {
-      default: '',
-      outline: 'web:group-hover:text-accent-foreground web:group-active:text-accent-foreground',
+const toggleTextVariants = cva(
+  'text-sm native:text-base text-foreground font-medium',
+  {
+    variants: {
+      variant: {
+        default: '',
+        primary: '',
+        outline:
+          'web:group-hover:text-accent-foreground web:group-active:text-accent-foreground',
+      },
+      size: {
+        default: '',
+        sm: '',
+        lg: '',
+      },
     },
-    size: {
-      default: '',
-      sm: '',
-      lg: '',
+    defaultVariants: {
+      variant: 'default',
+      size: 'default',
     },
   },
-  defaultVariants: {
-    variant: 'default',
-    size: 'default',
-  },
-});
+);
 
 const Toggle = React.forwardRef<
   React.ElementRef<typeof TogglePrimitive.Root>,
-  React.ComponentPropsWithoutRef<typeof TogglePrimitive.Root> & VariantProps<typeof toggleVariants>
+  React.ComponentPropsWithoutRef<typeof TogglePrimitive.Root> &
+    VariantProps<typeof toggleVariants>
 >(({ className, variant, size, ...props }, ref) => (
   <TextClassContext.Provider
     value={cn(
       toggleTextVariants({ variant, size }),
-      props.pressed ? 'text-accent-foreground' : 'web:group-hover:text-muted-foreground',
-      className
+      props.pressed
+        ? 'text-accent-foreground'
+        : 'web:group-hover:text-muted-foreground',
+      className,
     )}
   >
     <TogglePrimitive.Root
@@ -62,7 +71,7 @@ const Toggle = React.forwardRef<
         toggleVariants({ variant, size }),
         props.disabled && 'web:pointer-events-none opacity-50',
         props.pressed && 'bg-accent',
-        className
+        className,
       )}
       {...props}
     />
