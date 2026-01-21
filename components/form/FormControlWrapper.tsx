@@ -24,7 +24,7 @@ export function FormControlWrapper({
     <View className={cn('flex flex-col gap-1', className)}>
       {label && (
         <Label nativeID={name}>
-          {label} {required && <Text>*</Text>}
+          {label} {required && <Text className='text-primary'>*</Text>}
         </Label>
       )}
       {children}

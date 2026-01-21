@@ -1,6 +1,7 @@
 import { useTheme } from '@react-navigation/native';
 import { forwardRef } from 'react';
 import PickerSelect, { PickerSelectProps } from 'react-native-picker-select';
+import { NAV_THEME } from '~/lib/constants';
 import { ChevronDown } from '~/lib/icons/ChevronDown';
 
 export interface Option {
@@ -26,7 +27,7 @@ const Select = forwardRef<PickerSelect, SelectProps>(
       error = false,
       disabled = false,
     },
-    ref
+    ref,
   ) => {
     const theme = useTheme();
 
@@ -52,16 +53,19 @@ const Select = forwardRef<PickerSelect, SelectProps>(
             fontSize: 14,
             lineHeight: 20,
             justifyContent: 'space-between',
-            borderRadius: 6,
+            borderRadius: 10,
             borderWidth: 1,
-            borderColor: error ? 'red' : theme.colors.border,
-            backgroundColor: theme.colors.background,
+            borderColor: error ? 'red' : theme.colors.card,
+            backgroundColor: theme.colors.card,
             paddingLeft: 12,
             paddingRight: 12,
             paddingTop: 8,
             paddingBottom: 8,
             color: theme.colors.text,
             opacity: disabled ? 0.5 : 1,
+          },
+          placeholder: {
+            color: theme.colors.mutedForeground,
           },
           iconContainer: {
             top: 16,
@@ -73,7 +77,7 @@ const Select = forwardRef<PickerSelect, SelectProps>(
         ref={ref}
       />
     );
-  }
+  },
 );
 Select.displayName = 'Select';
 

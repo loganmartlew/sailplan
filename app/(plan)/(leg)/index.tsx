@@ -3,7 +3,7 @@ import { useRouter } from 'expo-router';
 import { SubmitHandler } from 'react-hook-form';
 import { ScrollView, View } from 'react-native';
 import { z } from 'zod';
-import { SelectInput, TextInput } from '~/components/form';
+import { NumberInput, SelectInput, TextInput } from '~/components/form';
 import { Button, H2, Option, Separator, Text } from '~/components/ui';
 import { useMarks } from '~/features/mark';
 import {
@@ -29,19 +29,19 @@ const planLegFormSchema = z.object({
         })
         .int()
         .min(0, 'TWD must be between 0 and 360')
-        .max(360, 'TWD must be between 0 and 360')
+        .max(360, 'TWD must be between 0 and 360'),
     ),
   from: z.object(
     {
       value: z.string(),
     },
-    { message: 'From is required' }
+    { message: 'From is required' },
   ),
   to: z.object(
     {
       value: z.string(),
     },
-    { message: 'To is required' }
+    { message: 'To is required' },
   ),
 });
 
@@ -93,12 +93,12 @@ export default function PlanLegPage() {
   return (
     <ScrollView>
       <View className='flex-1 justify-center items-center'>
-        <Form className='w-full px-10 py-5 pb-20 flex flex-col gap-4'>
+        <Form className='w-full px-5 py-5 pb-20 flex flex-col gap-6'>
           <H2>Plan Leg</H2>
-          <Separator />
           {/* <TextInput<PlanLegForm> label='True Wind Speed (kn)' name='tws' /> */}
-          <TextInput<PlanLegForm>
+          <NumberInput<PlanLegForm>
             label='True Wind Direction (°)'
+            placeholder='e.g: 163'
             name='twd'
             required
           />
@@ -114,7 +114,7 @@ export default function PlanLegPage() {
             options={markOptions}
             required
           />
-          <Button onPress={handleSubmit(onSubmit)}>
+          <Button onPress={handleSubmit(onSubmit)} className='mt-3'>
             <Text>Plan</Text>
           </Button>
         </Form>
