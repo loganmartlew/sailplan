@@ -102,49 +102,47 @@ export default function PlanLegPage() {
   }));
 
   return (
-    <ScrollView>
-      <View className='flex-1 justify-center items-center'>
-        <Form className='w-full px-5 py-5 pb-20 flex flex-col gap-6'>
-          <H2>Plan Legs</H2>
-          <ToggleGroup
-            type='single'
-            value={planMode}
-            onValueChange={value => {
-              if (value) setPlanMode(value as 'leg' | 'course');
-            }}
-            variant='primary'
-          >
-            <ToggleGroupItem value='leg' className='grow'>
-              <Text>Leg</Text>
-            </ToggleGroupItem>
-            <ToggleGroupItem value='course' className='grow'>
-              <Text>Course</Text>
-            </ToggleGroupItem>
-          </ToggleGroup>
-          {/* <TextInput<PlanLegForm> label='True Wind Speed (kn)' name='tws' /> */}
-          <NumberInput<PlanLegForm>
-            label='True Wind Direction (°)'
-            placeholder='e.g: 163'
-            name='twd'
-            required
-          />
-          <SelectInput<PlanLegForm>
-            label='From'
-            name='from'
-            options={markOptions}
-            required
-          />
-          <SelectInput<PlanLegForm>
-            label='To'
-            name='to'
-            options={markOptions}
-            required
-          />
-          <Button onPress={handleSubmit(onSubmit)} className='mt-3'>
-            <Text>Plan</Text>
-          </Button>
-        </Form>
-      </View>
-    </ScrollView>
+    <View className='flex-1 justify-center items-center'>
+      <Form className='w-full px-5 py-5 pb-20 flex flex-col gap-6'>
+        <H2>Plan Legs</H2>
+        <ToggleGroup
+          type='single'
+          value={planMode}
+          onValueChange={value => {
+            if (value) setPlanMode(value as 'leg' | 'course');
+          }}
+          variant='primary'
+        >
+          <ToggleGroupItem value='leg' className='grow'>
+            <Text>Leg</Text>
+          </ToggleGroupItem>
+          <ToggleGroupItem value='course' className='grow'>
+            <Text>Course</Text>
+          </ToggleGroupItem>
+        </ToggleGroup>
+        {/* <TextInput<PlanLegForm> label='True Wind Speed (kn)' name='tws' /> */}
+        <NumberInput<PlanLegForm>
+          label='True Wind Direction (°)'
+          placeholder='e.g: 163'
+          name='twd'
+          required
+        />
+        <SelectInput<PlanLegForm>
+          label='From'
+          name='from'
+          options={markOptions}
+          required
+        />
+        <SelectInput<PlanLegForm>
+          label='To'
+          name='to'
+          options={markOptions}
+          required
+        />
+        <Button onPress={handleSubmit(onSubmit)} className='mt-3'>
+          <Text>Plan</Text>
+        </Button>
+      </Form>
+    </View>
   );
 }
