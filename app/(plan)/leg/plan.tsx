@@ -114,7 +114,7 @@ export default function LegPlanResults() {
       </Card>
       <Link
         href={{
-          pathname: '/map',
+          pathname: '/leg/map',
           params: {
             fromMarkId: fromMark?.id.toString(),
             toMarkId: toMark?.id.toString(),
