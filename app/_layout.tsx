@@ -20,9 +20,6 @@ import { H2, Text } from '~/components/ui';
 import { useDrizzleStudio } from 'expo-drizzle-studio-plugin';
 import { BoatProfilePicker, useBoatProfile } from '~/features/boatProfile';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
-import Drawer from 'expo-router/drawer';
-import { BoatProfileLabel, DrawerContent } from '~/features/navigation';
-import { SafeAreaView } from 'react-native-safe-area-context';
 import { ChartGantt, MapPin, Route, Sailboat } from 'lucide-react-native';
 
 const LIGHT_THEME: Theme = {
@@ -145,7 +142,6 @@ function RootLayout() {
   const { isDarkColorScheme } = useColorScheme();
   const { boatProfile } = useBoatProfile();
   const theme = isDarkColorScheme ? DARK_THEME : LIGHT_THEME;
-  console.log(theme.colors.primary);
 
   if (!boatProfile)
     return (
@@ -164,52 +160,50 @@ function RootLayout() {
 
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
-      <SafeAreaView style={{ flex: 1 }}>
-        <Tabs
-          screenOptions={{
-            headerShown: false,
-            tabBarActiveTintColor: theme.colors.primary,
-            tabBarStyle: { backgroundColor: theme.colors.background },
+      <Tabs
+        screenOptions={{
+          headerShown: true,
+          tabBarActiveTintColor: theme.colors.primary,
+          tabBarStyle: { backgroundColor: theme.colors.background },
+        }}
+      >
+        <Tabs.Screen
+          name='(plan)'
+          options={{
+            title: 'Plan',
+            tabBarIcon: ({ color, size }) => (
+              <ChartGantt color={color} size={size - 3} />
+            ),
           }}
-        >
-          <Tabs.Screen
-            name='(plan)'
-            options={{
-              title: 'Plan',
-              tabBarIcon: ({ color, size }) => (
-                <ChartGantt color={color} size={size - 3} />
-              ),
-            }}
-          />
-          <Tabs.Screen
-            name='sails'
-            options={{
-              title: 'Sails',
-              tabBarIcon: ({ color, size }) => (
-                <Sailboat color={color} size={size - 3} />
-              ),
-            }}
-          />
-          <Tabs.Screen
-            name='marks'
-            options={{
-              title: 'Marks',
-              tabBarIcon: ({ color, size }) => (
-                <MapPin color={color} size={size - 3} />
-              ),
-            }}
-          />
-          <Tabs.Screen
-            name='courses'
-            options={{
-              title: 'Courses',
-              tabBarIcon: ({ color, size }) => (
-                <Route color={color} size={size - 3} />
-              ),
-            }}
-          />
-        </Tabs>
-      </SafeAreaView>
+        />
+        <Tabs.Screen
+          name='marks'
+          options={{
+            title: 'Marks',
+            tabBarIcon: ({ color, size }) => (
+              <MapPin color={color} size={size - 3} />
+            ),
+          }}
+        />
+        <Tabs.Screen
+          name='courses'
+          options={{
+            title: 'Courses',
+            tabBarIcon: ({ color, size }) => (
+              <Route color={color} size={size - 3} />
+            ),
+          }}
+        />
+        <Tabs.Screen
+          name='sails'
+          options={{
+            title: 'Sails',
+            tabBarIcon: ({ color, size }) => (
+              <Sailboat color={color} size={size - 3} />
+            ),
+          }}
+        />
+      </Tabs>
     </GestureHandlerRootView>
   );
 }
