@@ -3,7 +3,7 @@ import { View, FlatList } from 'react-native';
 import { Button, H2, Separator, Text } from '~/components/ui';
 import { deleteSail, Sail, SailListItem, useSails } from '~/features/sail';
 import { useConfirm } from '~/hooks/useConfirm';
-import { Plus } from '~/lib/icons/Plus';
+import { Plus } from '~/lib/icons';
 
 export default function Sails() {
   const confirm = useConfirm();

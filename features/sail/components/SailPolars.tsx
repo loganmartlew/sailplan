@@ -11,7 +11,7 @@ import {
   useSailPolars,
 } from '~/features/sailPolar';
 import { useConfirm } from '~/hooks/useConfirm';
-import { Plus } from '~/lib/icons/Plus';
+import { Plus } from '~/lib/icons';
 import { useState } from 'react';
 
 interface SailPolarsProps {

@@ -12,8 +12,7 @@ import {
   importFromJson,
   isSharingAvailable,
 } from '../util/sharing';
-import { Upload } from '~/lib/icons/Upload';
-import { Download } from '~/lib/icons/Download';
+import { Upload, Download } from '~/lib/icons';
 import { useEffect } from 'react';
 
 interface MarkShareDialogProps {
@@ -38,7 +37,7 @@ export function MarkShareDialog({ open, onOpenChange }: MarkShareDialogProps) {
       console.warn('Sharing is not available on this device');
       Alert.alert(
         'Sharing Not Available',
-        'This device does not support sharing functionality.'
+        'This device does not support sharing functionality.',
       );
       onOpenChange(false);
     });

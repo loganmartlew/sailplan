@@ -9,9 +9,7 @@ import {
   MarkShareDialog,
 } from '~/features/mark';
 import { useConfirm } from '~/hooks/useConfirm';
-import { Plus } from '~/lib/icons/Plus';
-import { MapPin } from '~/lib/icons/MapPin';
-import { Share2 } from '~/lib/icons/Share2';
+import { Plus, MapPin, Share2 } from '~/lib/icons';
 import { useState } from 'react';
 
 export default function Marks() {

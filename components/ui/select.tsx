@@ -1,8 +1,7 @@
 import { useTheme } from '@react-navigation/native';
 import { forwardRef } from 'react';
 import PickerSelect, { PickerSelectProps } from 'react-native-picker-select';
-import { NAV_THEME } from '~/lib/constants';
-import { ChevronDown } from '~/lib/icons/ChevronDown';
+import { ChevronDown } from '~/lib/icons';
 
 export interface Option {
   label: string;

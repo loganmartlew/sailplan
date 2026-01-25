@@ -1,7 +1,7 @@
 import { Link, router } from 'expo-router';
 import { View, FlatList } from 'react-native';
 import { Button, H2, Separator, Text } from '~/components/ui';
-import { Plus } from '~/lib/icons/Plus';
+import { Plus } from '~/lib/icons';
 import {
   CourseGroupInsert,
   CourseGroupListItem,

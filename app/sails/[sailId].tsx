@@ -10,7 +10,7 @@ import {
   useSail,
   SailPolars,
 } from '~/features/sail';
-import { Pencil } from '~/lib/icons/Pencil';
+import { Pencil } from '~/lib/icons';
 
 export default function SailDetailsPage() {
   const { sailId, edit } = useLocalSearchParams<{

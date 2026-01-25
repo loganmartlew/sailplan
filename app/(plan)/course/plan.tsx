@@ -24,7 +24,7 @@ import { deserializeCoursePlanData, usePlanState } from '~/features/plan';
 import { useForm } from '~/hooks/useForm';
 import { formatAngle } from '~/lib/format';
 import { cn } from '~/lib/utils';
-import { RefreshCw } from '~/lib/icons/RefreshCw';
+import { RefreshCw } from '~/lib/icons';
 import { SubmitHandler } from 'react-hook-form';
 
 interface Leg {

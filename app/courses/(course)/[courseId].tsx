@@ -10,7 +10,7 @@ import {
   updateCourse,
   useCourse,
 } from '~/features/course';
-import { Pencil } from '~/lib/icons/Pencil';
+import { Pencil } from '~/lib/icons';
 
 export default function CourseDetailsPage() {
   const { courseId, edit } = useLocalSearchParams<{

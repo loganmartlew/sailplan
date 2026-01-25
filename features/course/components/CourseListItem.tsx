@@ -1,8 +1,7 @@
 import { Pressable, View } from 'react-native';
 import { Course } from '../model/course';
 import { Button, H3 } from '~/components/ui';
-import { Pencil } from '~/lib/icons/Pencil';
-import { Trash } from '~/lib/icons/Trash';
+import { Pencil, Trash } from '~/lib/icons';
 
 interface CourseListItemProps {
   course: Course;

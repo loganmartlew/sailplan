@@ -14,7 +14,7 @@ import { Coordinate, coordsToBearing, getTwa } from '~/features/coordinate';
 import { Mark, useMark } from '~/features/mark';
 import { deserializeLegPlanData } from '~/features/plan';
 import { formatAngle } from '~/lib/format';
-import { MapPin } from '~/lib/icons/MapPin';
+import { MapPin } from '~/lib/icons';
 
 function markToCoords(mark: Mark): Coordinate {
   return {

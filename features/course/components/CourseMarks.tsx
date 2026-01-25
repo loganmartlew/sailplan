@@ -5,8 +5,7 @@ import { useState } from 'react';
 import { deleteCourseMark } from '../api/deleteCourse';
 import { Pressable, View } from 'react-native';
 import { Button, H3, Text } from '~/components/ui';
-import { Plus } from '~/lib/icons/Plus';
-import { GripVertical } from '~/lib/icons/GripVertical';
+import { Plus, GripVertical } from '~/lib/icons';
 import {
   CourseMark,
   CourseMarkInsert,
@@ -96,8 +95,8 @@ export function CourseMarks({ course }: CourseMarksProps) {
         updateCourseMarkMutation.mutateAsync({
           id: mark.id,
           data: { order: index },
-        })
-      )
+        }),
+      ),
     );
   }
 
@@ -148,7 +147,7 @@ export function CourseMarks({ course }: CourseMarksProps) {
               onLongPress={drag}
               className={cn(
                 'px-7 flex flex-row gap-2 items-center',
-                isActive && 'opacity-70'
+                isActive && 'opacity-70',
               )}
             >
               <GripVertical className='text-secondary-foreground' size={20} />

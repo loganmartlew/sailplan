@@ -1,11 +1,11 @@
 import { Button } from '../ui';
 import { NumberInput, NumberInputProps } from './NumberInput';
-import { Pencil } from '~/lib/icons/Pencil';
+import { Pencil } from '~/lib/icons';
 import { useState, lazy, Suspense } from 'react';
 import { useFormContext } from 'react-hook-form';
 
 const CoordinateDialog = lazy(() =>
-  import('~/features/coordinate').then(m => ({ default: m.CoordinateDialog }))
+  import('~/features/coordinate').then(m => ({ default: m.CoordinateDialog })),
 );
 
 interface CoordinateInputProps extends NumberInputProps {

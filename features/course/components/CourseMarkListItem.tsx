@@ -1,8 +1,7 @@
 import { Button, H3, H4, Text } from '~/components/ui';
 import { CourseMarkWithMark } from '../model/courseMark';
 import { Pressable, View } from 'react-native';
-import { Pencil } from '~/lib/icons/Pencil';
-import { Trash } from '~/lib/icons/Trash';
+import { Pencil, Trash } from '~/lib/icons';
 import { cn } from '~/lib/utils';
 
 interface CourseMarkListItemProps {

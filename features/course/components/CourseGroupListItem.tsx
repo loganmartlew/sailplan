@@ -1,6 +1,6 @@
 import { Pressable, View } from 'react-native';
 import { Button, H3, Text } from '~/components/ui';
-import { Trash } from '~/lib/icons/Trash';
+import { Trash } from '~/lib/icons';
 import { CourseGroupWithCourses } from '../model/courseGroup';
 import { useState } from 'react';
 import { getCourses } from '../api/getCourses';

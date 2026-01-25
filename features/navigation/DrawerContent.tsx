@@ -1,7 +1,5 @@
 import {
   DrawerContentComponentProps,
-  DrawerContentScrollView,
-  DrawerItem,
   DrawerItemList,
 } from '@react-navigation/drawer';
 import { ActivityIndicator, View } from 'react-native';

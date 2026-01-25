@@ -9,7 +9,7 @@ import {
   useCourses,
 } from '~/features/course';
 import { useConfirm } from '~/hooks/useConfirm';
-import { Plus } from '~/lib/icons/Plus';
+import { Plus } from '~/lib/icons';
 
 export default function CourseGroupDetailsPage() {
   const confirm = useConfirm();
