@@ -162,7 +162,7 @@ function RootLayout() {
     <GestureHandlerRootView style={{ flex: 1 }}>
       <Tabs
         screenOptions={{
-          headerShown: true,
+          headerShown: false,
           tabBarActiveTintColor: theme.colors.primary,
           tabBarStyle: { backgroundColor: theme.colors.background },
         }}

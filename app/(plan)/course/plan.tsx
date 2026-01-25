@@ -3,7 +3,7 @@ import { useLocalSearchParams } from 'expo-router';
 import { useMemo, useState } from 'react';
 import { ActivityIndicator, ScrollView, View } from 'react-native';
 import { z } from 'zod';
-import { TextInput } from '~/components/form';
+import { NumberInput, TextInput } from '~/components/form';
 import {
   Button,
   Card,
@@ -47,7 +47,7 @@ const courseFormSchema = z.object({
         })
         .int()
         .min(0, 'TWD must be between 0 and 360')
-        .max(360, 'TWD must be between 0 and 360')
+        .max(360, 'TWD must be between 0 and 360'),
     ),
 });
 
@@ -61,7 +61,7 @@ export default function CoursePlanResults() {
 
   const { data: course, error: courseError } = useCourse(planData.courseId);
   const { data: courseMarks, error: courseMarksError } = useCourseMarks(
-    planData.courseId
+    planData.courseId,
   );
 
   const [twd, setTwd] = useState<number | undefined>();
@@ -163,12 +163,11 @@ export default function CoursePlanResults() {
     <View className='p-7 flex gap-5 h-full'>
       <H2>{course?.name ?? 'Course Plan'}</H2>
       <Form className='w-full flex flex-row gap-2 items-end'>
-        <TextInput<CourseForm>
+        <NumberInput<CourseForm>
           label='True Wind Direction (°)'
+          placeholder='e.g: 163'
           name='twd'
           required
-          containerClassName='flex-1'
-          inputMode='numeric'
         />
         <Button size='default' onPress={handleSubmit(onSubmit)}>
           <RefreshCw />
@@ -191,8 +190,8 @@ export default function CoursePlanResults() {
                     {leg.from.direction === 'starboard'
                       ? ' S'
                       : leg.from.direction === 'port'
-                      ? ' P'
-                      : ''}
+                        ? ' P'
+                        : ''}
                   </Text>
                 </CardTitle>
                 <CardTitle>
@@ -206,8 +205,8 @@ export default function CoursePlanResults() {
                     {leg.to.direction === 'starboard'
                       ? ' S'
                       : leg.to.direction === 'port'
-                      ? ' P'
-                      : ''}
+                        ? ' P'
+                        : ''}
                   </Text>
                 </CardTitle>
               </CardHeader>

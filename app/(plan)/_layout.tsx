@@ -1,32 +1,39 @@
-import { Tabs } from 'expo-router';
-import { Map } from '~/lib/icons/Map';
-import { Navigation } from '~/lib/icons/Navigation';
+import { Stack } from 'expo-router';
+import { SafeAreaView } from 'react-native-safe-area-context';
 
 export default function Layout() {
   return (
-    <Tabs
-      screenOptions={{
-        headerShown: false,
-      }}
-    >
-      <Tabs.Screen
-        name='(leg)'
-        options={{
-          title: 'Leg',
-          tabBarIcon: ({ color, size }) => (
-            <Navigation color={color} size={size - 3} />
-          ),
+    <SafeAreaView style={{ flex: 1 }}>
+      <Stack
+        screenOptions={{
+          headerShown: true,
         }}
-      />
-      <Tabs.Screen
-        name='course'
-        options={{
-          title: 'Course',
-          tabBarIcon: ({ color, size }) => (
-            <Map color={color} size={size - 3} />
-          ),
-        }}
-      />
-    </Tabs>
+      >
+        <Stack.Screen
+          name='index'
+          options={{
+            title: 'Plan',
+          }}
+        />
+        <Stack.Screen
+          name='leg/plan'
+          options={{
+            title: 'Leg Plan',
+          }}
+        />
+        <Stack.Screen
+          name='leg/map'
+          options={{
+            title: 'Leg Map',
+          }}
+        />
+        <Stack.Screen
+          name='course/plan'
+          options={{
+            title: 'Course Plan',
+          }}
+        />
+      </Stack>
+    </SafeAreaView>
   );
 }

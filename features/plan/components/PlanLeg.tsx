@@ -1,26 +1,14 @@
-import { zodResolver } from '@hookform/resolvers/zod';
 import { useRouter } from 'expo-router';
-import { useState } from 'react';
-import { SubmitHandler } from 'react-hook-form';
-import { ScrollView, View } from 'react-native';
-import { z } from 'zod';
-import { NumberInput, SelectInput, TextInput } from '~/components/form';
-import {
-  Button,
-  H2,
-  Option,
-  Separator,
-  Text,
-  ToggleGroup,
-  ToggleGroupItem,
-} from '~/components/ui';
+import { NumberInput, SelectInput } from '~/components/form';
 import { useMarks } from '~/features/mark';
-import {
-  LegPlanData,
-  serializeLegPlanData,
-  usePlanState,
-} from '~/features/plan';
+import { usePlanState } from '../store/planStore';
 import { useForm } from '~/hooks/useForm';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { SubmitHandler } from 'react-hook-form';
+import { LegPlanData, serializeLegPlanData } from '../model/legPlanData';
+import { Button, Option, Text } from '~/components/ui';
+import { View } from 'react-native';
+import z from 'zod';
 
 const planLegFormSchema = z.object({
   // tws: z.coerce
@@ -56,12 +44,10 @@ const planLegFormSchema = z.object({
 
 type PlanLegForm = z.infer<typeof planLegFormSchema>;
 
-export default function PlanLegPage() {
+export function PlanLeg() {
   const { data: marks } = useMarks();
   const router = useRouter();
   const { add, currentState } = usePlanState();
-
-  const [planMode, setPlanMode] = useState<'leg' | 'course'>('leg');
 
   const [Form, { handleSubmit }] = useForm<PlanLegForm>({
     resolver: zodResolver(planLegFormSchema),
@@ -91,7 +77,7 @@ export default function PlanLegPage() {
     });
 
     router.push({
-      pathname: '/plan',
+      pathname: '/leg/plan',
       params: { planData: serializedPlanData },
     });
   };
@@ -102,47 +88,29 @@ export default function PlanLegPage() {
   }));
 
   return (
-    <View className='flex-1 items-center'>
-      <Form className='w-full px-5 py-5 pb-20 flex flex-col gap-6'>
-        <H2>Plan Legs</H2>
-        <ToggleGroup
-          type='single'
-          value={planMode}
-          onValueChange={value => {
-            if (value) setPlanMode(value as 'leg' | 'course');
-          }}
-          variant='primary'
-        >
-          <ToggleGroupItem value='leg' className='grow'>
-            <Text>Leg</Text>
-          </ToggleGroupItem>
-          <ToggleGroupItem value='course' className='grow'>
-            <Text>Course</Text>
-          </ToggleGroupItem>
-        </ToggleGroup>
-        {/* <TextInput<PlanLegForm> label='True Wind Speed (kn)' name='tws' /> */}
-        <NumberInput<PlanLegForm>
-          label='True Wind Direction (°)'
-          placeholder='e.g: 163'
-          name='twd'
-          required
-        />
-        <SelectInput<PlanLegForm>
-          label='From'
-          name='from'
-          options={markOptions}
-          required
-        />
-        <SelectInput<PlanLegForm>
-          label='To'
-          name='to'
-          options={markOptions}
-          required
-        />
-        <Button onPress={handleSubmit(onSubmit)} className='mt-3'>
-          <Text>Plan</Text>
-        </Button>
-      </Form>
-    </View>
+    <Form className='w-full flex flex-col gap-6'>
+      {/* <TextInput<PlanLegForm> label='True Wind Speed (kn)' name='tws' /> */}
+      <NumberInput<PlanLegForm>
+        label='True Wind Direction (°)'
+        placeholder='e.g: 163'
+        name='twd'
+        required
+      />
+      <SelectInput<PlanLegForm>
+        label='From'
+        name='from'
+        options={markOptions}
+        required
+      />
+      <SelectInput<PlanLegForm>
+        label='To'
+        name='to'
+        options={markOptions}
+        required
+      />
+      <Button onPress={handleSubmit(onSubmit)} className='mt-3'>
+        <Text>Plan</Text>
+      </Button>
+    </Form>
   );
 }
