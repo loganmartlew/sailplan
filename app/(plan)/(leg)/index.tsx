@@ -102,7 +102,7 @@ export default function PlanLegPage() {
   }));
 
   return (
-    <View className='flex-1 justify-center items-center'>
+    <View className='flex-1 items-center'>
       <Form className='w-full px-5 py-5 pb-20 flex flex-col gap-6'>
         <H2>Plan Legs</H2>
         <ToggleGroup

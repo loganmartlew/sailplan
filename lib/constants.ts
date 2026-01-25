@@ -13,7 +13,7 @@ export const NAV_THEME = {
     border: 'hsl(240 3.7% 15.9%)', // border
     card: 'hsl(234 7% 10%)', // card
     notification: 'hsl(0 72% 51%)', // destructive
-    primary: 'hsl(0 0% 98%)', // primary
+    primary: 'hsl(196 100% 47%)', // primary
     text: 'hsl(0 0% 98%)', // foreground
     mutedForeground: 'hsl(240 5% 50%)', // muted-foreground
   },

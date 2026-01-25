@@ -3,7 +3,7 @@ import 'react-native-gesture-handler';
 
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Theme, ThemeProvider, DefaultTheme } from '@react-navigation/native';
-import { SplashScreen } from 'expo-router';
+import { SplashScreen, Tabs } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import * as React from 'react';
 import { Platform, StyleSheet, View } from 'react-native';
@@ -23,6 +23,7 @@ import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import Drawer from 'expo-router/drawer';
 import { BoatProfileLabel, DrawerContent } from '~/features/navigation';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { ChartGantt, MapPin, Route, Sailboat } from 'lucide-react-native';
 
 const LIGHT_THEME: Theme = {
   dark: false,
@@ -104,6 +105,7 @@ export default function RootLayoutLogic() {
   return (
     <QueryClientProvider client={queryClient}>
       <BoatProfileProvider>
+        {/* @ts-expect-error - Module augmentation not picked up */}
         <ThemeProvider value={isDarkColorScheme ? DARK_THEME : LIGHT_THEME}>
           <StatusBar
             style={isDarkColorScheme ? 'light' : 'dark'}
@@ -142,6 +144,8 @@ const drawerStyles = StyleSheet.create({
 function RootLayout() {
   const { isDarkColorScheme } = useColorScheme();
   const { boatProfile } = useBoatProfile();
+  const theme = isDarkColorScheme ? DARK_THEME : LIGHT_THEME;
+  console.log(theme.colors.primary);
 
   if (!boatProfile)
     return (
@@ -161,38 +165,50 @@ function RootLayout() {
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
       <SafeAreaView style={{ flex: 1 }}>
-        <Drawer
-          drawerContent={DrawerContent}
+        <Tabs
           screenOptions={{
             headerShown: false,
-            drawerItemStyle: drawerStyles.drawerItem,
+            tabBarActiveTintColor: theme.colors.primary,
+            tabBarStyle: { backgroundColor: theme.colors.background },
           }}
         >
-          <Drawer.Screen
+          <Tabs.Screen
             name='(plan)'
             options={{
               title: 'Plan',
+              tabBarIcon: ({ color, size }) => (
+                <ChartGantt color={color} size={size - 3} />
+              ),
             }}
           />
-          <Drawer.Screen
+          <Tabs.Screen
             name='sails'
             options={{
               title: 'Sails',
+              tabBarIcon: ({ color, size }) => (
+                <Sailboat color={color} size={size - 3} />
+              ),
             }}
           />
-          <Drawer.Screen
+          <Tabs.Screen
             name='marks'
             options={{
               title: 'Marks',
+              tabBarIcon: ({ color, size }) => (
+                <MapPin color={color} size={size - 3} />
+              ),
             }}
           />
-          <Drawer.Screen
+          <Tabs.Screen
             name='courses'
             options={{
               title: 'Courses',
+              tabBarIcon: ({ color, size }) => (
+                <Route color={color} size={size - 3} />
+              ),
             }}
           />
-        </Drawer>
+        </Tabs>
       </SafeAreaView>
     </GestureHandlerRootView>
   );

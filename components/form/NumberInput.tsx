@@ -35,7 +35,7 @@ export function NumberInput<TFieldValues extends FieldValues = FieldValues>({
           <Input
             onChangeText={value => onChange(value)}
             onBlur={onBlur}
-            value={`${value}`}
+            value={value == null ? undefined : `${value}`}
             error={!!error}
             keyboardType='numeric'
             {...props}
