@@ -9,7 +9,9 @@
     "lint": "expo lint",
     "prebuild:development": "cross-env APP_VARIANT=development expo prebuild",
     "build:android:development": "eas build --platform android --profile development",
-    "build:android:preview": "eas build --platform android --profile preview"
+    "build:android:preview": "eas build --platform android --profile preview",
+    "generate:icon": "node scripts/generate-icon.js",
+    "generate:icons": "node scripts/generate-icon-exports.js"
   },
   "jest": {
     "preset": "jest-expo"

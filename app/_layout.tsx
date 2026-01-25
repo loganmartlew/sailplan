@@ -20,7 +20,7 @@ import { H2, Text } from '~/components/ui';
 import { useDrizzleStudio } from 'expo-drizzle-studio-plugin';
 import { BoatProfilePicker, useBoatProfile } from '~/features/boatProfile';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
-import { ChartGantt, MapPin, Route, Sailboat } from 'lucide-react-native';
+import { ChartGantt, MapPin, Route, Sailboat } from '~/lib/icons';
 
 const LIGHT_THEME: Theme = {
   dark: false,

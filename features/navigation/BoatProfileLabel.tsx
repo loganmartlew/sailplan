@@ -1,5 +1,6 @@
-import { Text } from '~/components/ui';
+import { Badge, Text } from '~/components/ui';
 import { useBoatProfile } from '../boatProfile';
+import { Sailboat } from '~/lib/icons';
 
 export function BoatProfileLabel() {
   const { boatProfile } = useBoatProfile();
@@ -8,5 +9,10 @@ export function BoatProfileLabel() {
     return null;
   }
 
-  return <Text className='italic mr-4'>{boatProfile.name}</Text>;
+  return (
+    <Badge variant='secondary' className='flex-row items-center gap-2'>
+      <Sailboat className='text-primary' size={16} />
+      <Text className='text-md font-normal'>{boatProfile.name}</Text>
+    </Badge>
+  );
 }

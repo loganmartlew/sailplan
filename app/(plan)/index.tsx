@@ -7,7 +7,7 @@ export default function PlanPage() {
   const [planMode, setPlanMode] = useState<'leg' | 'course'>('leg');
 
   return (
-    <View className='flex-1 items-center w-full px-3 py-5 pb-20 flex flex-col gap-6'>
+    <View className='flex-1 w-full px-3 py-5 pb-20 flex flex-col gap-6'>
       <H2>Plan Legs</H2>
       <ToggleGroup
         type='single'
