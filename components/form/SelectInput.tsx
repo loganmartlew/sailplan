@@ -34,9 +34,10 @@ export function SelectInput<TFieldValues extends FieldValues = FieldValues>({
         >
           <Select
             value={value?.value}
-            onValueChange={value =>
-              onChange(options.find(opt => opt.value === value))
-            }
+            onValueChange={value => {
+              debugger;
+              return onChange(options.find(opt => opt.value === value));
+            }}
             options={options}
             placeholder={{
               label: placeholder ?? 'Choose an option',

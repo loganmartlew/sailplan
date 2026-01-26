@@ -49,7 +49,7 @@ export function TrueWindInputCard({ tws, twd }: TrueWindInputCardProps) {
     <View className='flex gap-4'>
       {tws && (
         <View className='flex gap-2'>
-          <Label className='text-base'>True Wind Speed</Label>
+          <Label>True Wind Speed</Label>
           <View className='flex flex-row gap-2'>
             <Button onPress={() => addTws(-2)}>
               <Text>-2</Text>
@@ -73,7 +73,7 @@ export function TrueWindInputCard({ tws, twd }: TrueWindInputCardProps) {
       {tws && twd && <Separator />}
       {twd && (
         <View className='flex gap-2'>
-          <Label className='text-base'>True Wind Direction</Label>
+          <Label>True Wind Direction</Label>
           <View className='flex flex-row gap-2'>
             <Button onPress={() => addTwd(-5)}>
               <Text>{formatAngle(-5, { signDisplay: 'always' })}</Text>

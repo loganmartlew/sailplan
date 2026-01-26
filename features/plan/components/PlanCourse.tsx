@@ -18,25 +18,9 @@ import {
   CoursePlanData,
   serializeCoursePlanData,
 } from '../model/coursePlanData';
+import { TrueWindInputCard } from './TrueWindInputCard';
 
 const planCourseFormSchema = z.object({
-  // tws: z.coerce
-  //   .number({ invalid_type_error: 'TWS must be a number' })
-  //   .min(0, { message: 'TWS must be a positive number' })
-  //   .optional(),
-  twd: z
-    .string({ required_error: 'TWD is required' })
-    .min(1, { message: 'TWD is required' })
-    .pipe(
-      z.coerce
-        .number({
-          required_error: 'TWD is required',
-          invalid_type_error: 'TWD must be a number',
-        })
-        .int()
-        .min(0, 'TWD must be between 0 and 360')
-        .max(360, 'TWD must be between 0 and 360'),
-    ),
   course: z.object(
     {
       value: z.string(),
@@ -51,13 +35,10 @@ type PlanCourseForm = z.infer<typeof planCourseFormSchema>;
 
 export function PlanCourse() {
   const router = useRouter();
-  const { add, currentState } = usePlanState();
 
   const [Form, { handleSubmit, watch }] = useForm<PlanCourseForm>({
     resolver: zodResolver(planCourseFormSchema),
     defaultValues: {
-      // tws: (currentState?.tws?.toString() as unknown as number) ?? undefined,
-      twd: currentState?.twd.toString() as unknown as number | undefined,
       finishLocation: null,
       startLocation: null,
     },
@@ -112,18 +93,13 @@ export function PlanCourse() {
     }
 
     const planData: CoursePlanData = {
-      // tws: data.tws,
-      twd: data.twd,
       courseId: parseInt(data.course.value),
       startLocation,
       finishLocation,
     };
 
     const serializedPlanData = serializeCoursePlanData(planData);
-    add({
-      // tws: data.tws ?? null,
-      twd: data.twd,
-    });
+    console.log(serializedPlanData);
 
     router.push({
       pathname: '/course/plan',
@@ -140,13 +116,7 @@ export function PlanCourse() {
 
   return (
     <Form className='w-full flex flex-col gap-6'>
-      {/* <TextInput<PlanLegForm> label='True Wind Speed (kn)' name='tws' /> */}
-      <NumberInput<PlanCourseForm>
-        label='True Wind Direction (°)'
-        placeholder='e.g: 163'
-        name='twd'
-        required
-      />
+      <TrueWindInputCard twd />
       {courseGroups.length > 0 && (
         <FormControlWrapper label='Course Group' name='courseGroup'>
           <Select
