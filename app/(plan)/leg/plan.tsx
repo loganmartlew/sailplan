@@ -8,11 +8,14 @@ import {
   CardHeader,
   CardTitle,
   H2,
+  Label,
+  Separator,
   Text,
 } from '~/components/ui';
 import { Coordinate, coordsToBearing, getTwa } from '~/features/coordinate';
 import { Mark, useMark } from '~/features/mark';
-import { deserializeLegPlanData } from '~/features/plan';
+import { deserializeLegPlanData, TackDirectionBadge } from '~/features/plan';
+import { DirectionsCard } from '~/features/plan/components/DirectionsCard';
 import { formatAngle } from '~/lib/format';
 import { MapPin } from '~/lib/icons';
 
@@ -32,10 +35,6 @@ export default function LegPlanResults() {
 
   const fromCoords = fromMark ? markToCoords(fromMark) : null;
   const toCoords = toMark ? markToCoords(toMark) : null;
-
-  const bearing =
-    fromCoords && toCoords ? coordsToBearing(fromCoords, toCoords) : null;
-  const twa = bearing ? getTwa(bearing, planData.twd) : null;
 
   const isLoading = (!fromMark && !fromMarkError) || (!toMark && !toMarkError);
   const isError = !!fromMarkError || !!toMarkError;
@@ -57,23 +56,15 @@ export default function LegPlanResults() {
     );
   }
 
-  if (!bearing || !twa) {
-    return (
-      <View>
-        <Text>Error calculating bearing and twa</Text>
-      </View>
-    );
-  }
-
   return (
-    <View className='p-7 flex gap-5 h-full'>
+    <View className='py-7 px-3 flex gap-5 h-full'>
       <H2>Leg Plan</H2>
       <View className='flex flex-row gap-2 items-center'>
-        <Badge variant='secondary' className='flex-grow'>
+        <Badge variant='secondary' className='flex-grow py-2 px-1'>
           <Text className='text-md'>{fromMark?.name}</Text>
         </Badge>
-        <Text className='text-sm'>to</Text>
-        <Badge variant='secondary' className='flex-grow'>
+        <Label>to</Label>
+        <Badge variant='secondary' className='flex-grow py-2 px-1'>
           <Text className='text-md'>{toMark?.name}</Text>
         </Badge>
       </View>
@@ -94,24 +85,11 @@ export default function LegPlanResults() {
           </View>
         </CardContent>
       </Card>
-      <Card>
-        <CardHeader className='pb-3'>
-          <CardTitle>Directions</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <View className='flex flex-row gap-2'>
-            <Text className='text-lg w-[50%]'>Bearing:</Text>
-            <Text className='text-lg w-[50%]'>{formatAngle(bearing)}</Text>
-          </View>
-          <View className='flex flex-row gap-2'>
-            <Text className='text-lg w-[50%]'>TWA:</Text>
-            <Text className='text-lg w-[50%]'>
-              {formatAngle(twa.angle)}
-              {twa.tack ? ` (${twa.tack})` : ''}
-            </Text>
-          </View>
-        </CardContent>
-      </Card>
+      <DirectionsCard
+        fromCoords={fromCoords}
+        toCoords={toCoords}
+        twd={planData.twd}
+      />
       <Link
         href={{
           pathname: '/leg/map',
@@ -123,7 +101,7 @@ export default function LegPlanResults() {
         push
         asChild
       >
-        <Button size='lg' variant='secondary' className='flex flex-row gap-2'>
+        <Button className='flex flex-row gap-2'>
           <Text>View on map</Text>
           <MapPin className='text-secondary-foreground' size={18} />
         </Button>
