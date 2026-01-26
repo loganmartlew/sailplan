@@ -5,3 +5,5 @@ export * from './components/CustomLocation';
 export * from './components/PlanLeg';
 export * from './components/PlanCourse';
 export * from './components/TackDirectionBadge';
+export * from './components/DirectionsCard';
+export * from './components/TrueWindInputCard';

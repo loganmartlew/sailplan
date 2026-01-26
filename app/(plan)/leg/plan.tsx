@@ -1,23 +1,14 @@
-import { Link, Stack, useLocalSearchParams } from 'expo-router';
+import { Link, useLocalSearchParams } from 'expo-router';
 import { ActivityIndicator, View } from 'react-native';
-import {
-  Badge,
-  Button,
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle,
-  H2,
-  Label,
-  Separator,
-  Text,
-} from '~/components/ui';
-import { Coordinate, coordsToBearing, getTwa } from '~/features/coordinate';
+import { Badge, Button, H2, Label, Text } from '~/components/ui';
+import { Coordinate } from '~/features/coordinate';
 import { Mark, useMark } from '~/features/mark';
-import { deserializeLegPlanData, TackDirectionBadge } from '~/features/plan';
-import { DirectionsCard } from '~/features/plan/components/DirectionsCard';
-import { formatAngle } from '~/lib/format';
-import { MapPin } from '~/lib/icons';
+import {
+  deserializeLegPlanData,
+  DirectionsCard,
+  TrueWindInputCard,
+} from '~/features/plan';
+import { Map } from '~/lib/icons';
 
 function markToCoords(mark: Mark): Coordinate {
   return {
@@ -68,28 +59,8 @@ export default function LegPlanResults() {
           <Text className='text-md'>{toMark?.name}</Text>
         </Badge>
       </View>
-      <Card>
-        <CardHeader className='pb-3'>
-          <CardTitle>True Wind</CardTitle>
-        </CardHeader>
-        <CardContent>
-          {/* <View className='flex flex-row gap-2'>
-            <Text className='text-lg w-[50%]'>TWS:</Text>
-            <Text className='text-lg w-[50%]'>
-              {planData.tws ? formatSpeed(planData.tws) : '-'}
-            </Text>
-          </View> */}
-          <View className='flex flex-row gap-2'>
-            <Text className='text-lg w-[50%]'>TWD:</Text>
-            <Text className='text-lg w-[50%]'>{formatAngle(planData.twd)}</Text>
-          </View>
-        </CardContent>
-      </Card>
-      <DirectionsCard
-        fromCoords={fromCoords}
-        toCoords={toCoords}
-        twd={planData.twd}
-      />
+      <TrueWindInputCard twd />
+      <DirectionsCard fromCoords={fromCoords} toCoords={toCoords} />
       <Link
         href={{
           pathname: '/leg/map',
@@ -103,7 +74,7 @@ export default function LegPlanResults() {
       >
         <Button className='flex flex-row gap-2'>
           <Text>View on map</Text>
-          <MapPin className='text-secondary-foreground' size={18} />
+          <Map className='text-secondary-foreground' size={18} />
         </Button>
       </Link>
     </View>

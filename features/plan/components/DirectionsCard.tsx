@@ -11,18 +11,17 @@ import {
 import { TackDirectionBadge } from './TackDirectionBadge';
 import { formatAngle } from '~/lib/format';
 import { Coordinate, coordsToBearing, getTwa } from '~/features/coordinate';
+import { usePlanState } from '../store/planStore';
 
 interface DirectionsCardProps {
   fromCoords: Coordinate | null;
   toCoords: Coordinate | null;
-  twd: number;
 }
 
-export function DirectionsCard({
-  fromCoords,
-  toCoords,
-  twd,
-}: DirectionsCardProps) {
+export function DirectionsCard({ fromCoords, toCoords }: DirectionsCardProps) {
+  const { currentState } = usePlanState();
+  const twd = currentState?.twd ?? 0;
+
   const bearing =
     fromCoords && toCoords ? coordsToBearing(fromCoords, toCoords) : null;
   const twa = bearing ? getTwa(bearing, twd) : null;
