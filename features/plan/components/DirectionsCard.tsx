@@ -23,8 +23,10 @@ export function DirectionsCard({ fromCoords, toCoords }: DirectionsCardProps) {
   const twd = currentState?.twd ?? 0;
 
   const bearing =
-    fromCoords && toCoords ? coordsToBearing(fromCoords, toCoords) : null;
-  const twa = bearing ? getTwa(bearing, twd) : null;
+    fromCoords && toCoords
+      ? coordsToBearing({ from: fromCoords, to: toCoords })
+      : null;
+  const twa = bearing ? getTwa({ twd, bearing }) : null;
 
   if (!bearing || !twa) {
     return (

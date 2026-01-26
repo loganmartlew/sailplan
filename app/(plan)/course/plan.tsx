@@ -121,8 +121,8 @@ export default function CoursePlanResults() {
     for (let i = 0; i < marks.length - 1; i++) {
       const from = marks[i];
       const to = marks[i + 1];
-      const bearing = coordsToBearing(from.mark, to.mark);
-      const twa = getTwa(bearing, twd ?? planData.twd);
+      const bearing = coordsToBearing({ from: from.mark, to: to.mark });
+      const twa = getTwa({ bearing, twd: twd ?? planData.twd });
       legs.push({
         from,
         to,
