@@ -30,7 +30,10 @@ export default function Courses() {
   const alert = useAlert();
   const confirm = useConfirm();
   const courseGroupsQuery = useCourseGroups();
-  const ungroupedCoursesQuery = useCourses({ courseGroupId: null });
+  const coursesQuery = useCourses();
+
+  const ungroupedCourses =
+    coursesQuery.data?.filter(course => course.courseGroupId === null) ?? [];
 
   const [newGroupDialogOpen, setNewGroupDialogOpen] = useState(false);
 
@@ -104,7 +107,7 @@ export default function Courses() {
       data: group,
     }));
 
-    const ungrouped = ungroupedCoursesQuery?.data ?? [];
+    const ungrouped = ungroupedCourses;
     if (ungrouped.length > 0) {
       if (items.length > 0) {
         items.push({ type: 'separator' as const });
@@ -115,13 +118,19 @@ export default function Courses() {
     }
 
     return items;
-  }, [courseGroupsQuery?.data, ungroupedCoursesQuery?.data]);
+  }, [courseGroupsQuery?.data, ungroupedCourses]);
 
   return (
     <View className='flex-1 w-full px-3 py-5 pb-0 flex flex-col gap-6'>
       <View className='flex gap-4'>
         <View className='flex-row items-center justify-between'>
           <H2 className='pb-0'>Courses</H2>
+          <Badge variant='transparent'>
+            <Text className='text-sm'>
+              {coursesQuery.data.length}{' '}
+              {coursesQuery.data.length === 1 ? 'course' : 'courses'}
+            </Text>
+          </Badge>
         </View>
         <View className='flex-row gap-2'>
           <Button

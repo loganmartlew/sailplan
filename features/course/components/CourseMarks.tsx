@@ -3,9 +3,9 @@ import { useCourseMarks } from '../api/getCourses';
 import { Course } from '../model/course';
 import { useState } from 'react';
 import { deleteCourseMark } from '../api/deleteCourse';
-import { Pressable, View } from 'react-native';
-import { Button, H3, Text } from '~/components/ui';
-import { Plus, GripVertical } from '~/lib/icons';
+import { View } from 'react-native';
+import { Badge, Button, H3, Muted, Text } from '~/components/ui';
+import { Plus, MapPin } from '~/lib/icons';
 import {
   CourseMark,
   CourseMarkInsert,
@@ -125,43 +125,48 @@ export function CourseMarks({ course }: CourseMarksProps) {
 
   return (
     <View className='flex gap-5 overflow-visible'>
-      <View className='flex flex-row gap-3 items-center justify-between'>
-        <H3>Marks</H3>
+      <View className='flex-row items-center justify-between'>
+        <View className='flex-row items-center gap-2'>
+          <H3>Marks</H3>
+          {courseMarks?.length > 0 && (
+            <Badge variant='transparent'>
+              <Text className='text-xs'>
+                {courseMarks.length}{' '}
+                {courseMarks.length === 1 ? 'mark' : 'marks'}
+              </Text>
+            </Badge>
+          )}
+        </View>
         <Button
           variant='secondary'
           size='icon'
           onPress={() => setNewCourseMarkDialogOpen(true)}
           disabled={createCourseMarkMutation.isPending}
         >
-          <Plus className='text-foreground' size={18} />
+          <Plus className='text-secondary-foreground' size={18} />
         </Button>
       </View>
       <DraggableFlatList
-        className='-mx-7'
         data={courseMarks}
         keyExtractor={item => item.id.toString()}
         onDragEnd={onReorderCourseMarks}
+        contentContainerStyle={{ gap: 8 }}
         renderItem={({ item, drag, isActive }) => (
           <ScaleDecorator activeScale={1.05}>
-            <Pressable
-              onLongPress={drag}
-              className={cn(
-                'px-7 flex flex-row gap-2 items-center',
-                isActive && 'opacity-70',
-              )}
-            >
-              <GripVertical className='text-secondary-foreground' size={20} />
+            <View className={cn(isActive && 'opacity-70')}>
               <CourseMarkListItem
                 courseMark={item}
                 onDelete={onCourseMarkDelete}
                 onEdit={onCourseMarkEdit}
+                onDrag={drag}
               />
-            </Pressable>
+            </View>
           </ScaleDecorator>
         )}
         ListEmptyComponent={
-          <View className='flex items-center justify-center p-5'>
-            <Text>No marks found</Text>
+          <View className='flex items-center justify-center p-10 gap-2'>
+            <MapPin className='text-muted-foreground' size={32} />
+            <Muted>No marks yet</Muted>
           </View>
         }
       />
