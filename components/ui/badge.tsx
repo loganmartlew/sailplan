@@ -10,16 +10,19 @@ const badgeVariants = cva(
   {
     variants: {
       variant: {
-        default: 'border-transparent bg-primary web:hover:opacity-80 active:opacity-80',
-        secondary: 'border-transparent bg-secondary web:hover:opacity-80 active:opacity-80',
-        destructive: 'border-transparent bg-destructive web:hover:opacity-80 active:opacity-80',
+        default:
+          'border-transparent bg-primary web:hover:opacity-80 active:opacity-80',
+        secondary:
+          'border-transparent bg-secondary web:hover:opacity-80 active:opacity-80',
+        destructive:
+          'border-transparent bg-destructive web:hover:opacity-80 active:opacity-80',
         outline: 'text-foreground',
       },
     },
     defaultVariants: {
       variant: 'default',
     },
-  }
+  },
 );
 
 const badgeTextVariants = cva('text-xs font-semibold ', {
@@ -41,9 +44,12 @@ type BadgeProps = SlottableViewProps & VariantProps<typeof badgeVariants>;
 function Badge({ className, variant, asChild, ...props }: BadgeProps) {
   const Component = asChild ? Slot.View : View;
   return (
-    <TextClassContext.Provider value={badgeTextVariants({ variant })}>
-      <Component className={cn(badgeVariants({ variant }), className)} {...props} />
-    </TextClassContext.Provider>
+    <TextClassContext value={badgeTextVariants({ variant })}>
+      <Component
+        className={cn(badgeVariants({ variant }), className)}
+        {...props}
+      />
+    </TextClassContext>
   );
 }
 
