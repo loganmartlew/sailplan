@@ -39,8 +39,12 @@ function CardTitle({
   className,
   children,
   ref,
+  showBullet = true,
   ...props
-}: React.ComponentPropsWithoutRef<typeof Text> & { ref?: React.Ref<TextRef> }) {
+}: React.ComponentPropsWithoutRef<typeof Text> & {
+  ref?: React.Ref<TextRef>;
+  showBullet?: boolean;
+}) {
   return (
     <Text
       role='heading'
@@ -52,7 +56,14 @@ function CardTitle({
       )}
       {...props}
     >
-      • {children}
+      {showBullet ? (
+        <>
+          {`• `}
+          {children}
+        </>
+      ) : (
+        children
+      )}
     </Text>
   );
 }

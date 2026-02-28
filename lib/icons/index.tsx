@@ -9,6 +9,7 @@ export * from './Map';
 export * from './MapPin';
 export * from './Menu';
 export * from './MoonStar';
+export * from './MoveRight';
 export * from './Navigation';
 export * from './Pencil';
 export * from './Plus';
