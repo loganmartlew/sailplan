@@ -10,7 +10,6 @@ import { Platform, StyleSheet, View } from 'react-native';
 import { NAV_THEME } from '~/lib/constants';
 import { useColorScheme } from '~/lib/useColorScheme';
 import { PortalHost } from '@rn-primitives/portal';
-import { setAndroidNavigationBar } from '~/lib/android-navigation-bar';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { BoatProfileProvider } from '~/features/boatProfile/context/BoatProfileContext';
 import { useMigrations } from 'drizzle-orm/expo-sqlite/migrator';
@@ -70,13 +69,11 @@ export default function RootLayoutLogic() {
         document.documentElement.classList.add('bg-background');
       }
       if (!theme) {
-        setAndroidNavigationBar(colorScheme);
         AsyncStorage.setItem('theme', colorScheme);
         setIsColorSchemeLoaded(true);
         return;
       }
       const colorTheme = theme === 'dark' ? 'dark' : 'light';
-      setAndroidNavigationBar(colorTheme);
       if (colorTheme !== colorScheme) {
         setColorScheme(colorTheme);
 
