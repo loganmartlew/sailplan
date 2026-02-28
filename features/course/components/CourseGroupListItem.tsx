@@ -31,7 +31,13 @@ export function CourseGroupListItem({
     getCourses({
       courseGroupId: courseGroup.id === -1 ? undefined : courseGroup.id,
     }).then(courses => {
-      setCount(courses.length);
+      setCount(
+        courses.filter(
+          course =>
+            course.courseGroupId === courseGroup.id ||
+            (courseGroup.id === -1 && course.courseGroupId === null),
+        ).length,
+      );
     });
   });
 
