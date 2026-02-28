@@ -1,7 +1,8 @@
 import { useLocalSearchParams } from 'expo-router';
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import { ActivityIndicator, ScrollView, View } from 'react-native';
 import {
+  Badge,
   Card,
   CardContent,
   CardHeader,
@@ -10,7 +11,6 @@ import {
   Label,
   Separator,
   Text,
-  Badge,
 } from '~/components/ui';
 import { coordsToBearing, getTwa, TWA } from '~/features/coordinate';
 import {
@@ -19,6 +19,7 @@ import {
   useCourseMarks,
 } from '~/features/course';
 import {
+  CourseMarkListDialog,
   deserializeCoursePlanData,
   TackDirectionBadge,
   TrueWindInputCard,
@@ -134,17 +135,20 @@ export default function CoursePlanResults() {
   return (
     <View className='py-7 px-3 flex gap-5 h-full'>
       <H2 className='pb-0'>Course Plan</H2>
-      <View className='flex-row gap-2'>
-        {course?.courseGroup && (
+      <View className='flex-row items-center justify-between'>
+        <View className='flex-row gap-2 items-center'>
+          {course?.courseGroup && (
+            <Badge variant='transparent'>
+              <Text className='text-sm'>
+                Course Group: {course?.courseGroup?.name}
+              </Text>
+            </Badge>
+          )}
           <Badge variant='transparent'>
-            <Text className='text-sm'>
-              Course Group: {course?.courseGroup?.name}
-            </Text>
+            <Text className='text-sm'>Course: {course?.name}</Text>
           </Badge>
-        )}
-        <Badge variant='transparent'>
-          <Text className='text-sm'>Course: {course?.name}</Text>
-        </Badge>
+        </View>
+        <CourseMarkListDialog courseMarks={courseMarks} />
       </View>
       <TrueWindInputCard twd />
       <ScrollView>

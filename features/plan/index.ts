@@ -7,3 +7,4 @@ export * from './components/PlanCourse';
 export * from './components/TackDirectionBadge';
 export * from './components/DirectionsCard';
 export * from './components/TrueWindInputCard';
+export * from './components/CourseMarkListDialog';
