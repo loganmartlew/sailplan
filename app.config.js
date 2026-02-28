@@ -51,13 +51,7 @@ export default {
     'expo-web-browser',
     'expo-file-system',
     'expo-document-picker',
-    [
-      'react-native-maps',
-      {
-        iosGoogleMapsApiKey: 'AIzaSyCjUdd7DzepEyKS3Jl2mFIX2i_U0cra69s',
-        androidGoogleMapsApiKey: 'AIzaSyCjUdd7DzepEyKS3Jl2mFIX2i_U0cra69s',
-      },
-    ],
+    'expo-sharing',
     [
       'expo-location',
       {
@@ -68,6 +62,7 @@ export default {
   ],
   experiments: {
     typedRoutes: true,
+    reactCompiler: true,
   },
   extra: {
     router: {

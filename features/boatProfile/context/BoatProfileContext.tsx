@@ -10,7 +10,7 @@ export interface BoatProfileContextType {
 }
 
 export const BoatProfileContext = createContext<BoatProfileContextType | null>(
-  null
+  null,
 );
 
 export function BoatProfileProvider({ children }: PropsWithChildren) {
@@ -47,9 +47,5 @@ export function BoatProfileProvider({ children }: PropsWithChildren) {
     );
   }
 
-  return (
-    <BoatProfileContext.Provider value={context}>
-      {children}
-    </BoatProfileContext.Provider>
-  );
+  return <BoatProfileContext value={context}>{children}</BoatProfileContext>;
 }
