@@ -5,6 +5,7 @@ export * from './ChevronLeft';
 export * from './ChevronUp';
 export * from './CircleSmall';
 export * from './Download';
+export * from './Folder';
 export * from './GripVertical';
 export * from './Map';
 export * from './MapPin';

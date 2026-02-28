@@ -1,7 +1,7 @@
 import { Link, router } from 'expo-router';
 import { View, FlatList } from 'react-native';
-import { Button, H2, Separator, Text } from '~/components/ui';
-import { Plus } from '~/lib/icons';
+import { Badge, Button, H2, Muted, Text } from '~/components/ui';
+import { Plus, Route } from '~/lib/icons';
 import {
   CourseGroupInsert,
   CourseGroupListItem,
@@ -77,31 +77,41 @@ export default function Courses() {
   }, [courseGroupsQuery?.data, ungroupedCoursesQuery?.data]);
 
   return (
-    <View className='p-7 flex gap-5'>
-      <View className='flex gap-2'>
-        <H2>Courses</H2>
-        <View className='flex flex-row gap-2'>
+    <View className='flex-1 w-full px-3 py-5 pb-0 flex flex-col gap-6'>
+      <View className='flex gap-4'>
+        <View className='flex-row items-center justify-between'>
+          <H2 className='pb-0'>Courses</H2>
+          {courseGroups?.length > 0 && (
+            <Badge variant='transparent'>
+              <Text className='text-sm'>
+                {courseGroups.length}{' '}
+                {courseGroups.length === 1 ? 'group' : 'groups'}
+              </Text>
+            </Badge>
+          )}
+        </View>
+        <View className='flex-row gap-2'>
           <Button
-            className='flex flex-1 flex-row gap-2'
+            className='flex-1 flex-row gap-2'
             variant='secondary'
             disabled={courseGroupMutation.isPending}
             onPress={() => setNewGroupDialogOpen(true)}
           >
-            <Plus className='text-secondary-foreground' />
+            <Plus className='text-secondary-foreground' size={18} />
             <Text>New Group</Text>
           </Button>
           <Link href='/courses/new' push asChild>
-            <Button className='flex flex-1 flex-row gap-2'>
-              <Plus className='text-primary-foreground' />
+            <Button className='flex-1 flex-row gap-2'>
+              <Plus className='text-primary-foreground' size={18} />
               <Text>New Course</Text>
             </Button>
           </Link>
         </View>
       </View>
-      <Separator />
       <FlatList
         data={courseGroups}
         keyExtractor={item => item.id.toString()}
+        contentContainerClassName='gap-3'
         renderItem={({ item }) => (
           <CourseGroupListItem
             courseGroup={item}
@@ -110,8 +120,9 @@ export default function Courses() {
           />
         )}
         ListEmptyComponent={
-          <View className='flex items-center justify-center p-5'>
-            <Text>No course groups found</Text>
+          <View className='flex items-center justify-center p-10 gap-2'>
+            <Route className='text-muted-foreground' size={32} />
+            <Muted>No course groups yet</Muted>
           </View>
         }
       />

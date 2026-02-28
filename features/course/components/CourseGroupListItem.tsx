@@ -1,6 +1,14 @@
 import { Pressable, View } from 'react-native';
-import { Button, H3, Text } from '~/components/ui';
-import { Trash } from '~/lib/icons';
+import {
+  Badge,
+  Button,
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+  Text,
+} from '~/components/ui';
+import { Folder, Route, Trash } from '~/lib/icons';
 import { CourseGroupWithCourses } from '../model/courseGroup';
 import { useState } from 'react';
 import { getCourses } from '../api/getCourses';
@@ -27,42 +35,46 @@ export function CourseGroupListItem({
     });
   });
 
-  const content = (
-    <>
-      <View className='flex gap-1'>
-        <H3>{courseGroup.name}</H3>
-        <Text className='text-muted-foreground'>
-          {count} course
-          {count !== 1 ? 's' : ''}
-        </Text>
-      </View>
-      <View className='flex flex-row gap-1'>
-        {onDelete && (
-          <Button
-            variant='ghost'
-            size='icon'
-            onPress={() => onDelete(courseGroup)}
-          >
-            <Trash className='text-destructive' size={18} />
-          </Button>
-        )}
-      </View>
-    </>
-  );
-  return (
-    <>
-      {onPress ? (
-        <Pressable
-          className='flex flex-row gap-3 justify-between items-center py-2'
-          onPress={() => onPress(courseGroup)}
-        >
-          {content}
-        </Pressable>
-      ) : (
-        <View className='flex flex-row gap-3 justify-between items-center py-2'>
-          {content}
+  const card = (
+    <Card className='gap-1'>
+      <CardHeader className='flex-row items-center justify-between pb-1'>
+        <View className='flex-row items-center gap-2 shrink'>
+          <View className='w-8 h-8 rounded-full bg-primary/10 items-center justify-center'>
+            <Folder className='text-primary' size={16} />
+          </View>
+          <CardTitle showBullet={false} className='text-foreground'>
+            {courseGroup.name}
+          </CardTitle>
         </View>
-      )}
-    </>
+        <View className='flex-row gap-1'>
+          {onDelete && (
+            <Button
+              variant='ghost'
+              size='icon'
+              onPress={() => onDelete(courseGroup)}
+            >
+              <Trash className='text-destructive' size={16} />
+            </Button>
+          )}
+        </View>
+      </CardHeader>
+      <CardContent>
+        <Badge
+          variant='transparent'
+          className='self-start flex-row items-center gap-1'
+        >
+          <Route className='text-primary' size={12} />
+          <Text className='text-xs'>
+            {count} {count === 1 ? 'course' : 'courses'}
+          </Text>
+        </Badge>
+      </CardContent>
+    </Card>
   );
+
+  if (onPress) {
+    return <Pressable onPress={() => onPress(courseGroup)}>{card}</Pressable>;
+  }
+
+  return card;
 }
