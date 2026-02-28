@@ -1,17 +1,7 @@
 import { useLocalSearchParams } from 'expo-router';
-import { useMemo, useState } from 'react';
+import { useMemo } from 'react';
 import { ActivityIndicator, ScrollView, View } from 'react-native';
-import {
-  Badge,
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle,
-  H2,
-  Label,
-  Separator,
-  Text,
-} from '~/components/ui';
+import { Badge, H2, Text } from '~/components/ui';
 import { coordsToBearing, getTwa, TWA } from '~/features/coordinate';
 import {
   CourseMarkWithMark,
@@ -19,16 +9,12 @@ import {
   useCourseMarks,
 } from '~/features/course';
 import {
+  CourseLegCard,
   CourseMarkListDialog,
   deserializeCoursePlanData,
-  TackDirectionBadge,
   TrueWindInputCard,
   usePlanState,
 } from '~/features/plan';
-import { formatAngle } from '~/lib/format';
-import { cn } from '~/lib/utils';
-import { MoveRight } from '~/lib/icons';
-import { useTheme } from '@react-navigation/native';
 
 interface Leg {
   from: CourseMarkWithMark;
@@ -41,8 +27,6 @@ interface Leg {
 export default function CoursePlanResults() {
   const { planData: data } = useLocalSearchParams<{ planData: string }>();
   const planData = deserializeCoursePlanData(data);
-
-  const theme = useTheme();
 
   const { currentState } = usePlanState();
   const twd = currentState?.twd ?? 0;
@@ -154,63 +138,13 @@ export default function CoursePlanResults() {
       <ScrollView>
         <View className='flex gap-4 pb-4'>
           {legs.map(leg => (
-            <Card key={leg.key}>
-              <CardHeader className='pb-3'>
-                <View className='flex flex-row items-center gap-2'>
-                  <CardTitle className='shrink'>
-                    {leg.from.mark.name}
-                    <Text
-                      className={cn({
-                        'text-green-400': leg.from.direction === 'starboard',
-                        'text-red-400': leg.from.direction === 'port',
-                      })}
-                    >
-                      {leg.from.direction === 'starboard'
-                        ? ' S'
-                        : leg.from.direction === 'port'
-                          ? ' P'
-                          : ''}
-                    </Text>
-                  </CardTitle>
-                  <View className='self-center text-primary-foreground opacity-65'>
-                    <MoveRight size={16} color={theme.colors.text} />
-                  </View>
-                  <CardTitle className='shrink' showBullet={false}>
-                    {leg.to.mark.name}
-                    <Text
-                      className={cn({
-                        'text-green-400': leg.to.direction === 'starboard',
-                        'text-red-400': leg.to.direction === 'port',
-                      })}
-                    >
-                      {leg.to.direction === 'starboard'
-                        ? ' S'
-                        : leg.to.direction === 'port'
-                          ? ' P'
-                          : ''}
-                    </Text>
-                  </CardTitle>
-                </View>
-              </CardHeader>
-              <CardContent className='flex gap-4'>
-                <View className='flex flex-row gap-2'>
-                  <Label className='grow text-base'>Bearing:</Label>
-                  <Text className='grow text-right text-4xl font-bold'>
-                    {formatAngle(leg.bearing)}
-                  </Text>
-                </View>
-                <Separator />
-                <View className='flex flex-row gap-2'>
-                  <Label className='grow text-base'>TWA:</Label>
-                  <View className='grow flex items-end gap-2'>
-                    <Text className='grow text-right text-4xl font-bold text-primary'>
-                      {formatAngle(leg.twa.angle)}
-                    </Text>
-                    {leg.twa.tack && <TackDirectionBadge tack={leg.twa.tack} />}
-                  </View>
-                </View>
-              </CardContent>
-            </Card>
+            <CourseLegCard
+              key={leg.key}
+              from={leg.from}
+              to={leg.to}
+              bearing={leg.bearing}
+              twa={leg.twa}
+            />
           ))}
         </View>
       </ScrollView>
