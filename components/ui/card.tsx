@@ -4,85 +4,98 @@ import { TextClassContext } from '~/components/ui/text';
 import { TextRef, ViewRef } from '@rn-primitives/types';
 import { cn } from '~/lib/utils';
 
-const Card = React.forwardRef<
-  ViewRef,
-  React.ComponentPropsWithoutRef<typeof View>
->(({ className, ...props }, ref) => (
-  <View
-    ref={ref}
-    className={cn(
-      'rounded-3xl border border-border bg-card shadow-sm shadow-foreground/10',
-      className,
-    )}
-    {...props}
-  />
-));
-Card.displayName = 'Card';
+function Card({
+  className,
+  ref,
+  ...props
+}: React.ComponentPropsWithoutRef<typeof View> & { ref?: React.Ref<ViewRef> }) {
+  return (
+    <View
+      ref={ref}
+      className={cn(
+        'rounded-3xl border border-border bg-card shadow-sm shadow-foreground/10',
+        className,
+      )}
+      {...props}
+    />
+  );
+}
 
-const CardHeader = React.forwardRef<
-  ViewRef,
-  React.ComponentPropsWithoutRef<typeof View>
->(({ className, ...props }, ref) => (
-  <View
-    ref={ref}
-    className={cn('flex flex-col space-y-1.5 p-6', className)}
-    {...props}
-  />
-));
-CardHeader.displayName = 'CardHeader';
+function CardHeader({
+  className,
+  ref,
+  ...props
+}: React.ComponentPropsWithoutRef<typeof View> & { ref?: React.Ref<ViewRef> }) {
+  return (
+    <View
+      ref={ref}
+      className={cn('flex flex-col space-y-1.5 p-6', className)}
+      {...props}
+    />
+  );
+}
 
-const CardTitle = React.forwardRef<
-  TextRef,
-  React.ComponentPropsWithoutRef<typeof Text>
->(({ className, children, ...props }, ref) => (
-  <Text
-    role='heading'
-    aria-level={3}
-    ref={ref}
-    className={cn(
-      'text-md text-primary font-semibold leading-none tracking-wider uppercase',
-      className,
-    )}
-    {...props}
-  >
-    • {children}
-  </Text>
-));
-CardTitle.displayName = 'CardTitle';
+function CardTitle({
+  className,
+  children,
+  ref,
+  ...props
+}: React.ComponentPropsWithoutRef<typeof Text> & { ref?: React.Ref<TextRef> }) {
+  return (
+    <Text
+      role='heading'
+      aria-level={3}
+      ref={ref}
+      className={cn(
+        'text-md text-primary font-semibold leading-none tracking-wider uppercase',
+        className,
+      )}
+      {...props}
+    >
+      • {children}
+    </Text>
+  );
+}
 
-const CardDescription = React.forwardRef<
-  TextRef,
-  React.ComponentPropsWithoutRef<typeof Text>
->(({ className, ...props }, ref) => (
-  <Text
-    ref={ref}
-    className={cn('text-sm text-muted-foreground', className)}
-    {...props}
-  />
-));
-CardDescription.displayName = 'CardDescription';
+function CardDescription({
+  className,
+  ref,
+  ...props
+}: React.ComponentPropsWithoutRef<typeof Text> & { ref?: React.Ref<TextRef> }) {
+  return (
+    <Text
+      ref={ref}
+      className={cn('text-sm text-muted-foreground', className)}
+      {...props}
+    />
+  );
+}
 
-const CardContent = React.forwardRef<
-  ViewRef,
-  React.ComponentPropsWithoutRef<typeof View>
->(({ className, ...props }, ref) => (
-  <TextClassContext.Provider value='text-card-foreground'>
-    <View ref={ref} className={cn('p-6 pt-0', className)} {...props} />
-  </TextClassContext.Provider>
-));
-CardContent.displayName = 'CardContent';
+function CardContent({
+  className,
+  ref,
+  ...props
+}: React.ComponentPropsWithoutRef<typeof View> & { ref?: React.Ref<ViewRef> }) {
+  return (
+    <TextClassContext.Provider value='text-card-foreground'>
+      <View ref={ref} className={cn('p-6 pt-0', className)} {...props} />
+    </TextClassContext.Provider>
+  );
+}
 
-const CardFooter = React.forwardRef<
-  ViewRef,
-  React.ComponentPropsWithoutRef<typeof View>
->(({ className, ...props }, ref) => (
-  <View
-    ref={ref}
-    className={cn('flex flex-row items-center p-6 pt-0', className)}
-    {...props}
-  />
-));
-CardFooter.displayName = 'CardFooter';
+function CardFooter({
+  className,
+  ref,
+  ...props
+}: React.ComponentPropsWithoutRef<typeof View> & { ref?: React.Ref<ViewRef> }) {
+  return (
+    <View
+      ref={ref}
+      className={cn('flex flex-row items-center p-6 pt-0', className)}
+      {...props}
+    />
+  );
+}
 
 export {
   Card,
