@@ -1,6 +1,6 @@
 import { router, Stack } from 'expo-router';
 import { View } from 'react-native';
-import { H2, Separator } from '~/components/ui';
+import { H2 } from '~/components/ui';
 import { createMark, MarkForm, MarkFormValues } from '~/features/mark';
 
 export default function NewMark() {
@@ -19,10 +19,9 @@ export default function NewMark() {
   };
 
   return (
-    <View className='p-7 flex gap-5 h-full'>
+    <View className='flex-1 w-full px-3 py-5 flex flex-col gap-6'>
       <Stack.Screen options={{ title: 'Marks' }} />
-      <H2>New Mark</H2>
-      <Separator />
+      <H2 className='pb-0'>New Mark</H2>
       <MarkForm onFormSubmit={onFormSubmit} onFormCancel={onFormCancel} />
     </View>
   );
