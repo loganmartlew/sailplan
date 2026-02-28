@@ -56,7 +56,7 @@ export function CustomLocation({
   mapMarks = [],
 }: CustomLocationProps) {
   const [locationType, setLocationType] = useState<'none' | 'mark' | 'custom'>(
-    'none'
+    'none',
   );
   const [selectLocationDialogOpen, setSelectLocationDialogOpen] =
     useState(false);
@@ -105,7 +105,11 @@ export function CustomLocation({
           </ToggleGroupItem>
         </ToggleGroup>
         {locationType === 'mark' && (
-          <FormControlWrapper label='Select Mark' name={`${name}.markId`}>
+          <FormControlWrapper
+            label='Select Mark'
+            name={`${name}.markId`}
+            className='mt-2'
+          >
             <Select
               value={value?.markId?.toString()}
               options={markOptions}
@@ -123,6 +127,7 @@ export function CustomLocation({
         {locationType === 'custom' && (
           <Button
             variant='outline'
+            className='mt-2'
             onPress={() => setSelectLocationDialogOpen(true)}
           >
             <Text>
