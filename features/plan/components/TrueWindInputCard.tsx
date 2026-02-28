@@ -57,7 +57,7 @@ export function TrueWindInputCard({ tws, twd }: TrueWindInputCardProps) {
             <View className='grow'>
               <Input
                 onChangeText={value => onTwsChange(value)}
-                value={currentState?.tws != null ? `${currentState.tws}` : ''}
+                value={currentState?.tws != null ? `${currentState.tws}` : '0'}
                 keyboardType='numeric'
                 endAdornment={
                   <Text className='ml-1 text-muted-foreground'>kt</Text>
@@ -81,7 +81,7 @@ export function TrueWindInputCard({ tws, twd }: TrueWindInputCardProps) {
             <View className='grow'>
               <Input
                 onChangeText={value => onTwdChange(value)}
-                value={currentState?.twd != null ? `${currentState.twd}` : ''}
+                value={currentState?.twd != null ? `${currentState.twd}` : '0'}
                 keyboardType='numeric'
                 endAdornment={
                   <Text className='ml-1 text-muted-foreground text-xl'>°</Text>
