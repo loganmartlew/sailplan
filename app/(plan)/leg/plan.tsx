@@ -48,7 +48,7 @@ export default function LegPlanResults() {
   }
 
   return (
-    <View className='py-7 px-3 flex gap-5 h-full'>
+    <View className='py-5 px-3 flex gap-5 h-full'>
       <H2>Leg Plan</H2>
       <View className='flex flex-row gap-2 items-center'>
         <Badge variant='secondary' className='flex-grow py-2 px-1'>

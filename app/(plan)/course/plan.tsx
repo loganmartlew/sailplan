@@ -117,7 +117,7 @@ export default function CoursePlanResults() {
   }
 
   return (
-    <View className='py-7 px-3 flex gap-5 h-full'>
+    <View className='py-5 px-3 flex gap-5 h-full'>
       <H2 className='pb-0'>Course Plan</H2>
       <View className='flex-row items-center justify-between'>
         <View className='flex-row gap-2 items-center'>

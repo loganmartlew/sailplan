@@ -1,6 +1,6 @@
 import { Link, router } from 'expo-router';
 import { View, FlatList } from 'react-native';
-import { Button, H2, Separator, Text } from '~/components/ui';
+import { Badge, Button, H2, Muted, Text } from '~/components/ui';
 import {
   useMarks,
   Mark,
@@ -40,40 +40,45 @@ export default function Marks() {
   };
 
   return (
-    <View className='p-7 flex gap-5'>
-      <View className='flex gap-2'>
-        <View className='flex flex-row justify-between gap-2'>
-          <H2>Marks</H2>
-          <Link href='/marks/map' push asChild>
-            <Button
-              size='sm'
-              variant='secondary'
-              className='flex flex-row gap-1'
-            >
-              <Text>View on map</Text>
-              <MapPin className='text-secondary-foreground' size={15} />
+    <View className='flex-1 w-full px-3 py-5 pb-0 flex flex-col gap-6'>
+      <View className='flex gap-4'>
+        <View className='flex-row items-center justify-between'>
+          <H2 className='pb-0'>Marks</H2>
+          {marksQuery.data?.length > 0 && (
+            <Badge variant='transparent'>
+              <Text className='text-sm'>
+                {marksQuery.data.length}{' '}
+                {marksQuery.data.length === 1 ? 'mark' : 'marks'}
+              </Text>
+            </Badge>
+          )}
+        </View>
+        <View className='flex-row gap-2'>
+          <Link href='/marks/new' push asChild>
+            <Button className='flex-1 flex-row gap-2'>
+              <Plus className='text-primary-foreground' size={18} />
+              <Text>New Mark</Text>
             </Button>
           </Link>
-        </View>
-        <Link href='/marks/new' push asChild>
-          <Button className='flex flex-row gap-2'>
-            <Plus className='text-primary-foreground' />
-            <Text>New Mark</Text>
+          <Link href='/marks/map' push asChild>
+            <Button variant='secondary' className='flex-1 flex-row gap-2'>
+              <MapPin className='text-secondary-foreground' size={18} />
+              <Text>Map</Text>
+            </Button>
+          </Link>
+          <Button
+            variant='secondary'
+            className='flex-row gap-2'
+            onPress={() => setShareDialogOpen(true)}
+          >
+            <Share2 className='text-secondary-foreground' size={18} />
           </Button>
-        </Link>
-        <Button
-          className='flex flex-row gap-2'
-          variant='secondary'
-          onPress={() => setShareDialogOpen(true)}
-        >
-          <Share2 className='text-secondary-foreground' />
-          <Text>Share</Text>
-        </Button>
+        </View>
       </View>
-      <Separator />
       <FlatList
         data={marksQuery.data}
         keyExtractor={item => item.id.toString()}
+        contentContainerClassName='gap-3'
         renderItem={({ item }) => (
           <MarkListItem
             mark={item}
@@ -82,8 +87,9 @@ export default function Marks() {
           />
         )}
         ListEmptyComponent={
-          <View className='flex items-center justify-center p-5'>
-            <Text>No marks found</Text>
+          <View className='flex items-center justify-center p-10 gap-2'>
+            <MapPin className='text-muted-foreground' size={32} />
+            <Muted>No marks yet</Muted>
           </View>
         }
       />
