@@ -1,12 +1,15 @@
 import { Link, router } from 'expo-router';
 import { View, FlatList } from 'react-native';
-import { Badge, Button, H2, Muted, Text } from '~/components/ui';
+import { Badge, Button, H2, Muted, Separator, Text } from '~/components/ui';
 import { Plus, Route } from '~/lib/icons';
 import {
+  Course,
   CourseGroupInsert,
   CourseGroupListItem,
   CourseGroupWithCourses,
+  CourseListItem,
   createCourseGroup,
+  deleteCourse,
   deleteCourseGroup,
   getCourses,
   NewCourseGroupDialog,
@@ -17,6 +20,11 @@ import { useAlert } from '~/hooks/useAlert';
 import { useMemo, useState } from 'react';
 import { useMutation } from '@tanstack/react-query';
 import { useConfirm } from '~/hooks/useConfirm';
+
+type ListItem =
+  | { type: 'group'; data: CourseGroupWithCourses }
+  | { type: 'course'; data: Course }
+  | { type: 'separator' };
 
 export default function Courses() {
   const alert = useAlert();
@@ -57,23 +65,56 @@ export default function Courses() {
     await deleteCourseGroup(courseGroup.id);
   };
 
+  const onCoursePress = (course: Course) => {
+    router.push({
+      pathname: '/courses/[courseId]',
+      params: { courseId: course.id.toString() },
+    });
+  };
+
+  const onCourseEdit = (course: Course) => {
+    router.push({
+      pathname: '/courses/[courseId]',
+      params: { courseId: course.id.toString(), edit: 'true' },
+    });
+  };
+
+  const onCourseDelete = async (course: Course) => {
+    const proceed = await confirm({
+      title: 'Delete Course',
+      message: `Are you sure you want to delete ${course.name}?`,
+      confirmText: 'Delete',
+      cancelText: 'Cancel',
+      destructive: true,
+    });
+
+    if (!proceed) return;
+
+    await deleteCourse(course.id);
+  };
+
   const courseGroupMutation = useMutation({
     mutationFn: (courseGroup: CourseGroupInsert) =>
       createCourseGroup(courseGroup),
   });
 
-  const courseGroups = useMemo(() => {
-    const courseGroups = [...courseGroupsQuery?.data];
+  const listItems = useMemo(() => {
+    const items: ListItem[] = (courseGroupsQuery?.data ?? []).map(group => ({
+      type: 'group' as const,
+      data: group,
+    }));
 
-    if (ungroupedCoursesQuery?.data?.length > 0) {
-      courseGroups.push({
-        id: -1,
-        name: 'Ungrouped Courses',
-        courses: ungroupedCoursesQuery.data,
-      } as CourseGroupWithCourses);
+    const ungrouped = ungroupedCoursesQuery?.data ?? [];
+    if (ungrouped.length > 0) {
+      if (items.length > 0) {
+        items.push({ type: 'separator' as const });
+      }
+      ungrouped.forEach(course => {
+        items.push({ type: 'course' as const, data: course });
+      });
     }
 
-    return courseGroups;
+    return items;
   }, [courseGroupsQuery?.data, ungroupedCoursesQuery?.data]);
 
   return (
@@ -81,14 +122,6 @@ export default function Courses() {
       <View className='flex gap-4'>
         <View className='flex-row items-center justify-between'>
           <H2 className='pb-0'>Courses</H2>
-          {courseGroups?.length > 0 && (
-            <Badge variant='transparent'>
-              <Text className='text-sm'>
-                {courseGroups.length}{' '}
-                {courseGroups.length === 1 ? 'group' : 'groups'}
-              </Text>
-            </Badge>
-          )}
         </View>
         <View className='flex-row gap-2'>
           <Button
@@ -109,20 +142,41 @@ export default function Courses() {
         </View>
       </View>
       <FlatList
-        data={courseGroups}
-        keyExtractor={item => item.id.toString()}
+        data={listItems}
+        keyExtractor={(item, index) =>
+          item.type === 'separator'
+            ? `sep-${index}`
+            : item.type === 'group'
+              ? `group-${item.data.id}`
+              : `course-${item.data.id}`
+        }
         contentContainerClassName='gap-3'
-        renderItem={({ item }) => (
-          <CourseGroupListItem
-            courseGroup={item}
-            onDelete={item.id !== -1 ? onCourseGroupDelete : undefined}
-            onPress={onCourseGroupPress}
-          />
-        )}
+        renderItem={({ item }) => {
+          if (item.type === 'separator') {
+            return <Separator className='my-1' />;
+          }
+          if (item.type === 'group') {
+            return (
+              <CourseGroupListItem
+                courseGroup={item.data}
+                onDelete={onCourseGroupDelete}
+                onPress={onCourseGroupPress}
+              />
+            );
+          }
+          return (
+            <CourseListItem
+              course={item.data}
+              onEdit={onCourseEdit}
+              onDelete={onCourseDelete}
+              onPress={onCoursePress}
+            />
+          );
+        }}
         ListEmptyComponent={
           <View className='flex items-center justify-center p-10 gap-2'>
             <Route className='text-muted-foreground' size={32} />
-            <Muted>No course groups yet</Muted>
+            <Muted>No courses yet</Muted>
           </View>
         }
       />
