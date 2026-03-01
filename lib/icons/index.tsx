@@ -13,6 +13,7 @@ export * from './Menu';
 export * from './MoonStar';
 export * from './MoveRight';
 export * from './Navigation';
+export * from './PaintBucket';
 export * from './Pencil';
 export * from './Plus';
 export * from './RefreshCw';

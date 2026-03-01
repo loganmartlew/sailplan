@@ -16,7 +16,7 @@ export function SailDetails({ sail }: SailDetailsProps) {
         />
         <View>
           <Label className='text-xs'>Colour</Label>
-          <Text className='text-base capitalize'>{sail.color || '—'}</Text>
+          <Text className='text-base uppercase'>{sail.color || '—'}</Text>
         </View>
       </View>
       <Badge

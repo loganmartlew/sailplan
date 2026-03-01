@@ -3,7 +3,12 @@ import { router } from 'expo-router';
 import { SubmitHandler } from 'react-hook-form';
 import { View } from 'react-native';
 import { z } from 'zod';
-import { NumberInput, TextInput, ToggleGroup } from '~/components/form';
+import {
+  ColorPickerInput,
+  NumberInput,
+  TextInput,
+  ToggleGroup,
+} from '~/components/form';
 import { Button, Text } from '~/components/ui';
 import { useForm } from '~/hooks/useForm';
 
@@ -19,7 +24,7 @@ const sailFormSchema = z.object({
   name: z.string({ message: 'Name is required' }).min(1, 'Name is required'),
   color: z
     .string({ message: 'Colour is required' })
-    .min(1, 'Colour is required'),
+    .regex(/^#[0-9a-fA-F]{6}$/, 'Valid hex colour is required'),
   sailArea: z
     .number({ message: 'Sail area is must be a number', coerce: true })
     .optional(),
@@ -31,7 +36,7 @@ export type SailFormValues = z.infer<typeof sailFormSchema>;
 
 const defaultValues: Partial<SailFormValues> = {
   name: '',
-  color: '',
+  color: '#888888',
   sailArea: 0,
   symmetrical: 'symmetrical',
   masthead: 'fractional',
@@ -68,9 +73,14 @@ export function SailForm({
 
   return (
     <Form className='flex gap-5 grow'>
-      <TextInput name='name' label='Name' required />
-      <TextInput name='color' label='Colour' required />
-      <NumberInput name='sailArea' label='Sail Area' />
+      <TextInput name='name' label='Name' placeholder='Sail name' required />
+      <ColorPickerInput name='color' label='Colour' required />
+      <NumberInput
+        name='sailArea'
+        label='Sail Area'
+        placeholder='Sail area in m²'
+        endAdornment={<Text className='ml-1 text-muted-foreground'>m²</Text>}
+      />
       <ToggleGroup
         name='symmetrical'
         label='Sail Type'
