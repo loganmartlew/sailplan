@@ -99,7 +99,6 @@ export function PlanCourse() {
     };
 
     const serializedPlanData = serializeCoursePlanData(planData);
-    console.log(serializedPlanData);
 
     router.push({
       pathname: '/course/plan',
