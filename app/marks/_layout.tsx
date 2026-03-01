@@ -1,4 +1,3 @@
-import { DrawerToggleButton } from '@react-navigation/drawer';
 import { useTheme } from '@react-navigation/native';
 import { Stack } from 'expo-router';
 import { BoatProfileLabel } from '~/features/navigation';
