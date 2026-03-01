@@ -49,14 +49,23 @@ export function SailPolars({ sail }: SailPolarsProps) {
 
   return (
     <View className='flex gap-5'>
-      <View className='flex flex-row gap-3 items-center justify-between'>
-        <H3>Polars</H3>
+      <View className='flex-row items-center justify-between'>
+        <View className='flex-row items-center gap-2'>
+          <H3>Polars</H3>
+          {sailPolars?.length > 0 && (
+            <Badge variant='transparent'>
+              <Text className='text-xs'>
+                {sailPolars.length} {sailPolars.length === 1 ? 'mark' : 'marks'}
+              </Text>
+            </Badge>
+          )}
+        </View>
         <Button
           variant='secondary'
           size='icon'
           onPress={() => setNewPolarDialogOpen(true)}
         >
-          <Plus className='text-foreground' size={18} />
+          <Plus className='text-secondary-foreground' size={18} />
         </Button>
       </View>
       <FlatList
