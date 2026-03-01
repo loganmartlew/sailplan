@@ -58,7 +58,11 @@ export function NewBoatProfileDialog({
               Enter details to create a new Boat Profile.
             </DialogDescription>
           </DialogHeader>
-          <TextInput<BoatProfileFormValues> label='Name' name='name' />
+          <TextInput<BoatProfileFormValues>
+            label='Name'
+            name='name'
+            placeholder='Boat name'
+          />
           <DialogFooter>
             <Button variant='outline' onPress={onCancel}>
               <Text>Cancel</Text>

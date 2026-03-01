@@ -1,7 +1,7 @@
 import { useTheme } from '@react-navigation/native';
 import * as React from 'react';
 import PickerSelect, { PickerSelectProps } from 'react-native-picker-select';
-import { ChevronDown } from '~/lib/icons/ChevronDown';
+import { ChevronDown } from '~/lib/icons';
 
 export interface Option {
   label: string;
@@ -49,16 +49,19 @@ const Select = ({
           fontSize: 14,
           lineHeight: 20,
           justifyContent: 'space-between',
-          borderRadius: 6,
+          borderRadius: 10,
           borderWidth: 1,
-          borderColor: error ? 'red' : theme.colors.border,
-          backgroundColor: theme.colors.background,
+          borderColor: error ? 'red' : theme.colors.card,
+          backgroundColor: theme.colors.card,
           paddingLeft: 12,
           paddingRight: 12,
           paddingTop: 8,
           paddingBottom: 8,
           color: theme.colors.text,
           opacity: disabled ? 0.5 : 1,
+        },
+        placeholder: {
+          color: theme.colors.mutedForeground,
         },
         iconContainer: {
           top: 16,

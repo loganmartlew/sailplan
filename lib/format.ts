@@ -1,11 +1,24 @@
-const angleFormat = new Intl.NumberFormat('en-NZ', {
+const numberFormatOptions: Intl.NumberFormatOptions = {
   style: 'unit',
   unit: 'degree',
   unitDisplay: 'narrow',
   maximumFractionDigits: 1,
-});
+};
 
-export const formatAngle = (angle: number): string => {
+const angleFormat = new Intl.NumberFormat('en-NZ', numberFormatOptions);
+
+export const formatAngle = (
+  angle: number,
+  options?: Partial<Intl.NumberFormatOptions>,
+): string => {
+  if (options) {
+    const customFormat = new Intl.NumberFormat('en-NZ', {
+      ...numberFormatOptions,
+      ...options,
+    });
+    return customFormat.format(angle);
+  }
+
   return angleFormat.format(angle);
 };
 

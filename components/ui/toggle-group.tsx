@@ -29,7 +29,7 @@ function ToggleGroup({
     <ToggleGroupPrimitive.Root
       ref={ref}
       className={cn(
-        'flex flex-row items-center justify-center gap-1',
+        'flex flex-row items-center justify-center gap-1 bg-card p-1.5 rounded-full',
         className,
       )}
       {...props}
@@ -72,8 +72,12 @@ function ToggleGroupItem({
       value={cn(
         toggleTextVariants({ variant, size }),
         ToggleGroupPrimitive.utils.getIsSelected(value, props.value)
-          ? 'text-accent-foreground'
+          ? ''
           : 'web:group-hover:text-muted-foreground',
+        ToggleGroupPrimitive.utils.getIsSelected(value, props.value) &&
+          ((context.variant || variant) === 'primary'
+            ? 'text-primary-foreground'
+            : 'text-accent-foreground'),
       )}
     >
       <ToggleGroupPrimitive.Item
@@ -85,7 +89,10 @@ function ToggleGroupItem({
           }),
           props.disabled && 'web:pointer-events-none opacity-50',
           ToggleGroupPrimitive.utils.getIsSelected(value, props.value) &&
-            'bg-accent',
+            ((context.variant || variant) === 'primary'
+              ? 'bg-primary'
+              : 'bg-accent'),
+          'rounded-full',
           className,
         )}
         {...props}

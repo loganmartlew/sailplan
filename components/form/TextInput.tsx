@@ -2,12 +2,14 @@ import { Controller, FieldValues, Path, useFormContext } from 'react-hook-form';
 import { Input, InputProps } from '../ui';
 import { FormControlWrapper } from './FormControlWrapper';
 
-interface TextInputProps<TFieldValues extends FieldValues = FieldValues>
-  extends InputProps {
+interface TextInputProps<
+  TFieldValues extends FieldValues = FieldValues,
+> extends InputProps {
   label?: string;
   name: Path<TFieldValues>;
   required?: boolean;
   containerClassName?: string;
+  placeholder: string;
 }
 
 export function TextInput<TFieldValues extends FieldValues = FieldValues>({

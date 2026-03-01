@@ -1,18 +1,18 @@
 import { View, FlatList } from 'react-native';
 import { Badge, Button, H3, Text } from '~/components/ui';
-import { Sail } from '../model/sail';
-import {
-  createSailPolar,
-  deleteSailPolar,
-  NewSailPolarDialog,
-  SailPolar,
-  SailPolarFormValues,
-  SailPolarListItem,
-  useSailPolars,
-} from '~/features/sailPolar';
+import { Sail } from '~/features/sail';
 import { useConfirm } from '~/hooks/useConfirm';
-import { Plus } from '~/lib/icons/Plus';
+import { Plus } from '~/lib/icons';
 import { useState } from 'react';
+import { useSailPolars } from '../api/getSailPolars';
+import { SailPolar } from '../model/sailPolar';
+import { deleteSailPolar } from '../api/deleteSailPolar';
+import {
+  NewSailPolarDialog,
+  SailPolarSubmitValues,
+} from './NewSailPolarDialog';
+import { createSailPolar } from '../api/createSailPolar';
+import { SailPolarListItem } from './SailPolarListItem';
 
 interface SailPolarsProps {
   sail: Sail;
@@ -38,9 +38,9 @@ export function SailPolars({ sail }: SailPolarsProps) {
     await deleteSailPolar(sailPolar.id);
   }
 
-  async function handleNewPolar(data: SailPolarFormValues) {
+  async function handleNewPolar(data: SailPolarSubmitValues) {
     await createSailPolar({
-      sailId: sail.id,
+      sailId: data.sailId,
       twa: data.twa,
       tws: data.tws,
       speed: data.speed,
@@ -49,14 +49,23 @@ export function SailPolars({ sail }: SailPolarsProps) {
 
   return (
     <View className='flex gap-5'>
-      <View className='flex flex-row gap-3 items-center justify-between'>
-        <H3>Polars</H3>
+      <View className='flex-row items-center justify-between'>
+        <View className='flex-row items-center gap-2'>
+          <H3>Polars</H3>
+          {sailPolars?.length > 0 && (
+            <Badge variant='transparent'>
+              <Text className='text-xs'>
+                {sailPolars.length} {sailPolars.length === 1 ? 'mark' : 'marks'}
+              </Text>
+            </Badge>
+          )}
+        </View>
         <Button
           variant='secondary'
           size='icon'
           onPress={() => setNewPolarDialogOpen(true)}
         >
-          <Plus className='text-foreground' size={18} />
+          <Plus className='text-secondary-foreground' size={18} />
         </Button>
       </View>
       <FlatList
@@ -72,6 +81,7 @@ export function SailPolars({ sail }: SailPolarsProps) {
         }
       />
       <NewSailPolarDialog
+        sailId={sail.id}
         open={newPolarDialogOpen}
         onOpenChange={setNewPolarDialogOpen}
         onFormSubmit={handleNewPolar}

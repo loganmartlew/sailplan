@@ -21,10 +21,10 @@ export default function LegMap() {
   const { fromMarkId, toMarkId } = useLocalSearchParams<MarkMapSearchParams>();
 
   const fromMark = marksQuery?.data?.find(
-    mark => fromMarkId && mark.id.toString() === fromMarkId
+    mark => fromMarkId && mark.id.toString() === fromMarkId,
   );
   const toMark = marksQuery?.data?.find(
-    mark => toMarkId && mark.id.toString() === toMarkId
+    mark => toMarkId && mark.id.toString() === toMarkId,
   );
 
   const initialCoords: LatLng = useMemo(() => {
@@ -93,7 +93,7 @@ export default function LegMap() {
         ))}
         <Polyline
           coordinates={lineCoordinates}
-          strokeColor={theme.colors.primary}
+          strokeColor={theme.dark ? '#fff' : '#000'}
           strokeWidth={3}
         />
       </MapView>

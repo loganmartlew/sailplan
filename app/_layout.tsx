@@ -3,26 +3,24 @@ import 'react-native-gesture-handler';
 
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Theme, ThemeProvider, DefaultTheme } from '@react-navigation/native';
-import { SplashScreen } from 'expo-router';
+import { SplashScreen, Tabs } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import * as React from 'react';
-import { Platform, StyleSheet, View } from 'react-native';
+import { Platform, Pressable, StyleSheet, View } from 'react-native';
 import { NAV_THEME } from '~/lib/constants';
 import { useColorScheme } from '~/lib/useColorScheme';
 import { PortalHost } from '@rn-primitives/portal';
-import { setAndroidNavigationBar } from '~/lib/android-navigation-bar';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { BoatProfileProvider } from '~/features/boatProfile/context/BoatProfileContext';
 import { useMigrations } from 'drizzle-orm/expo-sqlite/migrator';
 import migrations from '~/drizzle/migrations';
 import { db, expoDb } from '~/lib/db';
-import { H2, Text } from '~/components/ui';
+import { Badge, H1, H2, Text } from '~/components/ui';
 import { useDrizzleStudio } from 'expo-drizzle-studio-plugin';
 import { BoatProfilePicker, useBoatProfile } from '~/features/boatProfile';
+import { BoatProfilePickerDialog } from '~/features/boatProfile/components/BoatProfilePickerDialog';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
-import Drawer from 'expo-router/drawer';
-import { BoatProfileLabel, DrawerContent } from '~/features/navigation';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { ChartGantt, MapPin, Route, Sailboat } from '~/lib/icons';
 
 const LIGHT_THEME: Theme = {
   dark: false,
@@ -72,13 +70,11 @@ export default function RootLayoutLogic() {
         document.documentElement.classList.add('bg-background');
       }
       if (!theme) {
-        setAndroidNavigationBar(colorScheme);
         AsyncStorage.setItem('theme', colorScheme);
         setIsColorSchemeLoaded(true);
         return;
       }
       const colorTheme = theme === 'dark' ? 'dark' : 'light';
-      setAndroidNavigationBar(colorTheme);
       if (colorTheme !== colorScheme) {
         setColorScheme(colorTheme);
 
@@ -104,15 +100,9 @@ export default function RootLayoutLogic() {
   return (
     <QueryClientProvider client={queryClient}>
       <BoatProfileProvider>
+        {/* @ts-expect-error - Module augmentation not picked up */}
         <ThemeProvider value={isDarkColorScheme ? DARK_THEME : LIGHT_THEME}>
-          <StatusBar
-            style={isDarkColorScheme ? 'light' : 'dark'}
-            backgroundColor={
-              isDarkColorScheme
-                ? NAV_THEME.dark.background
-                : NAV_THEME.light.background
-            }
-          />
+          <StatusBar style={isDarkColorScheme ? 'light' : 'dark'} />
           {error && (
             <View style={getErrorStyles(isDarkColorScheme).container}>
               <Text>Migration error: {error.message}</Text>
@@ -131,69 +121,74 @@ export default function RootLayoutLogic() {
   );
 }
 
-const drawerStyles = StyleSheet.create({
-  drawerItem: {
-    marginHorizontal: 0,
-    marginVertical: 0,
-    marginBottom: 4,
-  },
-});
-
 function RootLayout() {
   const { isDarkColorScheme } = useColorScheme();
   const { boatProfile } = useBoatProfile();
+  const theme = isDarkColorScheme ? DARK_THEME : LIGHT_THEME;
 
   if (!boatProfile)
     return (
-      <View
-        className='flex-1 justify-center items-center px-10 py-5'
-        style={{
-          backgroundColor: isDarkColorScheme
-            ? NAV_THEME.dark.background
-            : NAV_THEME.light.background,
-        }}
-      >
-        <H2 className='text-center mb-4'>Select a Boat Profile</H2>
-        <BoatProfilePicker />
-      </View>
+      <GestureHandlerRootView className='w-full h-full flex-1'>
+        <View
+          className='flex-1 justify-center items-center px-10 py-5'
+          style={{
+            backgroundColor: isDarkColorScheme
+              ? NAV_THEME.dark.background
+              : NAV_THEME.light.background,
+          }}
+        >
+          <H1 className='mb-4'>Select Boat Profile</H1>
+          <BoatProfilePicker />
+        </View>
+      </GestureHandlerRootView>
     );
 
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
-      <SafeAreaView style={{ flex: 1 }}>
-        <Drawer
-          drawerContent={DrawerContent}
-          screenOptions={{
-            headerShown: false,
-            drawerItemStyle: drawerStyles.drawerItem,
+      <Tabs
+        screenOptions={{
+          headerShown: false,
+          tabBarActiveTintColor: theme.colors.primary,
+          tabBarStyle: { backgroundColor: theme.colors.background },
+        }}
+      >
+        <Tabs.Screen
+          name='(plan)'
+          options={{
+            title: 'Plan',
+            tabBarIcon: ({ color, size }) => (
+              <ChartGantt color={color} size={size - 3} />
+            ),
           }}
-        >
-          <Drawer.Screen
-            name='(plan)'
-            options={{
-              title: 'Plan',
-            }}
-          />
-          <Drawer.Screen
-            name='sails'
-            options={{
-              title: 'Sails',
-            }}
-          />
-          <Drawer.Screen
-            name='marks'
-            options={{
-              title: 'Marks',
-            }}
-          />
-          <Drawer.Screen
-            name='courses'
-            options={{
-              title: 'Courses',
-            }}
-          />
-        </Drawer>
-      </SafeAreaView>
+        />
+        <Tabs.Screen
+          name='marks'
+          options={{
+            title: 'Marks',
+            tabBarIcon: ({ color, size }) => (
+              <MapPin color={color} size={size - 3} />
+            ),
+          }}
+        />
+        <Tabs.Screen
+          name='courses'
+          options={{
+            title: 'Courses',
+            tabBarIcon: ({ color, size }) => (
+              <Route color={color} size={size - 3} />
+            ),
+          }}
+        />
+        <Tabs.Screen
+          name='sails'
+          options={{
+            title: 'Sails',
+            tabBarIcon: ({ color, size }) => (
+              <Sailboat color={color} size={size - 3} />
+            ),
+          }}
+        />
+      </Tabs>
     </GestureHandlerRootView>
   );
 }

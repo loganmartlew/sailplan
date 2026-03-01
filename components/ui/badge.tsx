@@ -12,8 +12,9 @@ const badgeVariants = cva(
       variant: {
         default:
           'border-transparent bg-primary web:hover:opacity-80 active:opacity-80',
-        secondary:
-          'border-transparent bg-secondary web:hover:opacity-80 active:opacity-80',
+        transparent:
+          'border-transparent bg-accent web:hover:opacity-80 active:opacity-80',
+        secondary: 'bg-secondary web:hover:opacity-80 active:opacity-80',
         destructive:
           'border-transparent bg-destructive web:hover:opacity-80 active:opacity-80',
         outline: 'text-foreground',
@@ -29,6 +30,7 @@ const badgeTextVariants = cva('text-xs font-semibold ', {
   variants: {
     variant: {
       default: 'text-primary-foreground',
+      transparent: 'text-accent-foreground',
       secondary: 'text-secondary-foreground',
       destructive: 'text-destructive-foreground',
       outline: 'text-foreground',

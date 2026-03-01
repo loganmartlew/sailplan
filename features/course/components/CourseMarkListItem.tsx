@@ -1,8 +1,7 @@
-import { Button, H3, H4, Text } from '~/components/ui';
+import { Button, Card, CardContent, CardTitle, Text } from '~/components/ui';
 import { CourseMarkWithMark } from '../model/courseMark';
 import { Pressable, View } from 'react-native';
-import { Pencil } from '~/lib/icons/Pencil';
-import { Trash } from '~/lib/icons/Trash';
+import { GripVertical, Pencil, Trash } from '~/lib/icons';
 import { cn } from '~/lib/utils';
 
 interface CourseMarkListItemProps {
@@ -10,6 +9,7 @@ interface CourseMarkListItemProps {
   onEdit?: (courseMark: CourseMarkWithMark) => void;
   onDelete?: (courseMark: CourseMarkWithMark) => void;
   onPress?: (courseMark: CourseMarkWithMark) => void;
+  onDrag?: () => void;
 }
 
 export function CourseMarkListItem({
@@ -17,63 +17,62 @@ export function CourseMarkListItem({
   onEdit,
   onDelete,
   onPress,
+  onDrag,
 }: CourseMarkListItemProps) {
   let directionText: string | undefined;
   if (courseMark.direction === 'port') directionText = 'P';
   if (courseMark.direction === 'starboard') directionText = 'S';
 
-  const content = (
-    <>
-      <View className='flex flex-row gap-3 items-center'>
-        <H4>{courseMark.mark.name}</H4>
-        {directionText && (
-          <Text
-            className={cn({
-              'text-green-400': courseMark.direction === 'starboard',
-              'text-red-400': courseMark.direction === 'port',
-            })}
-          >
-            {directionText}
-          </Text>
-        )}
-      </View>
-      <View className='flex flex-row gap-1'>
-        {onEdit && (
-          <Button
-            variant='ghost'
-            size='icon'
-            onPress={() => onEdit(courseMark)}
-          >
-            <Pencil className='text-foreground' size={18} />
-          </Button>
-        )}
-        {onDelete && (
-          <Button
-            variant='ghost'
-            size='icon'
-            onPress={() => onDelete(courseMark)}
-          >
-            <Trash className='text-destructive' size={18} />
-          </Button>
-        )}
-      </View>
-    </>
+  const card = (
+    <Card className='gap-1'>
+      <CardContent className='py-2 flex-row items-center justify-between'>
+        <View className='flex-row items-center gap-2 shrink'>
+          {onDrag && (
+            <Pressable onLongPress={onDrag}>
+              <GripVertical className='text-muted-foreground' size={18} />
+            </Pressable>
+          )}
+          <CardTitle showBullet={false} className='text-foreground'>
+            {courseMark.mark.name}
+          </CardTitle>
+          {directionText && (
+            <Text
+              className={cn('font-semibold', {
+                'text-green-400': courseMark.direction === 'starboard',
+                'text-red-400': courseMark.direction === 'port',
+              })}
+            >
+              {directionText}
+            </Text>
+          )}
+        </View>
+        <View className='flex-row gap-1'>
+          {onEdit && (
+            <Button
+              variant='ghost'
+              size='icon'
+              onPress={() => onEdit(courseMark)}
+            >
+              <Pencil className='text-muted-foreground' size={16} />
+            </Button>
+          )}
+          {onDelete && (
+            <Button
+              variant='ghost'
+              size='icon'
+              onPress={() => onDelete(courseMark)}
+            >
+              <Trash className='text-destructive' size={16} />
+            </Button>
+          )}
+        </View>
+      </CardContent>
+    </Card>
   );
 
-  return (
-    <>
-      {onPress ? (
-        <Pressable
-          className='flex flex-1 flex-row gap-3 justify-between items-center py-2'
-          onPress={() => onPress(courseMark)}
-        >
-          {content}
-        </Pressable>
-      ) : (
-        <View className='flex flex-1 flex-row gap-3 justify-between items-center py-2'>
-          {content}
-        </View>
-      )}
-    </>
-  );
+  if (onPress) {
+    return <Pressable onPress={() => onPress(courseMark)}>{card}</Pressable>;
+  }
+
+  return card;
 }

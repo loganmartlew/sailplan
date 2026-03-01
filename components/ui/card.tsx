@@ -13,14 +13,13 @@ function Card({
     <View
       ref={ref}
       className={cn(
-        'rounded-lg border border-border bg-card shadow-sm shadow-foreground/10',
+        'rounded-3xl border border-border bg-card shadow-sm shadow-foreground/10',
         className,
       )}
       {...props}
     />
   );
 }
-Card.displayName = 'Card';
 
 function CardHeader({
   className,
@@ -35,27 +34,39 @@ function CardHeader({
     />
   );
 }
-CardHeader.displayName = 'CardHeader';
 
 function CardTitle({
   className,
+  children,
   ref,
+  showBullet = true,
   ...props
-}: React.ComponentPropsWithoutRef<typeof Text> & { ref?: React.Ref<TextRef> }) {
+}: React.ComponentPropsWithoutRef<typeof Text> & {
+  ref?: React.Ref<TextRef>;
+  showBullet?: boolean;
+}) {
   return (
     <Text
       role='heading'
       aria-level={3}
       ref={ref}
       className={cn(
-        'text-2xl text-card-foreground font-semibold leading-none tracking-tight',
+        'text-md text-primary font-semibold leading-none tracking-wider uppercase',
         className,
       )}
       {...props}
-    />
+    >
+      {showBullet ? (
+        <>
+          {`• `}
+          {children}
+        </>
+      ) : (
+        children
+      )}
+    </Text>
   );
 }
-CardTitle.displayName = 'CardTitle';
 
 function CardDescription({
   className,
@@ -70,7 +81,6 @@ function CardDescription({
     />
   );
 }
-CardDescription.displayName = 'CardDescription';
 
 function CardContent({
   className,
@@ -83,7 +93,6 @@ function CardContent({
     </TextClassContext>
   );
 }
-CardContent.displayName = 'CardContent';
 
 function CardFooter({
   className,
@@ -98,7 +107,6 @@ function CardFooter({
     />
   );
 }
-CardFooter.displayName = 'CardFooter';
 
 export {
   Card,

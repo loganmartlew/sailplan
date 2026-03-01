@@ -1,7 +1,7 @@
 import { useMutation } from '@tanstack/react-query';
-import { router, useLocalSearchParams } from 'expo-router';
+import { router, Stack, useLocalSearchParams } from 'expo-router';
 import { View } from 'react-native';
-import { H2, Separator } from '~/components/ui';
+import { H2 } from '~/components/ui';
 import { CourseForm, CourseFormValues, createCourse } from '~/features/course';
 
 export default function NewCourse() {
@@ -34,9 +34,9 @@ export default function NewCourse() {
   };
 
   return (
-    <View className='p-7 flex gap-5 h-full'>
-      <H2>New Course</H2>
-      <Separator />
+    <View className='flex-1 w-full px-3 py-5 flex flex-col gap-6'>
+      <Stack.Screen options={{ title: 'Courses' }} />
+      <H2 className='pb-0'>New Course</H2>
       <CourseForm
         onFormSubmit={onFormSubmit}
         onFormCancel={onFormCancel}

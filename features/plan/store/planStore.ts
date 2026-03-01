@@ -3,24 +3,32 @@ import { create } from 'zustand';
 import { useBoatProfile } from '~/features/boatProfile';
 
 interface PlanState {
-  // tws: number | null;
-  twd: number;
+  tws: number | null;
+  twd: number | null;
 }
 
 interface PlanStore {
   states: Record<number, PlanState>;
-  addState: (boatProfileId: number, state: PlanState) => void;
+  addState: (boatProfileId: number, state: Partial<PlanState>) => void;
 }
 
 const usePlanStore = create<PlanStore>((set, get) => ({
   states: {},
-  addState: (boatProfileId, state) =>
+  addState: (boatProfileId, state) => {
+    const correctedState: PlanState = {
+      twd:
+        state.twd === undefined ? get().states[boatProfileId]?.twd : state.twd,
+      tws:
+        state.tws === undefined ? get().states[boatProfileId]?.tws : state.tws,
+    };
+
     set(s => ({
       states: {
         ...s.states,
-        [boatProfileId]: state,
+        [boatProfileId]: correctedState,
       },
-    })),
+    }));
+  },
 }));
 
 export const usePlanState = () => {
@@ -29,7 +37,8 @@ export const usePlanState = () => {
   const states = usePlanStore(s => s.states);
   const addState = usePlanStore(s => s.addState);
 
-  const add = (state: { twd: number }) => addState(boatProfile?.id ?? 0, state);
+  const add = (state: Partial<PlanState>) =>
+    addState(boatProfile?.id ?? 0, state);
 
   const currentState = useMemo(() => {
     if (!boatProfile) return null;

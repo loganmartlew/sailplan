@@ -1,6 +1,6 @@
 import { router, Stack } from 'expo-router';
 import { View } from 'react-native';
-import { H2, Separator } from '~/components/ui';
+import { H2 } from '~/components/ui';
 import { useBoatProfile } from '~/features/boatProfile';
 import { createSail, SailForm, SailFormValues } from '~/features/sail';
 
@@ -26,9 +26,8 @@ export default function NewSail() {
   };
 
   return (
-    <View className='p-7 flex gap-5 h-full'>
-      <H2>New Sail</H2>
-      <Separator />
+    <View className='flex-1 w-full px-3 py-5 flex flex-col gap-6'>
+      <H2 className='pb-0'>New Sail</H2>
       <SailForm onFormSubmit={onFormSubmit} onFormCancel={onFormCancel} />
     </View>
   );

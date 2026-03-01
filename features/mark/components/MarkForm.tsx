@@ -52,17 +52,19 @@ export function MarkForm({
 
   return (
     <Form className='flex gap-5 grow'>
-      <TextInput name='name' label='Name' required />
+      <TextInput name='name' label='Name' placeholder='Mark name' required />
       <CoordinateInput
         name='latitude'
         field='latitude'
         label='Latitude'
+        placeholder='Enter latitude'
         required
       />
       <CoordinateInput
         name='longitude'
         field='longitude'
         label='Longitude'
+        placeholder='Enter longitude'
         required
       />
       <View className='grow' />

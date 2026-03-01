@@ -54,7 +54,11 @@ export function NewCourseGroupDialog({
           <DialogHeader>
             <DialogTitle>New Course Group</DialogTitle>
           </DialogHeader>
-          <TextInput<CourseGroupFormValues> label='Name' name='name' />
+          <TextInput<CourseGroupFormValues>
+            label='Name'
+            name='name'
+            placeholder='Group name'
+          />
           <DialogFooter>
             <Button variant='outline' onPress={onCancel}>
               <Text>Cancel</Text>

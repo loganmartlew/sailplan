@@ -3,7 +3,13 @@ import { Coordinate, TWA } from './types';
 export const degreesToRadians = (degrees: number) => (degrees * Math.PI) / 180;
 export const radiansToDegrees = (degrees: number) => (degrees * 180) / Math.PI;
 
-export function coordsToBearing(from: Coordinate, to: Coordinate): number {
+export function coordsToBearing({
+  from,
+  to,
+}: {
+  from: Coordinate;
+  to: Coordinate;
+}): number {
   const φ1 = degreesToRadians(from.latitude);
   const φ2 = degreesToRadians(to.latitude);
   const λ1 = degreesToRadians(from.longitude);
@@ -19,7 +25,13 @@ export function coordsToBearing(from: Coordinate, to: Coordinate): number {
   return brng;
 }
 
-export function getTwa(twd: number, bearing: number): TWA {
+export function getTwa({
+  twd,
+  bearing,
+}: {
+  twd: number;
+  bearing: number;
+}): TWA {
   // Normalize the angles to be between 0 and 360 degrees
   const normalizedTWD = ((twd % 360) + 360) % 360;
   const normalizedBearing = ((bearing % 360) + 360) % 360;

@@ -23,14 +23,14 @@ export function FormControlWrapper({
   return (
     <View className={cn('flex flex-col gap-1', className)}>
       {label && (
-        <Label nativeID={name}>
-          {label} {required && <Text>*</Text>}
+        <Label nativeID={name} className='pl-1.5'>
+          {label} {required && <Text className='text-primary'>*</Text>}
         </Label>
       )}
       {children}
       {error && (
         <Label
-          className='text-destructive font-light italic'
+          className='text-destructive font-light italic normal-case'
           nativeID={`${name}-error`}
         >
           {error.message}

@@ -3,11 +3,12 @@ import { Input, InputProps } from '../ui';
 import { FormControlWrapper } from './FormControlWrapper';
 
 export interface NumberInputProps<
-  TFieldValues extends FieldValues = FieldValues
+  TFieldValues extends FieldValues = FieldValues,
 > extends InputProps {
   label?: string;
   name: Path<TFieldValues>;
   required?: boolean;
+  placeholder: string;
 }
 
 export function NumberInput<TFieldValues extends FieldValues = FieldValues>({
@@ -34,7 +35,7 @@ export function NumberInput<TFieldValues extends FieldValues = FieldValues>({
           <Input
             onChangeText={value => onChange(value)}
             onBlur={onBlur}
-            value={`${value}`}
+            value={value == null ? undefined : `${value}`}
             error={!!error}
             keyboardType='numeric'
             {...props}

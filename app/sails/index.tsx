@@ -1,9 +1,9 @@
 import { Link, router } from 'expo-router';
 import { View, FlatList } from 'react-native';
-import { Button, H2, Separator, Text } from '~/components/ui';
+import { Badge, Button, H2, Muted, Text } from '~/components/ui';
 import { deleteSail, Sail, SailListItem, useSails } from '~/features/sail';
 import { useConfirm } from '~/hooks/useConfirm';
-import { Plus } from '~/lib/icons/Plus';
+import { Plus, Sailboat } from '~/lib/icons';
 
 export default function Sails() {
   const confirm = useConfirm();
@@ -38,20 +38,30 @@ export default function Sails() {
   };
 
   return (
-    <View className='p-7 flex gap-5'>
-      <View className='flex gap-2'>
-        <H2>Sails</H2>
+    <View className='flex-1 w-full px-3 py-5 pb-0 flex flex-col gap-6'>
+      <View className='flex gap-4'>
+        <View className='flex-row items-center justify-between'>
+          <H2 className='pb-0'>Sails</H2>
+          {(sailsQuery?.data?.length ?? 0) > 0 && (
+            <Badge variant='transparent'>
+              <Text className='text-sm'>
+                {sailsQuery!.data!.length}{' '}
+                {sailsQuery!.data!.length === 1 ? 'sail' : 'sails'}
+              </Text>
+            </Badge>
+          )}
+        </View>
         <Link href='/sails/new' push asChild>
-          <Button className='flex flex-row gap-2'>
-            <Plus className='text-primary-foreground' />
+          <Button className='flex-row gap-2'>
+            <Plus className='text-primary-foreground' size={18} />
             <Text>New Sail</Text>
           </Button>
         </Link>
       </View>
-      <Separator />
       <FlatList
         data={sailsQuery?.data}
         keyExtractor={item => item.id.toString()}
+        contentContainerClassName='gap-3'
         renderItem={({ item }) => (
           <SailListItem
             sail={item}
@@ -60,11 +70,12 @@ export default function Sails() {
             onPress={onSailPress}
           />
         )}
-        ListEmptyComponent={() => (
-          <View className='flex items-center justify-center p-5'>
-            <Text>No sails found</Text>
+        ListEmptyComponent={
+          <View className='flex items-center justify-center p-10 gap-2'>
+            <Sailboat className='text-muted-foreground' size={32} />
+            <Muted>No sails yet</Muted>
           </View>
-        )}
+        }
       />
     </View>
   );

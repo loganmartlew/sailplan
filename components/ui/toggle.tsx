@@ -11,11 +11,12 @@ const toggleVariants = cva(
     variants: {
       variant: {
         default: 'bg-transparent',
+        primary: '',
         outline:
           'border border-input bg-transparent web:hover:bg-accent active:bg-accent active:bg-accent',
       },
       size: {
-        default: 'h-10 px-3 native:h-12 native:px-[12]',
+        default: 'h-8 px-3 native:h-10 native:px-[12]',
         sm: 'h-9 px-2.5 native:h-10 native:px-[9]',
         lg: 'h-11 px-5 native:h-14 native:px-6',
       },
@@ -33,6 +34,7 @@ const toggleTextVariants = cva(
     variants: {
       variant: {
         default: '',
+        primary: '',
         outline:
           'web:group-hover:text-accent-foreground web:group-active:text-accent-foreground',
       },

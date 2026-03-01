@@ -1,7 +1,7 @@
 import { View } from 'react-native';
 import { SailPolar } from '../model/sailPolar';
 import { Button, Text } from '~/components/ui';
-import { Trash } from '~/lib/icons/Trash';
+import { Trash } from '~/lib/icons';
 import { formatAngle, formatSpeed } from '~/lib/format';
 
 interface SailPolarListItemProps {

@@ -10,3 +10,5 @@ export * from './toggle';
 export * from './toggle-group';
 export * from './badge';
 export * from './card';
+export * from './color-picker';
+export * from './stepper-input';

@@ -2,8 +2,6 @@ import { z } from 'zod';
 import { markInsertSchema } from '~/features/mark';
 
 export const coursePlanDataSchema = z.object({
-  // tws: z.number().int().min(0).optional(),
-  twd: z.number().int().min(0).max(360),
   courseId: z.number(),
   startLocation: markInsertSchema.nullable(),
   finishLocation: markInsertSchema.nullable(),

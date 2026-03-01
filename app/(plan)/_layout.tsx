@@ -1,32 +1,42 @@
-import { Tabs } from 'expo-router';
-import { Map } from '~/lib/icons/Map';
-import { Navigation } from '~/lib/icons/Navigation';
+import { useTheme } from '@react-navigation/native';
+import { Stack } from 'expo-router';
+import { BoatProfileLabel } from '~/features/navigation';
 
 export default function Layout() {
+  const theme = useTheme();
+
   return (
-    <Tabs
+    <Stack
       screenOptions={{
-        headerShown: false,
+        headerShown: true,
+        headerStyle: { backgroundColor: theme.colors.background },
+        headerRight: () => <BoatProfileLabel />,
       }}
     >
-      <Tabs.Screen
-        name='(leg)'
+      <Stack.Screen
+        name='index'
         options={{
-          title: 'Leg',
-          tabBarIcon: ({ color, size }) => (
-            <Navigation color={color} size={size - 3} />
-          ),
+          title: 'Plan',
         }}
       />
-      <Tabs.Screen
-        name='course'
+      <Stack.Screen
+        name='leg/plan'
         options={{
-          title: 'Course',
-          tabBarIcon: ({ color, size }) => (
-            <Map color={color} size={size - 3} />
-          ),
+          title: 'Leg Plan',
         }}
       />
-    </Tabs>
+      <Stack.Screen
+        name='leg/map'
+        options={{
+          title: 'Leg Map',
+        }}
+      />
+      <Stack.Screen
+        name='course/plan'
+        options={{
+          title: 'Course Plan',
+        }}
+      />
+    </Stack>
   );
 }

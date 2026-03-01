@@ -123,17 +123,20 @@ export function CoordinateForm({
       <NumberInput<CoordinateFormValues>
         label='Degrees'
         name='degrees'
+        placeholder='Degrees'
         required
       />
       <NumberInput<CoordinateFormValues>
         label='Minutes'
         name='minutes'
+        placeholder='Minutes'
         required
       />
       {coordFormat === CoordFormat.enum.DMS && (
         <NumberInput<CoordinateFormValues>
           label='Seconds'
           name='seconds'
+          placeholder='Seconds'
           required
         />
       )}

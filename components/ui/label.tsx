@@ -24,7 +24,7 @@ function Label({
       <LabelPrimitive.Text
         ref={ref}
         className={cn(
-          'text-sm text-foreground native:text-base font-medium leading-none web:peer-disabled:cursor-not-allowed web:peer-disabled:opacity-70',
+          'text-sm text-muted-foreground font-medium leading-none tracking-wider web:peer-disabled:cursor-not-allowed web:peer-disabled:opacity-70 uppercase',
           className,
         )}
         {...props}
