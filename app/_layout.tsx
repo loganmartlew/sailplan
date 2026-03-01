@@ -102,14 +102,7 @@ export default function RootLayoutLogic() {
       <BoatProfileProvider>
         {/* @ts-expect-error - Module augmentation not picked up */}
         <ThemeProvider value={isDarkColorScheme ? DARK_THEME : LIGHT_THEME}>
-          <StatusBar
-            style={isDarkColorScheme ? 'light' : 'dark'}
-            backgroundColor={
-              isDarkColorScheme
-                ? NAV_THEME.dark.background
-                : NAV_THEME.light.background
-            }
-          />
+          <StatusBar style={isDarkColorScheme ? 'light' : 'dark'} />
           {error && (
             <View style={getErrorStyles(isDarkColorScheme).container}>
               <Text>Migration error: {error.message}</Text>
@@ -127,14 +120,6 @@ export default function RootLayoutLogic() {
     </QueryClientProvider>
   );
 }
-
-const drawerStyles = StyleSheet.create({
-  drawerItem: {
-    marginHorizontal: 0,
-    marginVertical: 0,
-    marginBottom: 4,
-  },
-});
 
 function RootLayout() {
   const { isDarkColorScheme } = useColorScheme();

@@ -1,18 +1,18 @@
 import { View, FlatList } from 'react-native';
 import { Badge, Button, H3, Text } from '~/components/ui';
-import { Sail } from '../model/sail';
-import {
-  createSailPolar,
-  deleteSailPolar,
-  NewSailPolarDialog,
-  SailPolar,
-  SailPolarListItem,
-  SailPolarSubmitValues,
-  useSailPolars,
-} from '~/features/sailPolar';
+import { Sail } from '~/features/sail';
 import { useConfirm } from '~/hooks/useConfirm';
 import { Plus } from '~/lib/icons';
 import { useState } from 'react';
+import { useSailPolars } from '../api/getSailPolars';
+import { SailPolar } from '../model/sailPolar';
+import { deleteSailPolar } from '../api/deleteSailPolar';
+import {
+  NewSailPolarDialog,
+  SailPolarSubmitValues,
+} from './NewSailPolarDialog';
+import { createSailPolar } from '../api/createSailPolar';
+import { SailPolarListItem } from './SailPolarListItem';
 
 interface SailPolarsProps {
   sail: Sail;

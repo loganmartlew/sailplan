@@ -1,10 +1,10 @@
 export const NAV_THEME = {
   light: {
-    background: 'hsl(0 0% 100%)', // background
-    border: 'hsl(240 5.9% 90%)', // border
+    background: 'hsl(196 25% 95%)', // background
+    border: 'hsl(196 15% 88%)', // border
     card: 'hsl(0 0% 100%)', // card
     notification: 'hsl(0 84.2% 60.2%)', // destructive
-    primary: 'hsl(240 5.9% 10%)', // primary
+    primary: 'hsl(196 100% 47%)', // primary
     text: 'hsl(240 10% 3.9%)', // foreground
     mutedForeground: 'hsl(240 3.8% 46.1%)', // muted-foreground
   },

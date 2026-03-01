@@ -8,8 +8,8 @@ import {
   SailFormValues,
   updateSail,
   useSail,
-  SailPolars,
 } from '~/features/sail';
+import { SailPolars } from '~/features/sailPolar';
 import { Pencil } from '~/lib/icons';
 
 export default function SailDetailsPage() {

@@ -45,8 +45,8 @@ export function CourseGroupListItem({
     <Card className='gap-1'>
       <CardHeader className='flex-row items-center justify-between pb-1'>
         <View className='flex-row items-center gap-2 shrink'>
-          <View className='w-8 h-8 rounded-full bg-primary/10 items-center justify-center'>
-            <Folder className='text-primary' size={16} />
+          <View className='w-8 h-8 rounded-full bg-accent items-center justify-center'>
+            <Folder className='text-accent-foreground' size={16} />
           </View>
           <CardTitle showBullet={false} className='text-foreground'>
             {courseGroup.name}

@@ -17,7 +17,6 @@ import {
 } from '~/components/ui';
 import { useSails } from '~/features/sail';
 import { useForm } from '~/hooks/useForm';
-import { createSailPolar } from '../api/createSailPolar';
 
 const sailPolarFormSchema = z.object({
   sail: z

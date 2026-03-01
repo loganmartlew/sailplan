@@ -31,8 +31,8 @@ export function MarkListItem({ mark, onEdit, onDelete }: MarkListItemProps) {
     <Card className='gap-1'>
       <CardHeader className='pb-2 flex-row items-center justify-between'>
         <View className='flex-row items-center gap-2 shrink'>
-          <View className='w-8 h-8 rounded-full bg-primary/10 items-center justify-center'>
-            <MapPin className='text-primary' size={16} />
+          <View className='w-8 h-8 rounded-full bg-accent items-center justify-center'>
+            <MapPin className='text-accent-foreground' size={16} />
           </View>
           <CardTitle showBullet={false} className='text-foreground'>
             {mark.name}

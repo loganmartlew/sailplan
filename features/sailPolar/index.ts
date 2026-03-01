@@ -4,3 +4,4 @@ export * from './api/deleteSailPolar';
 export * from './api/getSailPolars';
 export * from './components/SailPolarListItem';
 export * from './components/NewSailPolarDialog';
+export * from './components/SailPolars';
