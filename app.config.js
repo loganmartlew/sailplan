@@ -13,10 +13,13 @@ switch (variant) {
     break;
 }
 
+const appVersion = '2.0.0';
+const buildNumber = 1;
+
 export default {
   name: name,
   slug: 'sailplan',
-  version: '1.1.0',
+  version: appVersion,
   owner: 'loganmartlew',
   description:
     'An app for checking angles between marks, and selecting the best sail.',
@@ -33,7 +36,7 @@ export default {
   },
   android: {
     package: pkg,
-    versionCode: 2,
+    versionCode: getAndroidVersionCode(appVersion, buildNumber),
     adaptiveIcon: {
       foregroundImage: './assets/images/adaptive-icon.png',
       backgroundColor: '#ffffff',
@@ -73,3 +76,8 @@ export default {
     },
   },
 };
+
+function getAndroidVersionCode(appVersion, buildNumber) {
+  const [major, minor, patch] = appVersion.split('.').map(Number);
+  return `${major * 1000000 + minor * 10000 + patch * 100 + buildNumber}`;
+}
