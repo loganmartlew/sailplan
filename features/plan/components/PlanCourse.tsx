@@ -3,17 +3,12 @@ import { useRouter } from 'expo-router';
 import { useState } from 'react';
 import { Controller, SubmitHandler } from 'react-hook-form';
 import { z } from 'zod';
-import {
-  FormControlWrapper,
-  NumberInput,
-  SelectInput,
-} from '~/components/form';
+import { FormControlWrapper, SelectInput } from '~/components/form';
 import { Button, Option, Select, Text } from '~/components/ui';
 import { useCourseGroups, useCourseMarks, useCourses } from '~/features/course';
 import { getMark } from '~/features/mark';
 import { useForm } from '~/hooks/useForm';
 import { CustomLocation, customLocationSchema } from './CustomLocation';
-import { usePlanState } from '../store/planStore';
 import {
   CoursePlanData,
   serializeCoursePlanData,
@@ -106,23 +101,26 @@ export function PlanCourse() {
     });
   };
 
-  const courseOptions: Option[] = courses.map(course => ({
-    label: course.name,
-    value: course.id.toString(),
-  }));
+  const courseOptions: Option[] =
+    courses?.map(course => ({
+      label: course.name,
+      value: course.id.toString(),
+    })) ?? [];
 
-  const mapMarks = courseMarks.map(courseMark => courseMark.mark) ?? [];
+  const mapMarks = courseMarks?.map(courseMark => courseMark.mark) ?? [];
 
   return (
     <Form className='w-full flex flex-col gap-6'>
       <TrueWindInputCard twd />
-      {courseGroups.length > 0 && (
+      {courseGroups?.length > 0 && (
         <FormControlWrapper label='Course Group' name='courseGroup'>
           <Select
-            options={courseGroups.map(group => ({
-              label: group.name,
-              value: group.id.toString(),
-            }))}
+            options={
+              courseGroups.map(group => ({
+                label: group.name,
+                value: group.id.toString(),
+              })) ?? []
+            }
             value={courseGroupId}
             onValueChange={value => setCourseGroupId(value)}
             placeholder={{

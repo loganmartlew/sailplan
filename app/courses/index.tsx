@@ -127,8 +127,8 @@ export default function Courses() {
           <H2 className='pb-0'>Courses</H2>
           <Badge variant='transparent'>
             <Text className='text-sm'>
-              {coursesQuery.data.length}{' '}
-              {coursesQuery.data.length === 1 ? 'course' : 'courses'}
+              {coursesQuery.data?.length ?? 0}{' '}
+              {coursesQuery.data?.length === 1 ? 'course' : 'courses'}
             </Text>
           </Badge>
         </View>

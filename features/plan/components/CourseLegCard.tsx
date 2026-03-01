@@ -31,7 +31,7 @@ interface CourseLegCardProps {
 function MarkTitle({ mark }: { mark: CourseMarkWithMark }) {
   return (
     <CardTitle
-      className='flex-row items-center shrink text-foreground case'
+      className='flex-row items-center shrink text-foreground'
       showBullet={false}
     >
       {mark.mark.name}

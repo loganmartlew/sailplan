@@ -42,7 +42,7 @@ function ColorPickerButton({ value, onChange }: ColorPickerButtonProps) {
     setOpen(false);
   };
 
-  const colorIsLight = new Color(value.toLowerCase() || '#888888').isLight();
+  const colorIsLight = new Color(value?.toLowerCase() || '#888888').isLight();
 
   return (
     <>
@@ -50,7 +50,7 @@ function ColorPickerButton({ value, onChange }: ColorPickerButtonProps) {
         variant='default'
         onPress={handleOpen}
         className='flex-row gap-3 justify-center native:h-12'
-        style={{ backgroundColor: value.toLowerCase() || '#888888' }}
+        style={{ backgroundColor: value?.toLowerCase() || '#888888' }}
       >
         <PaintBucket size={20} color={colorIsLight ? 'black' : 'white'} />
         <Text

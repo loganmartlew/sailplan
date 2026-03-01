@@ -80,7 +80,7 @@ export function NewSailPolarDialog({
   onFormSubmit,
 }: NewSailPolarDialogProps) {
   const showSailSelector = sailId == null;
-  const sailsQuery = showSailSelector ? useSails() : null;
+  const sailsQuery = useSails();
   const sails = sailsQuery?.data ?? [];
 
   const sailOptions: Option[] = useMemo(

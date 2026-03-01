@@ -63,7 +63,12 @@ export function CourseForm({
 
   return (
     <Form className='flex gap-5 grow'>
-      <TextInput<CourseFormValues> name='name' label='Name' required />
+      <TextInput<CourseFormValues>
+        name='name'
+        label='Name'
+        placeholder='Course name'
+        required
+      />
       {courseGroupOptions.length > 0 && (
         <SelectInput<CourseFormValues>
           name='courseGroup'

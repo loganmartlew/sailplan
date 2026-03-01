@@ -35,13 +35,13 @@ export function DirectionsCard({ fromCoords, toCoords }: DirectionsCardProps) {
     fromCoords && toCoords
       ? coordsToBearing({ from: fromCoords, to: toCoords })
       : null;
-  const twa = bearing ? getTwa({ twd, bearing }) : null;
+  const twa = bearing != null ? getTwa({ twd, bearing }) : null;
 
   async function handlePolarSubmit(data: SailPolarSubmitValues) {
     await createSailPolar(data);
   }
 
-  if (!bearing || !twa) {
+  if (bearing == null || twa == null) {
     return (
       <View>
         <Text>Error calculating bearing and twa</Text>

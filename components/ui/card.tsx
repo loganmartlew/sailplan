@@ -88,9 +88,9 @@ function CardContent({
   ...props
 }: React.ComponentPropsWithoutRef<typeof View> & { ref?: React.Ref<ViewRef> }) {
   return (
-    <TextClassContext.Provider value='text-card-foreground'>
+    <TextClassContext value='text-card-foreground'>
       <View ref={ref} className={cn('p-6 pt-0', className)} {...props} />
-    </TextClassContext.Provider>
+    </TextClassContext>
   );
 }
 

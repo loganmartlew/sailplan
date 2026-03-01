@@ -6,7 +6,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { SubmitHandler } from 'react-hook-form';
 import { LegPlanData, serializeLegPlanData } from '../model/legPlanData';
 import { Button, Option, Text } from '~/components/ui';
-import z from 'zod';
+import { z } from 'zod';
 import { TrueWindInputCard } from './TrueWindInputCard';
 
 const planLegFormSchema = z.object({
@@ -35,8 +35,8 @@ export function PlanLeg() {
   });
 
   const onSubmit: SubmitHandler<PlanLegForm> = data => {
-    const fromMark = marks.find(mark => mark.id === parseInt(data.from.value));
-    const toMark = marks.find(mark => mark.id === parseInt(data.to.value));
+    const fromMark = marks?.find(mark => mark.id === parseInt(data.from.value));
+    const toMark = marks?.find(mark => mark.id === parseInt(data.to.value));
 
     if (!fromMark || !toMark) return;
 
@@ -53,10 +53,11 @@ export function PlanLeg() {
     });
   };
 
-  const markOptions: Option[] = marks?.map(mark => ({
-    label: mark.name,
-    value: `${mark.id}`,
-  }));
+  const markOptions: Option[] =
+    marks?.map(mark => ({
+      label: mark.name,
+      value: `${mark.id}`,
+    })) ?? [];
 
   return (
     <Form className='w-full flex flex-col gap-6'>
