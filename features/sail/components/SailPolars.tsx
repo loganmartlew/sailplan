@@ -6,8 +6,8 @@ import {
   deleteSailPolar,
   NewSailPolarDialog,
   SailPolar,
-  SailPolarFormValues,
   SailPolarListItem,
+  SailPolarSubmitValues,
   useSailPolars,
 } from '~/features/sailPolar';
 import { useConfirm } from '~/hooks/useConfirm';
@@ -38,9 +38,9 @@ export function SailPolars({ sail }: SailPolarsProps) {
     await deleteSailPolar(sailPolar.id);
   }
 
-  async function handleNewPolar(data: SailPolarFormValues) {
+  async function handleNewPolar(data: SailPolarSubmitValues) {
     await createSailPolar({
-      sailId: sail.id,
+      sailId: data.sailId,
       twa: data.twa,
       tws: data.tws,
       speed: data.speed,
@@ -81,6 +81,7 @@ export function SailPolars({ sail }: SailPolarsProps) {
         }
       />
       <NewSailPolarDialog
+        sailId={sail.id}
         open={newPolarDialogOpen}
         onOpenChange={setNewPolarDialogOpen}
         onFormSubmit={handleNewPolar}

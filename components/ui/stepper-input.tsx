@@ -22,7 +22,7 @@ export function StepperInput({
 }: StepperInputProps) {
   return (
     <View className='flex flex-row gap-2'>
-      <Button onPress={onDecrement}>
+      <Button onPress={onDecrement} variant='transparent'>
         {typeof decrementLabel === 'string' ? (
           <Text>{decrementLabel}</Text>
         ) : (
@@ -32,7 +32,7 @@ export function StepperInput({
       <View className='grow'>
         <Input value={value} {...inputProps} />
       </View>
-      <Button onPress={onIncrement}>
+      <Button onPress={onIncrement} variant='transparent'>
         {typeof incrementLabel === 'string' ? (
           <Text>{incrementLabel}</Text>
         ) : (

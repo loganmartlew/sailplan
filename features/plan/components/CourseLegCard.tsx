@@ -1,5 +1,7 @@
+import { useState } from 'react';
 import { View } from 'react-native';
 import {
+  Button,
   Card,
   CardContent,
   CardHeader,
@@ -9,7 +11,13 @@ import {
 } from '~/components/ui';
 import { CourseMarkWithMark } from '~/features/course';
 import { TWA } from '~/features/coordinate';
+import {
+  createSailPolar,
+  NewSailPolarDialog,
+  SailPolarSubmitValues,
+} from '~/features/sailPolar';
 import { formatAngle } from '~/lib/format';
+import { Plus } from '~/lib/icons';
 import { cn } from '~/lib/utils';
 import { TackDirectionBadge } from './TackDirectionBadge';
 
@@ -44,10 +52,16 @@ function MarkTitle({ mark }: { mark: CourseMarkWithMark }) {
 }
 
 export function CourseLegCard({ from, to, bearing, twa }: CourseLegCardProps) {
+  const [polarDialogOpen, setPolarDialogOpen] = useState(false);
+
+  async function handlePolarSubmit(data: SailPolarSubmitValues) {
+    await createSailPolar(data);
+  }
+
   return (
     <Card className='gap-2'>
-      <CardHeader className='pb-3'>
-        <View className='flex-row gap-3'>
+      <CardHeader className='pb-3 flex-row items-start justify-between'>
+        <View className='flex-row gap-3 flex-1'>
           <View className='items-center py-0.5'>
             <View className='w-2.5 h-2.5 rounded-full bg-primary' />
             <View className='w-0.5 flex-1 bg-primary/30 my-1' />
@@ -58,6 +72,15 @@ export function CourseLegCard({ from, to, bearing, twa }: CourseLegCardProps) {
             <MarkTitle mark={to} />
           </View>
         </View>
+        <Button
+          variant='transparent'
+          size='sm'
+          className='flex-row gap-1'
+          onPress={() => setPolarDialogOpen(true)}
+        >
+          <Plus className='text-accent-foreground' size={16} />
+          <Text>Polar</Text>
+        </Button>
       </CardHeader>
       <CardContent className='flex flex-row gap-4'>
         <View className='flex flex-1 gap-2'>
@@ -76,6 +99,12 @@ export function CourseLegCard({ from, to, bearing, twa }: CourseLegCardProps) {
           </View>
         </View>
       </CardContent>
+      <NewSailPolarDialog
+        open={polarDialogOpen}
+        onOpenChange={setPolarDialogOpen}
+        onFormSubmit={handlePolarSubmit}
+        defaultTwa={twa.angle}
+      />
     </Card>
   );
 }

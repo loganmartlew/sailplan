@@ -24,5 +24,6 @@ export * from './Sun';
 export * from './TextCursorInput';
 export * from './Trash';
 export * from './Upload';
+export * from './Wind';
 export * from './X';
 export * from './iconWithClassName';
