@@ -6,7 +6,7 @@ import { Theme, ThemeProvider, DefaultTheme } from '@react-navigation/native';
 import { SplashScreen, Tabs } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import * as React from 'react';
-import { Platform, StyleSheet, View } from 'react-native';
+import { Platform, Pressable, StyleSheet, View } from 'react-native';
 import { NAV_THEME } from '~/lib/constants';
 import { useColorScheme } from '~/lib/useColorScheme';
 import { PortalHost } from '@rn-primitives/portal';
@@ -15,9 +15,10 @@ import { BoatProfileProvider } from '~/features/boatProfile/context/BoatProfileC
 import { useMigrations } from 'drizzle-orm/expo-sqlite/migrator';
 import migrations from '~/drizzle/migrations';
 import { db, expoDb } from '~/lib/db';
-import { H2, Text } from '~/components/ui';
+import { Badge, H1, H2, Text } from '~/components/ui';
 import { useDrizzleStudio } from 'expo-drizzle-studio-plugin';
 import { BoatProfilePicker, useBoatProfile } from '~/features/boatProfile';
+import { BoatProfilePickerDialog } from '~/features/boatProfile/components/BoatProfilePickerDialog';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { ChartGantt, MapPin, Route, Sailboat } from '~/lib/icons';
 
@@ -142,17 +143,19 @@ function RootLayout() {
 
   if (!boatProfile)
     return (
-      <View
-        className='flex-1 justify-center items-center px-10 py-5'
-        style={{
-          backgroundColor: isDarkColorScheme
-            ? NAV_THEME.dark.background
-            : NAV_THEME.light.background,
-        }}
-      >
-        <H2 className='text-center mb-4'>Select a Boat Profile</H2>
-        <BoatProfilePicker />
-      </View>
+      <GestureHandlerRootView className='w-full h-full flex-1'>
+        <View
+          className='flex-1 justify-center items-center px-10 py-5'
+          style={{
+            backgroundColor: isDarkColorScheme
+              ? NAV_THEME.dark.background
+              : NAV_THEME.light.background,
+          }}
+        >
+          <H1 className='mb-4'>Select Boat Profile</H1>
+          <BoatProfilePicker />
+        </View>
+      </GestureHandlerRootView>
     );
 
   return (
