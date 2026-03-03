@@ -4,6 +4,10 @@
 			"path": "./sailplan-app",
 			"name": "SailPlan App"
 		},
+		{
+			"path": "./polars",
+			"name": "Polar Tools"
+		},
 	],
 	"settings": {}
 }
