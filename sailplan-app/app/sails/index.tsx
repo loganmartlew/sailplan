@@ -3,12 +3,14 @@ import { useState } from 'react';
 import { View, FlatList } from 'react-native';
 import { Badge, Button, H2, Muted, Text } from '~/components/ui';
 import { deleteSail, Sail, SailListItem, useSails } from '~/features/sail';
-import { SailPolarImportDialog } from '~/features/sailPolar';
+import { hasSailPolars, SailPolarImportDialog } from '~/features/sailPolar';
+import { useAlert } from '~/hooks/useAlert';
 import { useConfirm } from '~/hooks/useConfirm';
 import { Plus, Sailboat, Share2 } from '~/lib/icons';
 
 export default function Sails() {
   const confirm = useConfirm();
+  const alert = useAlert();
   const sailsQuery = useSails();
   const [importDialogOpen, setImportDialogOpen] = useState(false);
 
@@ -27,6 +29,17 @@ export default function Sails() {
   };
 
   const onSailDelete = async (sail: Sail) => {
+    const hasPolars = await hasSailPolars(sail.id);
+
+    if (hasPolars) {
+      await alert({
+        title: 'Cannot Delete Sail',
+        message: 'This sail has associated polars and cannot be deleted.',
+        confirmText: 'OK',
+      });
+      return;
+    }
+
     const proceed = await confirm({
       title: 'Delete Sail',
       message: `Are you sure you want to delete ${sail.name}?`,
