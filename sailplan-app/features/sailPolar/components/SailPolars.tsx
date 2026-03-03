@@ -55,7 +55,8 @@ export function SailPolars({ sail }: SailPolarsProps) {
           {sailPolars?.length > 0 && (
             <Badge variant='transparent'>
               <Text className='text-xs'>
-                {sailPolars.length} {sailPolars.length === 1 ? 'mark' : 'marks'}
+                {sailPolars.length}{' '}
+                {sailPolars.length === 1 ? 'polar' : 'polars'}
               </Text>
             </Badge>
           )}

@@ -15,7 +15,8 @@ export function useSails() {
     db.query.sail.findMany({
       where: eq(sail.boatProfileId, boatProfile.id),
       orderBy: [asc(sail.name)],
-    })
+    }),
+    [boatProfile.id],
   );
 }
 
@@ -30,6 +31,6 @@ export function useSail(id: number) {
   return useLiveQuery(
     db.query.sail.findFirst({
       where: eq(sail.id, id),
-    })
+    }),
   );
 }

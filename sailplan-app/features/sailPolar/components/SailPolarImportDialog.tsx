@@ -16,19 +16,21 @@ interface SailPolarImportDialogProps {
   open: boolean;
   onOpenChange: (value: boolean) => void;
   sails: Sail[];
+  limitedSails?: boolean;
 }
 
 export function SailPolarImportDialog({
   open,
   onOpenChange,
   sails,
+  limitedSails = false,
 }: SailPolarImportDialogProps) {
   const [isImporting, setIsImporting] = useState(false);
 
   const onImport = async () => {
     setIsImporting(true);
     try {
-      const result = await importPolarsFromCsv(sails);
+      const result = await importPolarsFromCsv(sails, limitedSails);
       if (!result) return;
 
       onOpenChange(false);

@@ -9,8 +9,8 @@ import {
   updateSail,
   useSail,
 } from '~/features/sail';
-import { SailPolars } from '~/features/sailPolar';
-import { Pencil } from '~/lib/icons';
+import { SailPolarImportDialog, SailPolars } from '~/features/sailPolar';
+import { Pencil, Upload } from '~/lib/icons';
 
 export default function SailDetailsPage() {
   const { sailId, edit } = useLocalSearchParams<{
@@ -20,6 +20,7 @@ export default function SailDetailsPage() {
   const { data: sail } = useSail(parseInt(sailId));
 
   const [editMode, setEditMode] = useState(!!edit);
+  const [importDialogOpen, setImportDialogOpen] = useState(false);
 
   const onFormSubmit = async (data: SailFormValues) => {
     if (!sail) {
@@ -83,12 +84,31 @@ export default function SailDetailsPage() {
       <View className='flex-row items-center justify-between'>
         <H2 className='pb-0'>{sail.name}</H2>
         {!editMode && (
-          <Button variant='ghost' size='icon' onPress={() => setEditMode(true)}>
-            <Pencil className='text-muted-foreground' size={16} />
-          </Button>
+          <View className='flex-row gap-1'>
+            <Button
+              variant='ghost'
+              size='icon'
+              onPress={() => setImportDialogOpen(true)}
+            >
+              <Upload className='text-muted-foreground' size={16} />
+            </Button>
+            <Button
+              variant='ghost'
+              size='icon'
+              onPress={() => setEditMode(true)}
+            >
+              <Pencil className='text-muted-foreground' size={16} />
+            </Button>
+          </View>
         )}
       </View>
       {editMode ? editSlot : detailsSlot}
+      <SailPolarImportDialog
+        open={importDialogOpen}
+        onOpenChange={setImportDialogOpen}
+        sails={[sail]}
+        limitedSails
+      />
     </View>
   );
 }

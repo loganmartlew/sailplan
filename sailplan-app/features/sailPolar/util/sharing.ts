@@ -15,6 +15,7 @@ function parseCsvRow(raw: string): string[] {
 
 export async function importPolarsFromCsv(
   sails: Sail[],
+  limitedSails: boolean = false,
 ): Promise<ImportPolarResult | null> {
   const pickerResult = await DocumentPicker.getDocumentAsync({
     type: [
@@ -57,7 +58,7 @@ export async function importPolarsFromCsv(
 
     const matchedSail = sailByName.get(sailName.toLowerCase());
     if (!matchedSail) {
-      unmatchedNames.add(sailName);
+      if (!limitedSails) unmatchedNames.add(sailName);
       continue;
     }
 
