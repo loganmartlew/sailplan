@@ -2,11 +2,11 @@ import { View, FlatList } from 'react-native';
 import { Badge, Button, H3, Text } from '~/components/ui';
 import { Sail } from '~/features/sail';
 import { useConfirm } from '~/hooks/useConfirm';
-import { Plus } from '~/lib/icons';
+import { Plus, Trash } from '~/lib/icons';
 import { useState } from 'react';
 import { useSailPolars } from '../api/getSailPolars';
 import { SailPolar } from '../model/sailPolar';
-import { deleteSailPolar } from '../api/deleteSailPolar';
+import { deleteAllSailPolars, deleteSailPolar } from '../api/deleteSailPolar';
 import {
   NewSailPolarDialog,
   SailPolarSubmitValues,
@@ -23,6 +23,20 @@ export function SailPolars({ sail }: SailPolarsProps) {
   const { data: sailPolars } = useSailPolars(sail.id);
 
   const [newPolarDialogOpen, setNewPolarDialogOpen] = useState(false);
+
+  async function onDeleteAll() {
+    const proceed = await confirm({
+      title: 'Delete All Polars',
+      message: `Are you sure you want to delete all ${sailPolars?.length} polars for ${sail.name}?`,
+      confirmText: 'Delete All',
+      cancelText: 'Cancel',
+      destructive: true,
+    });
+
+    if (!proceed) return;
+
+    await deleteAllSailPolars(sail.id);
+  }
 
   async function onSailPolarDelete(sailPolar: SailPolar) {
     const proceed = await confirm({
@@ -61,13 +75,20 @@ export function SailPolars({ sail }: SailPolarsProps) {
             </Badge>
           )}
         </View>
-        <Button
-          variant='secondary'
-          size='icon'
-          onPress={() => setNewPolarDialogOpen(true)}
-        >
-          <Plus className='text-secondary-foreground' size={18} />
-        </Button>
+        <View className='flex-row gap-1'>
+          {sailPolars?.length > 0 && (
+            <Button variant='ghost' size='icon' onPress={onDeleteAll}>
+              <Trash className='text-destructive' size={18} />
+            </Button>
+          )}
+          <Button
+            variant='secondary'
+            size='icon'
+            onPress={() => setNewPolarDialogOpen(true)}
+          >
+            <Plus className='text-secondary-foreground' size={18} />
+          </Button>
+        </View>
       </View>
       <FlatList
         data={sailPolars}
