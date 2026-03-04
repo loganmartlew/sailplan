@@ -93,6 +93,7 @@ export function SailPolars({ sail }: SailPolarsProps) {
       <FlatList
         data={sailPolars}
         keyExtractor={item => item.id.toString()}
+        contentContainerClassName='gap-3'
         renderItem={({ item }) => (
           <SailPolarListItem sailPolar={item} onDelete={onSailPolarDelete} />
         )}
