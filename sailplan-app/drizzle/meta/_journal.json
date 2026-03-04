@@ -50,6 +50,13 @@
       "when": 1749720418458,
       "tag": "0006_busy_red_hulk",
       "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "6",
+      "when": 1772591545780,
+      "tag": "0007_majestic_hitman",
+      "breakpoints": true
     }
   ]
 }

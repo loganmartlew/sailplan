@@ -10,6 +10,7 @@ import {
   useSail,
 } from '~/features/sail';
 import { SailPolarImportDialog, SailPolars } from '~/features/sailPolar';
+import { TwaLimitsPreviewCard } from '~/features/sailTwaLimit';
 import { Pencil, Upload } from '~/lib/icons';
 
 export default function SailDetailsPage() {
@@ -75,6 +76,10 @@ export default function SailDetailsPage() {
   const detailsSlot = (
     <>
       <SailDetails sail={sail} />
+      <TwaLimitsPreviewCard
+        sailId={sail.id}
+        onPress={() => router.push(`/sails/${sail.id}/twa-limits`)}
+      />
       <SailPolars sail={sail} />
     </>
   );

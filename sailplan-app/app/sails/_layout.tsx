@@ -26,7 +26,13 @@ export default function Layout() {
         }}
       />
       <Stack.Screen
-        name='[sailId]'
+        name='[sailId]/index'
+        options={{
+          title: 'Sail',
+        }}
+      />
+      <Stack.Screen
+        name='[sailId]/twa-limits'
         options={{
           title: 'Sail',
         }}

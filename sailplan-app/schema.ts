@@ -1,12 +1,5 @@
 import { relations } from 'drizzle-orm';
-import {
-  sqliteTable,
-  text,
-  integer,
-  real,
-  SQLiteColumn,
-  SQLiteTableWithColumns,
-} from 'drizzle-orm/sqlite-core';
+import { sqliteTable, text, integer, real } from 'drizzle-orm/sqlite-core';
 
 export const boatProfile = sqliteTable('boatProfile', {
   id: integer('id').primaryKey(),
@@ -48,6 +41,7 @@ export const sailRelations = relations(sail, ({ one, many }) => ({
     references: [boatProfile.id],
   }),
   sailPolars: many(sailPolar),
+  sailTwaLimits: many(sailTwaLimit),
 }));
 
 export const sailPolar = sqliteTable('sailPolar', {
@@ -63,6 +57,23 @@ export const sailPolar = sqliteTable('sailPolar', {
 export const sailPolarRelations = relations(sailPolar, ({ one }) => ({
   sail: one(sail, {
     fields: [sailPolar.sailId],
+    references: [sail.id],
+  }),
+}));
+
+export const sailTwaLimit = sqliteTable('sailTwaLimit', {
+  id: integer('id').primaryKey(),
+  tws: integer('tws').notNull(),
+  minTwa: integer('minTwa'),
+  maxTwa: integer('maxTwa'),
+  sailId: integer('sailId')
+    .notNull()
+    .references(() => sail.id),
+});
+
+export const sailTwaLimitRelations = relations(sailTwaLimit, ({ one }) => ({
+  sail: one(sail, {
+    fields: [sailTwaLimit.sailId],
     references: [sail.id],
   }),
 }));
