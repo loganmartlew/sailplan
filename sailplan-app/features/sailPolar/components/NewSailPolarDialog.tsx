@@ -15,7 +15,7 @@ import {
   Option,
   Text,
 } from '~/components/ui';
-import { useSails } from '~/features/sail';
+import { useSails } from '~/features/sail/api/getSails';
 import { useForm } from '~/hooks/useForm';
 
 const sailPolarFormSchema = z.object({
