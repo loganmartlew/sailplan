@@ -1,3 +1,5 @@
+import { DefaultTheme, Theme } from '@react-navigation/native';
+
 export const NAV_THEME = {
   light: {
     background: 'hsl(196 25% 95%)', // background
@@ -17,6 +19,18 @@ export const NAV_THEME = {
     text: 'hsl(0 0% 98%)', // foreground
     mutedForeground: 'hsl(240 5% 50%)', // muted-foreground
   },
+};
+
+export const LIGHT_THEME: Theme = {
+  dark: false,
+  colors: NAV_THEME.light,
+  fonts: DefaultTheme.fonts,
+};
+
+export const DARK_THEME: Theme = {
+  dark: true,
+  colors: NAV_THEME.dark,
+  fonts: DefaultTheme.fonts,
 };
 
 declare global {
