@@ -17,6 +17,8 @@ import {
 } from '~/components/ui';
 import { useSails } from '~/features/sail/api/getSails';
 import { useForm } from '~/hooks/useForm';
+import { getSpeedUnitLabel, convertSpeed } from '~/lib/format';
+import { useSettings } from '~/features/settings';
 
 const sailPolarFormSchema = z.object({
   sail: z
@@ -82,6 +84,7 @@ export function NewSailPolarDialog({
   const showSailSelector = sailId == null;
   const sailsQuery = useSails();
   const sails = sailsQuery?.data ?? [];
+  const { speedUnit } = useSettings();
 
   const sailOptions: Option[] = useMemo(
     () =>
@@ -108,9 +111,9 @@ export function NewSailPolarDialog({
 
     onFormSubmit({
       sailId: resolvedSailId,
-      tws: data.tws,
+      tws: convertSpeed(data.tws, speedUnit),
       twa: data.twa,
-      speed: data.speed,
+      speed: convertSpeed(data.speed, speedUnit),
     });
     reset();
     onOpenChange(false);
@@ -155,19 +158,21 @@ export function NewSailPolarDialog({
           <StepperNumberInput<SailPolarFormValues>
             label='TWS'
             name='tws'
-            onDecrement={v => Math.max(0, v - 2)}
-            onIncrement={v => v + 2}
+            onDecrement={v => Math.max(0, (v ?? 0) - 2)}
+            onIncrement={v => (v ?? 0) + 2}
             decrementLabel='-2'
             incrementLabel='+2'
             endAdornment={
-              <Text className='ml-1 text-muted-foreground'>kt</Text>
+              <Text className='ml-1 text-muted-foreground'>
+                {getSpeedUnitLabel(speedUnit)}
+              </Text>
             }
           />
           <StepperNumberInput<SailPolarFormValues>
             label='TWA'
             name='twa'
-            onDecrement={v => Math.max(0, v - 5)}
-            onIncrement={v => Math.min(180, v + 5)}
+            onDecrement={v => Math.max(0, (v ?? 0) - 5)}
+            onIncrement={v => Math.min(180, (v ?? 0) + 5)}
             decrementLabel='-5°'
             incrementLabel='+5°'
             endAdornment={
@@ -177,12 +182,14 @@ export function NewSailPolarDialog({
           <StepperNumberInput<SailPolarFormValues>
             label='Boat Speed'
             name='speed'
-            onDecrement={v => Math.max(0, v - 1)}
-            onIncrement={v => v + 1}
+            onDecrement={v => Math.max(0, (v ?? 0) - 1)}
+            onIncrement={v => (v ?? 0) + 1}
             decrementLabel='-1'
             incrementLabel='+1'
             endAdornment={
-              <Text className='ml-1 text-muted-foreground'>kt</Text>
+              <Text className='ml-1 text-muted-foreground'>
+                {getSpeedUnitLabel(speedUnit)}
+              </Text>
             }
           />
           <DialogFooter>

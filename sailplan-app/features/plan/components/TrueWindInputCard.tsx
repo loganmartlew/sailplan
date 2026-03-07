@@ -1,7 +1,13 @@
 import { View } from 'react-native';
 import { Label, Separator, StepperInput, Text } from '~/components/ui';
-import { formatAngle } from '~/lib/format';
+import {
+  formatAngle,
+  getSpeedUnitLabel,
+  convertSpeed,
+  DEFAULT_SPEED_UNIT,
+} from '~/lib/format';
 import { usePlanState } from '../store/planStore';
+import { useSettings } from '~/features/settings';
 
 interface TrueWindInputCardProps {
   tws?: boolean;
@@ -10,23 +16,30 @@ interface TrueWindInputCardProps {
 
 export function TrueWindInputCard({ tws, twd }: TrueWindInputCardProps) {
   const { add, currentState } = usePlanState();
+  const { speedUnit } = useSettings();
 
   const onTwsChange = (value: string) => {
     const tws = parseInt(value, 10);
     const newTws = Math.max(0, tws);
+    const normalisedTws = convertSpeed(newTws, speedUnit);
 
     if (!isNaN(tws)) {
-      add({ tws: newTws });
+      add({ tws: normalisedTws });
     } else {
       add({ tws: null });
     }
   };
 
   const addTws = (amount: number) => {
-    const tws = currentState?.tws ?? 0;
+    const tws = convertSpeed(
+      currentState?.tws ?? 0,
+      DEFAULT_SPEED_UNIT,
+      speedUnit,
+    );
     const newTws = Math.max(0, tws + amount);
+    const normalisedTws = convertSpeed(newTws, speedUnit);
 
-    add({ tws: newTws });
+    add({ tws: normalisedTws });
   };
 
   const onTwdChange = (value: string) => {
@@ -56,10 +69,16 @@ export function TrueWindInputCard({ tws, twd }: TrueWindInputCardProps) {
             decrementLabel='-2'
             incrementLabel='+2'
             onChangeText={onTwsChange}
-            value={currentState?.tws != null ? `${currentState.tws}` : '0'}
+            value={
+              currentState?.tws != null
+                ? `${convertSpeed(currentState.tws, DEFAULT_SPEED_UNIT, speedUnit)}`
+                : '0'
+            }
             keyboardType='numeric'
             endAdornment={
-              <Text className='ml-1 text-muted-foreground'>kt</Text>
+              <Text className='ml-1 text-muted-foreground'>
+                {getSpeedUnitLabel(speedUnit)}
+              </Text>
             }
           />
         </View>

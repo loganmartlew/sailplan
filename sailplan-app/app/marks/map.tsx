@@ -1,12 +1,14 @@
 import { ActivityIndicator, View } from 'react-native';
 import { useMarks } from '~/features/mark';
 import { useGeoLocation } from '~/hooks/useGeoLocation';
+import { useSettings } from '~/features/settings';
 import MapView, { LatLng } from 'react-native-maps';
 import { MapMarker } from '~/features/map';
 
 export default function MarkMap() {
   const marksQuery = useMarks();
   const { location, loading } = useGeoLocation();
+  const { mapZoom } = useSettings();
 
   const initialCoords: LatLng = location?.coords ?? {
     latitude: 0,
@@ -29,8 +31,8 @@ export default function MarkMap() {
         initialRegion={{
           latitude: initialCoords.latitude,
           longitude: initialCoords.longitude,
-          latitudeDelta: 0.15,
-          longitudeDelta: 0.05,
+          latitudeDelta: mapZoom,
+          longitudeDelta: mapZoom / 3,
         }}
       >
         {marksQuery.data?.map(mark => (

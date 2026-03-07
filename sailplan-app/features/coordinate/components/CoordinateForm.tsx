@@ -11,6 +11,8 @@ import { Button, DialogFooter, Text } from '~/components/ui';
 import { NumberInput, ToggleGroup } from '~/components/form';
 import { View } from 'react-native';
 import { CompassDirection, CoordFormat } from '../util/types';
+import { useSettings } from '~/features/settings';
+import { CoordFormatInfoButton } from './CoordFormatInfoButton';
 
 const coordinateFormSchema = z
   .object({
@@ -51,17 +53,23 @@ export function CoordinateForm({
     ? decimalToDMS(parseFloat(decimalDegrees))
     : { degrees: 0, minutes: 0, seconds: 0 };
 
+  const {
+    coordFormat: defaultCoordFormat,
+    hemisphereLatitude,
+    hemisphereLongitude,
+  } = useSettings();
+
   const [Form, { handleSubmit, reset, watch }] = useForm<CoordinateFormValues>({
     resolver: zodResolver(coordinateFormSchema),
     defaultValues: {
       degrees,
       minutes,
       seconds,
-      coordFormat: CoordFormat.enum.DMS,
+      coordFormat: CoordFormat.enum[defaultCoordFormat],
       compassDirection:
         field === 'latitude'
-          ? CompassDirection.enum.S
-          : CompassDirection.enum.E,
+          ? CompassDirection.enum[hemisphereLatitude]
+          : CompassDirection.enum[hemisphereLongitude],
     },
   });
 
@@ -108,9 +116,15 @@ export function CoordinateForm({
       <ToggleGroup
         name='coordFormat'
         label='Coordinate Format'
+        renderLabel={({ defaultLabel }) => (
+          <View className='flex-row items-center gap-1'>
+            {defaultLabel}
+            <CoordFormatInfoButton />
+          </View>
+        )}
         options={[
-          { value: 'DMS', label: 'Degrees Minutes Seconds' },
-          { value: 'DMM', label: 'Degrees Decimal Minutes' },
+          { value: 'DMS', label: 'DMS' },
+          { value: 'DMM', label: 'DMM' },
         ]}
         growChildren
       />

@@ -15,8 +15,9 @@ import {
   TWS_VALUES,
 } from '~/features/sailTwaLimit';
 import { useForm } from '~/hooks/useForm';
-import { formatAngle } from '~/lib/format';
+import { formatAngle, formatSpeed } from '~/lib/format';
 import { Pencil } from '~/lib/icons';
+import { useSettings } from '~/features/settings';
 
 const twaEntrySchema = z
   .object({
@@ -65,13 +66,11 @@ function TwaStepperInput({
       <StepperNumberInput
         name={`entries.${index}.${field}`}
         label={label}
-        onDecrement={(v: number | null) =>
-          v == null || v <= 0 ? null : Math.max(0, v - 5)
-        }
-        onIncrement={(v: number | null) => Math.min(180, (v || 0) + 5)}
+        onDecrement={v => (v == null || v <= 0 ? null : Math.max(0, v - 5))}
+        onIncrement={v => Math.min(180, (v || 0) + 5)}
         decrementLabel='-'
         incrementLabel='+'
-        format={(v: number | null) => (v != null ? String(v) : '')}
+        format={v => (v != null ? String(v) : '')}
         parse={(v: string) => {
           const trimmed = v.trim();
           if (trimmed === '') return null;
@@ -109,6 +108,7 @@ export default function TwaLimitsPage() {
   const [editMode, setEditMode] = useState(false);
   const [seeded, setSeeded] = useState(false);
   const { data: twaLimits } = useSailTwaLimits(sailId);
+  const { speedUnit } = useSettings();
 
   const [Form, { handleSubmit, reset }] = useForm<TwaLimitsFormValues>({
     resolver: zodResolver(formSchema),
@@ -174,7 +174,7 @@ export default function TwaLimitsPage() {
             return (
               <View key={tws} className='py-3 border-b border-border gap-2'>
                 <Text className='text-md font-medium text-primary'>
-                  {tws} kt
+                  {formatSpeed(tws, speedUnit)}
                 </Text>
 
                 {editMode ? (

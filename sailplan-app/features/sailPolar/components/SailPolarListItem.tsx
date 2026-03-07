@@ -11,6 +11,7 @@ import {
 } from '~/components/ui';
 import { Trash, Wind } from '~/lib/icons';
 import { formatAngle, formatSpeed } from '~/lib/format';
+import { useSettings } from '~/features/settings';
 
 interface SailPolarListItemProps {
   sailPolar: SailPolar;
@@ -21,6 +22,8 @@ export function SailPolarListItem({
   sailPolar,
   onDelete,
 }: SailPolarListItemProps) {
+  const { speedUnit } = useSettings();
+
   return (
     <Card className='gap-1'>
       <CardHeader className='flex-row items-center justify-between pb-1'>
@@ -29,7 +32,8 @@ export function SailPolarListItem({
             <Wind className='text-accent-foreground' size={16} />
           </View>
           <CardTitle showBullet={false} className='text-foreground'>
-            {formatAngle(sailPolar.twa)} / {formatSpeed(sailPolar.tws)}
+            {formatAngle(sailPolar.twa)} /{' '}
+            {formatSpeed(sailPolar.tws, speedUnit)}
           </CardTitle>
         </View>
         <View className='flex-row gap-1'>
@@ -51,16 +55,16 @@ export function SailPolarListItem({
             {formatAngle(sailPolar.twa)}
           </Text>
         </View>
-        <View className='flex gap-1 w-20'>
+        <View className='flex gap-1 w-24'>
           <Label className='text-xs'>TWS</Label>
           <Text className='text-base font-semibold'>
-            {formatSpeed(sailPolar.tws)}
+            {formatSpeed(sailPolar.tws, speedUnit)}
           </Text>
         </View>
-        <View className='flex gap-1 w-20'>
+        <View className='flex gap-1 w-24'>
           <Label className='text-xs'>Speed</Label>
           <Text className='text-base font-semibold'>
-            {formatSpeed(sailPolar.speed)}
+            {formatSpeed(sailPolar.speed, speedUnit)}
           </Text>
         </View>
       </CardContent>

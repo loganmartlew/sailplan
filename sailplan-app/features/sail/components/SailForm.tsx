@@ -11,6 +11,8 @@ import {
 } from '~/components/form';
 import { Button, Text } from '~/components/ui';
 import { useForm } from '~/hooks/useForm';
+import { convertArea, DEFAULT_AREA_UNIT, getAreaUnitLabel } from '~/lib/format';
+import { useSettings } from '~/features/settings';
 
 const SailTypeEnum = z.enum(['asymmetrical', 'symmetrical'], {
   message: 'Sail type is required',
@@ -53,16 +55,30 @@ export function SailForm({
   onFormCancel,
   sailValues,
 }: SailFormProps) {
+  const { areaUnit } = useSettings();
+
   const [Form, { handleSubmit, reset }] = useForm<SailFormValues>({
     resolver: zodResolver(sailFormSchema),
     defaultValues: {
       ...defaultValues,
       ...sailValues,
+      ...{
+        sailArea: convertArea(
+          sailValues?.sailArea ?? defaultValues.sailArea!,
+          DEFAULT_AREA_UNIT,
+          areaUnit,
+        ),
+      },
     },
   });
 
   const onSubmit: SubmitHandler<SailFormValues> = data => {
-    onFormSubmit(data);
+    onFormSubmit({
+      ...data,
+      sailArea: data.sailArea
+        ? convertArea(data.sailArea, areaUnit, DEFAULT_AREA_UNIT)
+        : undefined,
+    });
     reset(defaultValues);
   };
 
@@ -78,8 +94,12 @@ export function SailForm({
       <NumberInput
         name='sailArea'
         label='Sail Area'
-        placeholder='Sail area in m²'
-        endAdornment={<Text className='ml-1 text-muted-foreground'>m²</Text>}
+        placeholder={`Sail area in ${getAreaUnitLabel(areaUnit)}`}
+        endAdornment={
+          <Text className='ml-1 text-muted-foreground'>
+            {getAreaUnitLabel(areaUnit)}
+          </Text>
+        }
       />
       <ToggleGroup
         name='symmetrical'

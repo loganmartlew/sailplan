@@ -8,6 +8,7 @@ import { getLatLngCenter } from '~/features/coordinate';
 import { MapMarker } from '~/features/map';
 import { useMarks } from '~/features/mark';
 import { useGeoLocation } from '~/hooks/useGeoLocation';
+import { useSettings } from '~/features/settings';
 
 interface MarkMapSearchParams extends Record<string, string | string[]> {
   fromMarkId: string;
@@ -18,6 +19,7 @@ export default function LegMap() {
   const marksQuery = useMarks();
   const theme = useTheme();
   const { location, loading } = useGeoLocation();
+  const { mapZoom } = useSettings();
   const { fromMarkId, toMarkId } = useLocalSearchParams<MarkMapSearchParams>();
 
   const fromMark = marksQuery?.data?.find(
@@ -80,8 +82,8 @@ export default function LegMap() {
         initialRegion={{
           latitude: initialCoords.latitude,
           longitude: initialCoords.longitude,
-          latitudeDelta: 0.15,
-          longitudeDelta: 0.05,
+          latitudeDelta: mapZoom,
+          longitudeDelta: mapZoom / 3,
         }}
       >
         {[fromMark, toMark].map(mark => (

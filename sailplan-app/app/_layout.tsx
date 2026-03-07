@@ -10,7 +10,7 @@ import { AppProviders } from '~/components/AppProviders';
 import { MigrationGate } from '~/components/MigrationGate';
 import { BoatProfileGate } from '~/features/boatProfile/components/BoatProfileGate';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
-import { ChartGantt, MapPin, Route, Sailboat } from '~/lib/icons';
+import { ChartGantt, MapPin, Route, Sailboat, Settings } from '~/lib/icons';
 
 export {
   // Catch any errors thrown by the Layout component.
@@ -74,6 +74,15 @@ export default function RootLayout() {
                   title: 'Sails',
                   tabBarIcon: ({ color, size }) => (
                     <Sailboat color={color} size={size - 3} />
+                  ),
+                }}
+              />
+              <Tabs.Screen
+                name='settings'
+                options={{
+                  title: 'Settings',
+                  tabBarIcon: ({ color, size }) => (
+                    <Settings color={color} size={size - 3} />
                   ),
                 }}
               />

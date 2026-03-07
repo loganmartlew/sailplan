@@ -15,6 +15,7 @@ import { MapMarker } from './MapMarker';
 import { useMemo, useState } from 'react';
 import { useGeoLocation } from '~/hooks/useGeoLocation';
 import { deDupe } from '~/lib/array';
+import { useSettings } from '~/features/settings';
 
 interface SelectLocationDialogProps {
   open: boolean;
@@ -30,6 +31,7 @@ export function SelectLocationDialog({
   marks = [],
 }: SelectLocationDialogProps) {
   const { location, loading } = useGeoLocation();
+  const { mapZoom } = useSettings();
 
   const [pinLocation, setPinLocation] = useState<LatLng | null>(null);
 
@@ -39,7 +41,7 @@ export function SelectLocationDialog({
         marks.map(mark => ({
           latitude: mark.latitude,
           longitude: mark.longitude,
-        }))
+        })),
       );
       return center;
     }
@@ -54,7 +56,7 @@ export function SelectLocationDialog({
 
   const dedupedMarks = useMemo(
     () => deDupe(marks, mark => mark.id.toString()),
-    [marks]
+    [marks],
   );
 
   if (loading) {
@@ -78,8 +80,8 @@ export function SelectLocationDialog({
             initialRegion={{
               latitude: initialCoords.latitude,
               longitude: initialCoords.longitude,
-              latitudeDelta: 0.15,
-              longitudeDelta: 0.05,
+              latitudeDelta: mapZoom,
+              longitudeDelta: mapZoom / 3,
             }}
             onPress={e => setPinLocation(e.nativeEvent.coordinate)}
           >

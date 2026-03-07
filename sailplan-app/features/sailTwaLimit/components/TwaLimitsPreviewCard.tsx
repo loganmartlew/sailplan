@@ -9,9 +9,10 @@ import {
   Text,
 } from '~/components/ui';
 import { ChevronRight } from '~/lib/icons';
-import { formatAngle } from '~/lib/format';
+import { formatAngle, formatSpeed } from '~/lib/format';
 import { useSailTwaLimits } from '../api/getSailTwaLimits';
 import { TWS_VALUES } from '../model/sailTwaLimit';
+import { useSettings } from '~/features/settings';
 
 interface TwaLimitsPreviewCardProps {
   sailId: number;
@@ -23,6 +24,7 @@ export function TwaLimitsPreviewCard({
   onPress,
 }: TwaLimitsPreviewCardProps) {
   const { data: twaLimits } = useSailTwaLimits(sailId);
+  const { speedUnit } = useSettings();
 
   const configuredCount =
     twaLimits?.filter(l => l.minTwa != null || l.maxTwa != null).length ?? 0;
@@ -54,7 +56,7 @@ export function TwaLimitsPreviewCard({
                 return (
                   <View key={tws} className='flex-row items-center gap-2'>
                     <Text className='text-sm w-12 text-muted-foreground'>
-                      {tws} kt
+                      {formatSpeed(tws, speedUnit)}
                     </Text>
                     <Text className='text-sm'>
                       {limit.minTwa != null ? formatAngle(limit.minTwa) : '—'}

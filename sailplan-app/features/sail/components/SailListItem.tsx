@@ -10,6 +10,8 @@ import {
   Text,
 } from '~/components/ui';
 import { Pencil, Trash } from '~/lib/icons';
+import { formatArea } from '~/lib/format';
+import { useSettings } from '~/features/settings';
 
 interface SailListItemProps {
   sail: Sail;
@@ -24,6 +26,8 @@ export function SailListItem({
   onDelete,
   onPress,
 }: SailListItemProps) {
+  const { areaUnit } = useSettings();
+
   const card = (
     <Card className='gap-1'>
       <CardHeader className='flex-row items-center justify-between pb-1'>
@@ -62,7 +66,9 @@ export function SailListItem({
         </Badge>
         {sail.sailArea != null && sail.sailArea > 0 && (
           <Badge variant='transparent' className='flex-row items-center gap-1'>
-            <Text className='text-xs'>{sail.sailArea} m²</Text>
+            <Text className='text-xs'>
+              {formatArea(sail.sailArea, areaUnit)}
+            </Text>
           </Badge>
         )}
       </CardContent>

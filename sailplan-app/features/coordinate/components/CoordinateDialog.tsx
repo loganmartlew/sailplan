@@ -4,7 +4,9 @@ import {
   DialogHeader,
   DialogTitle,
 } from '~/components/ui';
+import { View } from 'react-native';
 import { CoordinateForm } from './CoordinateForm';
+import { CoordFormatInfoButton } from './CoordFormatInfoButton';
 
 interface CoordinateDialogProps {
   field: 'latitude' | 'longitude';

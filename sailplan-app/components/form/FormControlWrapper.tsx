@@ -4,8 +4,14 @@ import { PropsWithChildren } from 'react';
 import { FieldError } from 'react-hook-form';
 import { cn } from '~/lib/utils';
 
-interface FormControlWrapperProps extends PropsWithChildren {
+export interface FormControlWrapperProps extends PropsWithChildren {
   label?: string;
+  renderLabel?: (params: {
+    label: string;
+    name: string;
+    defaultLabel: React.ReactNode;
+    required?: boolean;
+  }) => React.ReactNode;
   name: string;
   error?: FieldError;
   required?: boolean;
@@ -15,18 +21,29 @@ interface FormControlWrapperProps extends PropsWithChildren {
 export function FormControlWrapper({
   children,
   label,
+  renderLabel,
   name,
   error,
   required,
   className,
 }: FormControlWrapperProps) {
+  const defaultLabel = (
+    <Label nativeID={name} className='pl-1.5'>
+      {label} {required && <Text className='text-primary'>*</Text>}
+    </Label>
+  );
+
   return (
     <View className={cn('flex flex-col gap-1', className)}>
-      {label && (
-        <Label nativeID={name} className='pl-1.5'>
-          {label} {required && <Text className='text-primary'>*</Text>}
-        </Label>
-      )}
+      {label &&
+        (renderLabel
+          ? renderLabel({
+              label,
+              name,
+              defaultLabel,
+              required,
+            })
+          : defaultLabel)}
       {children}
       {error && (
         <Label

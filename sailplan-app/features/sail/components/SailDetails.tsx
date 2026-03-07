@@ -1,12 +1,16 @@
 import { View } from 'react-native';
 import { Badge, Label, Text } from '~/components/ui';
 import { Sail } from '../model/sail';
+import { formatArea } from '~/lib/format';
+import { useSettings } from '~/features/settings';
 
 interface SailDetailsProps {
   sail: Sail;
 }
 
 export function SailDetails({ sail }: SailDetailsProps) {
+  const { areaUnit } = useSettings();
+
   return (
     <View className='flex-row items-center gap-3 flex-wrap'>
       <View className='flex-row items-center gap-3'>
@@ -40,7 +44,7 @@ export function SailDetails({ sail }: SailDetailsProps) {
           variant='transparent'
           className='flex-row items-center gap-1 py-1.5 px-3'
         >
-          <Text className='text-sm'>{sail.sailArea} m²</Text>
+          <Text className='text-sm'>{formatArea(sail.sailArea, areaUnit)}</Text>
         </Badge>
       )}
     </View>

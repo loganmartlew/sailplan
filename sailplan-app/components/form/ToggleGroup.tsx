@@ -1,5 +1,8 @@
 import { Controller, FieldValues, Path, useFormContext } from 'react-hook-form';
-import { FormControlWrapper } from './FormControlWrapper';
+import {
+  FormControlWrapper,
+  FormControlWrapperProps,
+} from './FormControlWrapper';
 import {
   ToggleGroupItem,
   ToggleGroup as BaseToggleGroup,
@@ -7,20 +10,22 @@ import {
 } from '../ui/toggle-group';
 import { Text } from '../ui';
 import { cn } from '~/lib/utils';
+import { ComponentProps } from 'react';
 
 type ToggleGroupProps<TFieldValues extends FieldValues = FieldValues> = Omit<
   BaseToggleGroupProps,
   'type' | 'value' | 'onValueChange'
-> & {
-  label?: string;
-  name: Path<TFieldValues>;
-  options: { label: string; value: string }[];
-  growChildren?: boolean;
-  deselectable?: boolean;
-};
+> &
+  Pick<FormControlWrapperProps, 'label' | 'renderLabel'> & {
+    name: Path<TFieldValues>;
+    options: { label: string; value: string }[];
+    growChildren?: boolean;
+    deselectable?: boolean;
+  };
 
 export function ToggleGroup<TFieldValues extends FieldValues = FieldValues>({
   label,
+  renderLabel,
   name,
   options,
   growChildren,
@@ -33,7 +38,12 @@ export function ToggleGroup<TFieldValues extends FieldValues = FieldValues>({
       control={control}
       name={name}
       render={({ field: { onChange, value }, fieldState: { error } }) => (
-        <FormControlWrapper label={label} name={name} error={error}>
+        <FormControlWrapper
+          label={label}
+          renderLabel={renderLabel}
+          name={name}
+          error={error}
+        >
           <BaseToggleGroup
             {...props}
             type='single'
