@@ -1,6 +1,6 @@
-import { useEffect, useState } from 'react';
 import { View } from 'react-native';
 import { Button, H2, Input, Label, Text } from '~/components/ui';
+import { useBufferedInput } from '~/hooks/useBufferedInput';
 import { ToggleGroup, ToggleGroupItem } from '~/components/ui';
 import { useSettings } from '~/features/settings';
 import { DEFAULT_SETTINGS } from '~/features/settings';
@@ -24,11 +24,12 @@ export default function DefaultsSettings() {
     setMapZoom,
   } = useSettings();
 
-  const [mapZoomText, setMapZoomText] = useState(String(mapZoom));
-
-  useEffect(() => {
-    setMapZoomText(String(mapZoom));
-  }, [mapZoom]);
+  const mapZoomInput = useBufferedInput(String(mapZoom), text => {
+    const parsed = parseFloat(text);
+    if (!isNaN(parsed) && parsed > 0) {
+      setMapZoom(parsed);
+    }
+  });
 
   return (
     <View className='flex-1 w-full px-3 py-5 flex flex-col gap-8'>
@@ -107,14 +108,9 @@ export default function DefaultsSettings() {
           <Input
             className='flex-1'
             keyboardType='numeric'
-            value={mapZoomText}
-            onChangeText={text => {
-              setMapZoomText(text);
-              const parsed = parseFloat(text);
-              if (!isNaN(parsed) && parsed > 0) {
-                setMapZoom(parsed);
-              }
-            }}
+            value={mapZoomInput.value}
+            onChangeText={mapZoomInput.onChangeText}
+            onBlur={mapZoomInput.commit}
             placeholder='0.15'
           />
           <Button

@@ -3,6 +3,7 @@ import { View } from 'react-native';
 import { Button } from './button';
 import { Input, InputProps } from './input';
 import { Text } from './text';
+import { useBufferedInput } from '~/hooks/useBufferedInput';
 
 export interface StepperInputProps extends Omit<InputProps, 'value'> {
   value: string;
@@ -18,8 +19,12 @@ export function StepperInput({
   onIncrement,
   decrementLabel,
   incrementLabel,
+  onChangeText,
+  onBlur,
   ...inputProps
 }: StepperInputProps) {
+  const buffered = useBufferedInput(value, text => onChangeText?.(text));
+
   return (
     <View className='flex flex-row gap-2'>
       <Button onPress={onDecrement} variant='transparent'>
@@ -30,7 +35,15 @@ export function StepperInput({
         )}
       </Button>
       <View className='grow'>
-        <Input value={value} {...inputProps} />
+        <Input
+          value={buffered.value}
+          onChangeText={buffered.onChangeText}
+          onBlur={e => {
+            buffered.commit();
+            onBlur?.(e);
+          }}
+          {...inputProps}
+        />
       </View>
       <Button onPress={onIncrement} variant='transparent'>
         {typeof incrementLabel === 'string' ? (
