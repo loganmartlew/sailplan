@@ -31,6 +31,12 @@ export default function Layout() {
           title: 'Settings',
         }}
       />
+      <Stack.Screen
+        name='about'
+        options={{
+          title: 'Settings',
+        }}
+      />
     </Stack>
   );
 }

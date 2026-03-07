@@ -17,6 +17,11 @@ export default function SettingsIndex() {
         description='Coordinate format, hemisphere, and map zoom'
         onPress={() => router.push('/settings/defaults')}
       />
+      <SettingsNavItem
+        title='About'
+        description='Version, links, and credits'
+        onPress={() => router.push('/settings/about')}
+      />
     </View>
   );
 }
