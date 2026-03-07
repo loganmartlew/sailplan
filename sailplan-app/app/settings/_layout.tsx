@@ -32,6 +32,12 @@ export default function Layout() {
         }}
       />
       <Stack.Screen
+        name='appearance'
+        options={{
+          title: 'Settings',
+        }}
+      />
+      <Stack.Screen
         name='about'
         options={{
           title: 'Settings',

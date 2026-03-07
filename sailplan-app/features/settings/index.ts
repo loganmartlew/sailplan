@@ -7,5 +7,6 @@ export type {
   CoordFormatDefault,
   HemisphereLatitude,
   HemisphereLongitude,
+  ThemePreference,
 } from './model/settings';
 export { DEFAULT_SETTINGS } from './model/settings';

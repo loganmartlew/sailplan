@@ -18,6 +18,11 @@ export default function SettingsIndex() {
         onPress={() => router.push('/settings/defaults')}
       />
       <SettingsNavItem
+        title='Appearance'
+        description='Theme and display'
+        onPress={() => router.push('/settings/appearance')}
+      />
+      <SettingsNavItem
         title='About'
         description='Version, links, and credits'
         onPress={() => router.push('/settings/about')}

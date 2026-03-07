@@ -18,6 +18,9 @@ export type HemisphereLatitude = z.infer<typeof HemisphereLatitude>;
 export const HemisphereLongitude = z.enum(['E', 'W']);
 export type HemisphereLongitude = z.infer<typeof HemisphereLongitude>;
 
+export const ThemePreference = z.enum(['light', 'dark']);
+export type ThemePreference = z.infer<typeof ThemePreference>;
+
 export interface Settings {
   speedUnit: SpeedUnit;
   areaUnit: AreaUnit;
