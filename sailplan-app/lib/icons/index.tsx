@@ -22,6 +22,7 @@ export * from './Pencil';
 export * from './Plus';
 export * from './RefreshCw';
 export * from './Route';
+export * from './Ruler';
 export * from './Sailboat';
 export * from './Settings';
 export * from './Share2';

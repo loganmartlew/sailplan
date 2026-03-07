@@ -5,7 +5,7 @@ import { ToggleGroup, ToggleGroupItem } from '~/components/ui';
 import { useSettings } from '~/features/settings';
 import { DEFAULT_SETTINGS } from '~/features/settings';
 import { CoordFormatInfoButton } from '~/features/coordinate';
-import { RefreshCw } from '~/lib/icons';
+import { RefreshCw, TextCursorInput } from '~/lib/icons';
 import type {
   CoordFormatDefault,
   HemisphereLatitude,
@@ -33,7 +33,10 @@ export default function DefaultsSettings() {
 
   return (
     <View className='flex-1 w-full px-3 py-5 flex flex-col gap-8'>
-      <H2 className='pb-0'>Defaults</H2>
+      <View className='flex-row items-center gap-2'>
+        <TextCursorInput className='text-foreground' size={20} />
+        <H2 className='pb-0'>Defaults</H2>
+      </View>
 
       <View className='flex gap-2'>
         <View className='flex-row items-center gap-1'>
