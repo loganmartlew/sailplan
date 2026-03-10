@@ -1,4 +1,5 @@
 export * from './model/sailPolar';
+export * from './model/interpolation';
 export * from './api/createSailPolar';
 export * from './api/deleteSailPolar';
 export * from './api/getSailPolars';
@@ -7,3 +8,4 @@ export * from './components/NewSailPolarDialog';
 export * from './components/SailPolars';
 export * from './components/SailPolarImportDialog';
 export * from './util/sharing';
+export { estimateSailSpeed } from './util/interpolation';
