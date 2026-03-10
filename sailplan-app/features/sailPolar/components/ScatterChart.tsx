@@ -1,10 +1,11 @@
+import { useMemo } from 'react';
 import { View } from 'react-native';
-import { CartesianChart, Scatter } from 'victory-native';
-import { useFont } from '@shopify/react-native-skia';
+import { CartesianChart } from 'victory-native';
+import { Circle, useFont } from '@shopify/react-native-skia';
 import { Text } from '~/components/ui';
 import { useColorScheme } from '~/lib/useColorScheme';
 import type { SailPolar } from '../model/sailPolar';
-import { getUniqueTwsValues, getTwsColorScale } from '../util/chartData';
+import { getSpeedColor } from '../util/chartData';
 
 // @ts-expect-error - ttf import
 import font from '~/assets/fonts/SpaceMono-Regular.ttf';
@@ -13,36 +14,26 @@ interface ScatterChartProps {
   polars: SailPolar[];
 }
 
-/**
- * Prepare data for CartesianChart.
- * Each data point has twa (x), and one yKey per TWS value.
- * Points not belonging to a TWS group get null for that yKey.
- */
-function prepareScatterData(polars: SailPolar[]) {
-  const twsValues = getUniqueTwsValues(polars);
-  const yKeys = twsValues.map(tws => `tws_${tws}`);
-
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const data: any[] = polars.map(p => {
-    const point: Record<string, number | null> = { twa: p.twa };
-    for (const tws of twsValues) {
-      point[`tws_${tws}`] = tws === p.tws ? p.speed : null;
-    }
-    return point;
-  });
-
-  return { data, yKeys, twsValues };
+function prepareData(polars: SailPolar[]) {
+  const data = polars.map(p => ({ twa: p.twa, tws: p.tws }));
+  const speedMap = new Map<string, number>();
+  let maxSpeed = 0;
+  for (const p of polars) {
+    speedMap.set(`${p.twa}_${p.tws}`, p.speed);
+    if (p.speed > maxSpeed) maxSpeed = p.speed;
+  }
+  return { data, speedMap, maxSpeed };
 }
 
 export function ScatterChart({ polars }: ScatterChartProps) {
   const skFont = useFont(font, 11);
   const { isDarkColorScheme } = useColorScheme();
+  const { data, speedMap, maxSpeed } = useMemo(
+    () => prepareData(polars),
+    [polars],
+  );
 
-  const twsValues = getUniqueTwsValues(polars);
-  const colorScale = getTwsColorScale(twsValues);
-  const { data, yKeys } = prepareScatterData(polars);
-
-  if (data.length === 0 || yKeys.length === 0) return null;
+  if (data.length === 0) return null;
 
   const labelColor = isDarkColorScheme ? '#aaa' : '#666';
   const lineColor = isDarkColorScheme
@@ -55,7 +46,7 @@ export function ScatterChart({ polars }: ScatterChartProps) {
         <CartesianChart
           data={data}
           xKey='twa'
-          yKeys={yKeys as any}
+          yKeys={['tws']}
           domain={{ x: [0, 180], y: [0, 30] }}
           domainPadding={{ top: 10, right: 20, bottom: 5, left: 0 }}
           xAxis={{
@@ -77,49 +68,57 @@ export function ScatterChart({ polars }: ScatterChartProps) {
           frame={{ lineColor }}
         >
           {({ points }: { points: Record<string, any> }) =>
-            yKeys.map((key, i) => {
-              const tws = twsValues[i];
-              return (
-                <Scatter
-                  key={key}
-                  points={points[key]}
-                  radius={4}
-                  shape='circle'
-                  style='fill'
-                  color={colorScale.get(tws) ?? 'hsl(210, 80%, 50%)'}
-                />
-              );
-            })
+            points.tws.map(
+              (
+                pt: { x: number; y: number; xValue: number; yValue: number },
+                i: number,
+              ) => {
+                if (typeof pt.y !== 'number') return null;
+                const speed = speedMap.get(`${pt.xValue}_${pt.yValue}`) ?? 0;
+                return (
+                  <Circle
+                    key={i}
+                    cx={pt.x}
+                    cy={pt.y}
+                    r={5}
+                    color={getSpeedColor(speed, maxSpeed)}
+                  />
+                );
+              },
+            )
           }
         </CartesianChart>
       </View>
-      {/* <ChartLegend twsValues={twsValues} colorScale={colorScale} /> */}
+      <SpeedLegend maxSpeed={maxSpeed} />
     </View>
   );
 }
 
-// function ChartLegend({
-//   twsValues,
-//   colorScale,
-// }: {
-//   twsValues: number[];
-//   colorScale: Map<number, string>;
-// }) {
-//   return (
-//     <View className='flex-row flex-wrap gap-3 px-2'>
-//       {twsValues.map(tws => (
-//         <View key={tws} className='flex-row items-center gap-1.5'>
-//           <View
-//             style={{
-//               width: 8,
-//               height: 8,
-//               borderRadius: 4,
-//               backgroundColor: colorScale.get(tws),
-//             }}
-//           />
-//           <Text className='text-xs text-muted-foreground'>{tws} kn</Text>
-//         </View>
-//       ))}
-//     </View>
-//   );
-// }
+function SpeedLegend({ maxSpeed }: { maxSpeed: number }) {
+  const steps = 5;
+  const labels: { speed: number; color: string }[] = [];
+  for (let i = 0; i <= steps; i++) {
+    const speed = Math.round((maxSpeed / steps) * i * 10) / 10;
+    labels.push({ speed, color: getSpeedColor(speed, maxSpeed) });
+  }
+
+  return (
+    <View className='flex-row items-center justify-center gap-1 px-2'>
+      <Text className='text-xs text-muted-foreground mr-1'>Speed:</Text>
+      {labels.map(({ speed, color }) => (
+        <View key={speed} className='flex-row items-center gap-0.5'>
+          <View
+            style={{
+              width: 8,
+              height: 8,
+              borderRadius: 4,
+              backgroundColor: color,
+            }}
+          />
+          <Text className='text-xs text-muted-foreground'>{speed}</Text>
+        </View>
+      ))}
+      <Text className='text-xs text-muted-foreground ml-0.5'>kn</Text>
+    </View>
+  );
+}
