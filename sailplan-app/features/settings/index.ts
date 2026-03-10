@@ -8,5 +8,6 @@ export type {
   HemisphereLatitude,
   HemisphereLongitude,
   ThemePreference,
+  PolarChartType,
 } from './model/settings';
 export { DEFAULT_SETTINGS } from './model/settings';

@@ -21,6 +21,9 @@ export type HemisphereLongitude = z.infer<typeof HemisphereLongitude>;
 export const ThemePreference = z.enum(['light', 'dark']);
 export type ThemePreference = z.infer<typeof ThemePreference>;
 
+export const PolarChartType = z.enum(['polar', 'scatter']);
+export type PolarChartType = z.infer<typeof PolarChartType>;
+
 export interface Settings {
   speedUnit: SpeedUnit;
   areaUnit: AreaUnit;
@@ -29,6 +32,7 @@ export interface Settings {
   hemisphereLatitude: HemisphereLatitude;
   hemisphereLongitude: HemisphereLongitude;
   mapZoom: number;
+  polarChartType: PolarChartType;
 }
 
 export const DEFAULT_SETTINGS: Settings = {
@@ -39,4 +43,5 @@ export const DEFAULT_SETTINGS: Settings = {
   hemisphereLatitude: 'S',
   hemisphereLongitude: 'E',
   mapZoom: 0.15,
+  polarChartType: 'polar',
 };

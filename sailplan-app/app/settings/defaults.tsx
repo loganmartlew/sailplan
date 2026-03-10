@@ -10,6 +10,7 @@ import type {
   CoordFormatDefault,
   HemisphereLatitude,
   HemisphereLongitude,
+  PolarChartType,
 } from '~/features/settings';
 
 export default function DefaultsSettings() {
@@ -22,6 +23,8 @@ export default function DefaultsSettings() {
     setHemisphereLongitude,
     mapZoom,
     setMapZoom,
+    polarChartType,
+    setPolarChartType,
   } = useSettings();
 
   const mapZoomInput = useBufferedInput(String(mapZoom), text => {
@@ -125,6 +128,28 @@ export default function DefaultsSettings() {
             <RefreshCw className='text-muted-foreground' size={18} />
           </Button>
         </View>
+      </View>
+
+      <View className='flex gap-2'>
+        <Label>Default Polar Chart</Label>
+        <Text className='text-sm text-muted-foreground'>
+          Chart type shown when viewing sail polar data
+        </Text>
+        <ToggleGroup
+          type='single'
+          value={polarChartType}
+          onValueChange={value => {
+            if (value) setPolarChartType(value as PolarChartType);
+          }}
+          className='flex-row'
+        >
+          <ToggleGroupItem value='polar' className='flex-1'>
+            <Text>Polar</Text>
+          </ToggleGroupItem>
+          <ToggleGroupItem value='scatter' className='flex-1'>
+            <Text>Scatter</Text>
+          </ToggleGroupItem>
+        </ToggleGroup>
       </View>
     </View>
   );

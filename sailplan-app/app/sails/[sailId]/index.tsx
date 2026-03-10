@@ -9,9 +9,13 @@ import {
   updateSail,
   useSail,
 } from '~/features/sail';
-import { SailPolarImportDialog, SailPolars } from '~/features/sailPolar';
+import {
+  SailPolarImportDialog,
+  SailPolars,
+  useSailPolars,
+} from '~/features/sailPolar';
 import { TwaLimitsPreviewCard } from '~/features/sailTwaLimit';
-import { Pencil, Upload } from '~/lib/icons';
+import { ChartScatter, Pencil, Upload } from '~/lib/icons';
 
 export default function SailDetailsPage() {
   const { sailId, edit } = useLocalSearchParams<{
@@ -19,6 +23,7 @@ export default function SailDetailsPage() {
     edit?: string;
   }>();
   const { data: sail } = useSail(parseInt(sailId));
+  const { data: sailPolars } = useSailPolars(parseInt(sailId));
 
   const [editMode, setEditMode] = useState(!!edit);
   const [importDialogOpen, setImportDialogOpen] = useState(false);
@@ -90,6 +95,15 @@ export default function SailDetailsPage() {
         <H2 className='pb-0'>{sail.name}</H2>
         {!editMode && (
           <View className='flex-row gap-1'>
+            {sailPolars && sailPolars.length > 0 && (
+              <Button
+                variant='ghost'
+                size='icon'
+                onPress={() => router.push(`/sails/${sail.id}/polar-chart`)}
+              >
+                <ChartScatter className='text-muted-foreground' size={16} />
+              </Button>
+            )}
             <Button
               variant='ghost'
               size='icon'

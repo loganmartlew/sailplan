@@ -9,6 +9,7 @@ import {
   CoordFormatDefault,
   HemisphereLatitude,
   HemisphereLongitude,
+  PolarChartType,
 } from '../model/settings';
 
 interface SettingsContextType extends Settings {
@@ -19,6 +20,7 @@ interface SettingsContextType extends Settings {
   setHemisphereLatitude: (hemisphere: HemisphereLatitude) => void;
   setHemisphereLongitude: (hemisphere: HemisphereLongitude) => void;
   setMapZoom: (zoom: number) => void;
+  setPolarChartType: (type: PolarChartType) => void;
 }
 
 const SettingsContext = createContext<SettingsContextType | null>(null);
@@ -37,6 +39,9 @@ export function SettingsProvider({ children }: PropsWithChildren) {
     'settings.hemisphereLongitude',
   );
   const [mapZoom, setMapZoom] = useMMKVNumber('settings.mapZoom');
+  const [polarChartType, setPolarChartType] = useMMKVString(
+    'settings.polarChartType',
+  );
 
   const value = useMemo<SettingsContextType>(
     () => ({
@@ -53,6 +58,8 @@ export function SettingsProvider({ children }: PropsWithChildren) {
         (hemisphereLongitude as HemisphereLongitude) ??
         DEFAULT_SETTINGS.hemisphereLongitude,
       mapZoom: mapZoom ?? DEFAULT_SETTINGS.mapZoom,
+      polarChartType:
+        (polarChartType as PolarChartType) ?? DEFAULT_SETTINGS.polarChartType,
       setSpeedUnit,
       setAreaUnit,
       setDistanceUnit,
@@ -60,6 +67,7 @@ export function SettingsProvider({ children }: PropsWithChildren) {
       setHemisphereLatitude,
       setHemisphereLongitude,
       setMapZoom: (zoom: number) => setMapZoom(zoom),
+      setPolarChartType,
     }),
     [
       speedUnit,
@@ -69,6 +77,7 @@ export function SettingsProvider({ children }: PropsWithChildren) {
       hemisphereLatitude,
       hemisphereLongitude,
       mapZoom,
+      polarChartType,
     ],
   );
 

@@ -7,5 +7,7 @@ export * from './components/SailPolarListItem';
 export * from './components/NewSailPolarDialog';
 export * from './components/SailPolars';
 export * from './components/SailPolarImportDialog';
+export * from './components/PolarPlotChart';
+export * from './components/ScatterChart';
 export * from './util/sharing';
 export { estimateSailSpeed } from './util/interpolation';

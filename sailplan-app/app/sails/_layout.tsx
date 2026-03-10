@@ -37,6 +37,12 @@ export default function Layout() {
           title: 'Sail',
         }}
       />
+      <Stack.Screen
+        name='[sailId]/polar-chart'
+        options={{
+          title: 'Polar Chart',
+        }}
+      />
     </Stack>
   );
 }
