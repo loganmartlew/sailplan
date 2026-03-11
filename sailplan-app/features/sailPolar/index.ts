@@ -11,3 +11,7 @@ export * from './components/PolarPlotChart';
 export * from './components/ScatterChart';
 export * from './util/sharing';
 export { estimateSailSpeed } from './util/interpolation';
+export {
+  INTERPOLATION_TWS_VALUES,
+  getTwsInterpolationColorScale,
+} from './util/chartData';

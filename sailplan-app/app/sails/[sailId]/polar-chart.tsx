@@ -2,6 +2,7 @@ import { useLocalSearchParams } from 'expo-router';
 import { useState } from 'react';
 import { ScrollView, View } from 'react-native';
 import { Text } from '~/components/ui';
+import { Toggle } from '~/components/ui';
 import { ToggleGroup, ToggleGroupItem } from '~/components/ui';
 import {
   PolarPlotChart,
@@ -16,6 +17,8 @@ export default function PolarChartPage() {
 
   const { polarChartType } = useSettings();
   const [chartType, setChartType] = useState<PolarChartType>(polarChartType);
+  const [showScatter, setShowScatter] = useState(true);
+  const [showInterpolation, setShowInterpolation] = useState(false);
   const { data: polars } = useSailPolars(+sailId);
 
   if (!polars || polars.length === 0) {
@@ -50,7 +53,33 @@ export default function PolarChartPage() {
           </ToggleGroupItem>
         </ToggleGroup>
 
-        {chartType === 'polar' && <PolarPlotChart polars={polars} />}
+        {chartType === 'polar' && (
+          <View className='flex gap-4'>
+            <PolarPlotChart
+              polars={polars}
+              showScatter={showScatter}
+              showInterpolation={showInterpolation}
+            />
+            <View className='flex-row gap-3'>
+              <Toggle
+                pressed={showScatter}
+                onPressedChange={setShowScatter}
+                variant='outline'
+                className='flex-1'
+              >
+                <Text>Data</Text>
+              </Toggle>
+              <Toggle
+                pressed={showInterpolation}
+                onPressedChange={setShowInterpolation}
+                variant='outline'
+                className='flex-1'
+              >
+                <Text>TWS Curves</Text>
+              </Toggle>
+            </View>
+          </View>
+        )}
         {chartType === 'scatter' && <ScatterChart polars={polars} />}
       </ScrollView>
     </View>
