@@ -2,17 +2,7 @@ import type { SailPolar } from '../model/sailPolar';
 import type { PolarPoint } from '../model/interpolation';
 import { estimateSailSpeed } from './interpolation';
 
-export interface PolarGroupPoint {
-  twa: number;
-  speed: number;
-}
-
-export interface CartesianPolarPoint {
-  x: number;
-  y: number;
-  twa: number;
-  speed: number;
-}
+export type PolarGroupPoint = Pick<PolarPoint, 'twa' | 'speed'>;
 
 /**
  * Group polars by TWS value, sorted by TWA within each group.
@@ -57,29 +47,6 @@ export function toCartesian(
 }
 
 /**
- * Get polar plot points converted to Cartesian coords, grouped by TWS.
- */
-export function getPolarPlotPoints(
-  polars: SailPolar[],
-): Map<number, CartesianPolarPoint[]> {
-  const groups = groupPolarsByTws(polars);
-  const result = new Map<number, CartesianPolarPoint[]>();
-
-  for (const [tws, points] of groups) {
-    result.set(
-      tws,
-      points.map(p => ({
-        ...toCartesian(p.twa, p.speed),
-        twa: p.twa,
-        speed: p.speed,
-      })),
-    );
-  }
-
-  return result;
-}
-
-/**
  * Get sorted unique TWS values from polars.
  */
 export function getUniqueTwsValues(polars: SailPolar[]): number[] {
@@ -90,7 +57,7 @@ export function getUniqueTwsValues(polars: SailPolar[]): number[] {
  * Map a boat speed value to a color on a blue→red sequential scale.
  * Capped at 20 kn — speeds above this all map to red.
  */
-const MAX_SPEED_COLOR = 20;
+export const MAX_SPEED_COLOR = 20;
 
 export function getSpeedColor(speed: number): string {
   const t = Math.min(Math.max(speed / MAX_SPEED_COLOR, 0), 1);

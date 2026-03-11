@@ -1,8 +1,6 @@
-export interface PolarPoint {
-  tws: number;
-  twa: number;
-  speed: number;
-}
+import { SailPolar } from './sailPolar';
+
+export type PolarPoint = Pick<SailPolar, 'tws' | 'twa' | 'speed'>;
 
 export interface InterpolationResult {
   predictedSpeed: number;

@@ -12,7 +12,7 @@ import Svg, {
 import { Text } from '~/components/ui';
 import { useColorScheme } from '~/lib/useColorScheme';
 import type { SailPolar } from '../model/sailPolar';
-import { getSpeedColor } from '../util/chartData';
+import { MAX_SPEED_COLOR, getSpeedColor } from '../util/chartData';
 
 // @ts-expect-error - ttf import
 import font from '~/assets/fonts/SpaceMono-Regular.ttf';
@@ -127,7 +127,10 @@ function SpeedLegend() {
 
   const stops = Array.from({ length: GRADIENT_STOPS + 1 }, (_, i) => {
     const t = i / GRADIENT_STOPS;
-    return { offset: `${Math.round(t * 100)}%`, color: getSpeedColor(t * 20) };
+    return {
+      offset: `${Math.round(t * 100)}%`,
+      color: getSpeedColor(t * MAX_SPEED_COLOR),
+    };
   });
 
   return (
@@ -149,8 +152,9 @@ function SpeedLegend() {
           fill='url(#speedGrad)'
         />
         {LEGEND_TICKS.map(speed => {
-          const x = LEGEND_PAD + (speed / 20) * BAR_WIDTH;
-          const label = speed === 20 ? '20+' : `${speed}`;
+          const x = LEGEND_PAD + (speed / MAX_SPEED_COLOR) * BAR_WIDTH;
+          const label =
+            speed === MAX_SPEED_COLOR ? `${MAX_SPEED_COLOR}+` : `${speed}`;
           return (
             <SvgText
               key={speed}

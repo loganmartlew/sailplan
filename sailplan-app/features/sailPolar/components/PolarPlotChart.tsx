@@ -19,6 +19,7 @@ import {
   getTwsInterpolationColorScale,
   INTERPOLATION_TWS_VALUES,
   type InterpolationCurvePoint,
+  PolarGroupPoint,
 } from '../util/chartData';
 
 // @ts-expect-error - ttf import
@@ -144,7 +145,7 @@ function SkiaCanvas({
   scale: number;
   gridColor: string;
   labelColor: string;
-  groups: Map<number, { twa: number; speed: number }[]>;
+  groups: Map<number, PolarGroupPoint[]>;
   colorScale: Map<number, string>;
   skFont: ReturnType<typeof useFont>;
   showScatter: boolean;
