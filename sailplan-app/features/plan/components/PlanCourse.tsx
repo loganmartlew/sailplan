@@ -111,7 +111,7 @@ export function PlanCourse() {
 
   return (
     <Form className='w-full flex flex-col gap-6'>
-      <TrueWindInputCard twd />
+      <TrueWindInputCard twd tws />
       {courseGroups?.length > 0 && (
         <FormControlWrapper label='Course Group' name='courseGroup'>
           <Select

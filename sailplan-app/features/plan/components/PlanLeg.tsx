@@ -61,7 +61,7 @@ export function PlanLeg() {
 
   return (
     <Form className='w-full flex flex-col gap-6'>
-      <TrueWindInputCard twd />
+      <TrueWindInputCard twd tws />
       <SelectInput<PlanLegForm>
         label='From'
         name='from'

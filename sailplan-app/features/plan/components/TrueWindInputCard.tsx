@@ -83,7 +83,6 @@ export function TrueWindInputCard({ tws, twd }: TrueWindInputCardProps) {
           />
         </View>
       )}
-      {tws && twd && <Separator />}
       {twd && (
         <View className='flex gap-2'>
           <Label>True Wind Direction</Label>
