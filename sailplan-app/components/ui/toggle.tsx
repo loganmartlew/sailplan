@@ -68,7 +68,6 @@ function Toggle({
         props.pressed
           ? 'text-accent-foreground'
           : 'web:group-hover:text-muted-foreground',
-        className,
       )}
     >
       <TogglePrimitive.Root
