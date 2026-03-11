@@ -73,8 +73,27 @@ export function PolarPlotChart({ polars }: PolarPlotChartProps) {
             skFont={skFont}
           />
         </View>
+        <View
+          style={{
+            width: 10,
+            alignItems: 'center',
+            justifyContent: 'center',
+          }}
+        >
+          <Text
+            className='text-xs text-muted-foreground'
+            style={{
+              position: 'absolute',
+              left: CENTER_X - 52,
+              top: PADDING + RADIUS / 2 - 15,
+              transform: [{ rotate: '-90deg' }],
+              width: 80,
+            }}
+          >
+            Boat Speed (kn)
+          </Text>
+        </View>
       </View>
-      {/* <ChartLegend twsValues={twsValues} colorScale={colorScale} /> */}
     </View>
   );
 }
@@ -231,29 +250,3 @@ function HalfCircle({
   );
   return <Path path={path} color={color} style='stroke' strokeWidth={1} />;
 }
-
-// function ChartLegend({
-//   twsValues,
-//   colorScale,
-// }: {
-//   twsValues: number[];
-//   colorScale: Map<number, string>;
-// }) {
-//   return (
-//     <View className='flex-row flex-wrap gap-3 px-2'>
-//       {twsValues.map(tws => (
-//         <View key={tws} className='flex-row items-center gap-1.5'>
-//           <View
-//             style={{
-//               width: 12,
-//               height: 3,
-//               backgroundColor: colorScale.get(tws),
-//               borderRadius: 1,
-//             }}
-//           />
-//           <Text className='text-xs text-muted-foreground'>{tws} kn</Text>
-//         </View>
-//       ))}
-//     </View>
-//   );
-// }
