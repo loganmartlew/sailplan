@@ -86,10 +86,12 @@ export function getUniqueTwsValues(polars: SailPolar[]): number[] {
 
 /**
  * Map a boat speed value to a color on a blue→red sequential scale.
+ * Capped at 20 kn — speeds above this all map to red.
  */
-export function getSpeedColor(speed: number, maxSpeed: number): string {
-  if (maxSpeed === 0) return 'hsl(210, 80%, 50%)';
-  const t = Math.min(Math.max(speed / maxSpeed, 0), 1);
+const MAX_SPEED_COLOR = 20;
+
+export function getSpeedColor(speed: number): string {
+  const t = Math.min(Math.max(speed / MAX_SPEED_COLOR, 0), 1);
   // Blue (220°) → Red (0°)
   const hue = Math.round(220 * (1 - t));
   return `hsl(${hue}, 80%, 50%)`;
