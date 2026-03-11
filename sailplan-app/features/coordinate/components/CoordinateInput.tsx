@@ -1,9 +1,9 @@
-import { Button } from '../ui';
-import { NumberInput, NumberInputProps } from './NumberInput';
+import { Button } from '~/components/ui';
+import { NumberInput, NumberInputProps } from '~/components/form/NumberInput';
 import { Pencil } from '~/lib/icons';
 import { useState, Suspense } from 'react';
 import { useFormContext } from 'react-hook-form';
-import { CoordinateDialog } from '~/features/coordinate';
+import { CoordinateDialog } from './CoordinateDialog';
 
 interface CoordinateInputProps extends NumberInputProps {
   field: 'latitude' | 'longitude';

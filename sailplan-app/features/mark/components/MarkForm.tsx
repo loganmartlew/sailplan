@@ -3,7 +3,8 @@ import { router } from 'expo-router';
 import { SubmitHandler } from 'react-hook-form';
 import { View } from 'react-native';
 import { z } from 'zod';
-import { TextInput, CoordinateInput } from '~/components/form';
+import { TextInput } from '~/components/form';
+import { CoordinateInput } from '~/features/coordinate';
 import { Button, Text } from '~/components/ui';
 import { useForm } from '~/hooks/useForm';
 

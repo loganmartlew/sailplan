@@ -5,3 +5,4 @@ export * from './util/center';
 export * from './components/CoordinateDialog';
 export * from './components/CoordinateForm';
 export * from './components/CoordFormatInfoButton';
+export * from './components/CoordinateInput';
