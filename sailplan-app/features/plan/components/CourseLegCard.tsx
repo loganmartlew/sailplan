@@ -84,19 +84,19 @@ export function CourseLegCard({ from, to, bearing, twa }: CourseLegCardProps) {
       </CardHeader>
       <CardContent className='flex flex-row gap-4'>
         <View className='flex flex-1 gap-2'>
-          <Label className='grow text-base'>Bearing</Label>
-          <Text className='grow text-5xl font-bold'>
-            {formatAngle(bearing)}
-          </Text>
-        </View>
-        <View className='flex flex-1 gap-2'>
-          <Label className='grow text-base text-right'>TWA</Label>
-          <View className='grow flex items-end gap-2'>
+          <Label className='grow text-base'>TWA</Label>
+          <View className='grow flex gap-2 items-start'>
             <Text className='grow text-5xl font-bold text-primary'>
               {formatAngle(twa.angle)}
             </Text>
             {twa.tack && <TackDirectionBadge tack={twa.tack} />}
           </View>
+        </View>
+        <View className='flex flex-1 gap-2'>
+          <Label className='grow text-base text-right'>Bearing</Label>
+          <Text className='grow text-3xl font-bold text-right'>
+            {formatAngle(bearing)}
+          </Text>
         </View>
       </CardContent>
       <NewSailPolarDialog
