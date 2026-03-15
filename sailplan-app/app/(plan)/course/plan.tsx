@@ -134,7 +134,7 @@ export default function CoursePlanResults() {
         </View>
         <CourseMarkListDialog courseMarks={courseMarks} />
       </View>
-      <TrueWindInputCard twd />
+      <TrueWindInputCard twd tws />
       <ScrollView>
         <View className='flex gap-4 pb-4'>
           {legs.map(leg => (
@@ -144,6 +144,7 @@ export default function CoursePlanResults() {
               to={leg.to}
               bearing={leg.bearing}
               twa={leg.twa}
+              tws={currentState?.tws ?? 0}
             />
           ))}
         </View>
