@@ -24,6 +24,7 @@ import { TackDirectionBadge } from './TackDirectionBadge';
 import {
   useSailSuggestions,
   type RankedSailEvaluation,
+  type SailSuggestionData,
 } from '~/features/sailSuggestion';
 import Color from 'color';
 
@@ -68,6 +69,7 @@ interface CourseLegCardProps {
   bearing: number;
   twa: TWA;
   tws: number;
+  suggestionData: SailSuggestionData | null;
 }
 
 function MarkTitle({ mark }: { mark: CourseMarkWithMark }) {
@@ -99,10 +101,11 @@ export function CourseLegCard({
   bearing,
   twa,
   tws,
+  suggestionData,
 }: CourseLegCardProps) {
   const [polarDialogOpen, setPolarDialogOpen] = useState(false);
 
-  const sailSuggestions = useSailSuggestions(twa.angle, tws);
+  const sailSuggestions = useSailSuggestions(suggestionData, twa.angle, tws);
   const suggested = sailSuggestions?.suggested ?? [];
 
   async function handlePolarSubmit(data: SailPolarSubmitValues) {

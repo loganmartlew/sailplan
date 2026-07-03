@@ -28,10 +28,16 @@ router.push({ pathname, params: { planData } })
         ▼
 planned screen → DirectionsCard / CourseLegCard (per leg)
         │
-        ├─ coordsToBearing(from, to)         → bearing        (features/coordinate)
-        ├─ getTwa(twd, bearing)              → { angle, tack } (features/coordinate)
-        └─ useSailSuggestions(twa, tws)      → suggested sail  (features/sailSuggestion)
+        ├─ coordsToBearing(from, to)                 → bearing        (features/coordinate)
+        ├─ getTwa(twd, bearing)                       → { angle, tack } (features/coordinate)
+        └─ useSailSuggestions(suggestionData, twa, tws) → suggested sail (features/sailSuggestion)
 ```
+
+`app/(plan)/course/plan.tsx` calls `useSailSuggestionData(boatProfile.id)`
+**once** for the whole course and passes the result down as a
+`suggestionData` prop; each `CourseLegCard` only runs the pure
+`useSailSuggestions` compute — this keeps live-query subscriptions at one set
+per screen instead of one set per leg.
 
 - Marks/course come from the form; **wind (TWD/TWS)** comes from the plan store.
 - Objects crossing screens are serialized through Zod schemas — never hand-rolled

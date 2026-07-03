@@ -2,6 +2,7 @@ import { useLocalSearchParams } from 'expo-router';
 import { useMemo } from 'react';
 import { ActivityIndicator, ScrollView, View } from 'react-native';
 import { Badge, H2, Text } from '~/components/ui';
+import { useBoatProfile } from '~/features/boatProfile';
 import { coordsToBearing, getTwa, TWA } from '~/features/coordinate';
 import {
   CourseMarkWithMark,
@@ -15,6 +16,7 @@ import {
   TrueWindInputCard,
   usePlanState,
 } from '~/features/plan';
+import { useSailSuggestionData } from '~/features/sailSuggestion';
 
 interface Leg {
   from: CourseMarkWithMark;
@@ -30,6 +32,9 @@ export default function CoursePlanResults() {
 
   const { currentState } = usePlanState();
   const twd = currentState?.twd ?? 0;
+
+  const { boatProfile } = useBoatProfile();
+  const suggestionData = useSailSuggestionData(boatProfile?.id ?? null);
 
   const { data: course, error: courseError } = useCourse(planData.courseId);
   const { data: courseMarks, error: courseMarksError } = useCourseMarks(
@@ -145,6 +150,7 @@ export default function CoursePlanResults() {
               bearing={leg.bearing}
               twa={leg.twa}
               tws={currentState?.tws ?? 0}
+              suggestionData={suggestionData}
             />
           ))}
         </View>
