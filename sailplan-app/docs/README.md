@@ -16,6 +16,7 @@ map; use these docs for depth.
 | [ui.md](ui.md)                             | NativeWind theming, `components/ui`, `components/form`, icons           |
 | [routing.md](routing.md)                   | The Expo Router screen tree                                            |
 | [testing.md](testing.md)                   | Jest setup and test conventions                                        |
+| [sail-suggestion/](sail-suggestion/README.md) | Suggestion-engine review findings + per-package implementation plans |
 
 ## Feature-level docs
 
