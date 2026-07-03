@@ -5,14 +5,21 @@ export type {
   ConfidenceTier,
   ConfidenceThresholds,
 } from './model/confidenceTier';
-export {
-  classifyConfidence,
-  CONFIDENCE_THRESHOLDS,
-} from './model/confidenceTier';
-export type { SuggestionGuardResult, SuggestionGuard } from './model/guard';
+export { classifyConfidence } from './model/confidenceTier';
+export type {
+  SuggestionConfig,
+} from './model/suggestionConfig';
+export { DEFAULT_SUGGESTION_CONFIG } from './model/suggestionConfig';
+export type {
+  GuardContext,
+  SuggestionGuardResult,
+  SuggestionGuard,
+} from './model/guard';
 export type {
   EvaluationReasoning,
+  RankedEvaluationReasoning,
   SailEvaluation,
+  RankedSailEvaluation,
 } from './model/sailEvaluation';
 export type { SailSuggestionResult } from './model/sailSuggestion';
 

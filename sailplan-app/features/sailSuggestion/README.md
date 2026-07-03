@@ -5,10 +5,16 @@ ranks every sail in the active boat profile and returns up to 3 top picks.
 
 ## Entry points
 
-| Export                                                | Purpose                                         |
-| ----------------------------------------------------- | ----------------------------------------------- |
-| `suggestSails(twa, tws, sails, allPolars, allLimits)` | Pure function — core pipeline                   |
-| `useSailSuggestions(twa, tws)`                        | React hook — fetches data, calls `suggestSails` |
+| Export                                                        | Purpose                                         |
+| ------------------------------------------------------------- | ----------------------------------------------- |
+| `suggestSails(twa, tws, sails, allPolars, allLimits, config?)` | Pure function — core pipeline                   |
+| `useSailSuggestions(twa, tws)`                                | React hook — fetches data, calls `suggestSails` |
+
+All tuning constants live in one place — `model/suggestionConfig.ts`
+(`DEFAULT_SUGGESTION_CONFIG`) — and are threaded explicitly through the pure
+pipeline (`suggestSails → evaluateSail → rankSails`). Pass a custom
+`SuggestionConfig` to override; a future settings screen can build one from
+stored prefs.
 
 ## Pipeline overview
 
@@ -23,12 +29,12 @@ suggestSails
  │    5. Guard evaluation            │
  │                                   │
  ├─ rankSails ──────────────────────┘
- │    1. Normalise polar scores
- │    2. Compute ranking score (tier-dependent blend)
+ │    1. Normalise polar scores (against the trusted pool)
+ │    2. Compute ranking score (one continuous confidence blend)
  │    3. Sort descending
- │    4. Select suggestions (within 80 % of leader, max 3)
+ │    4. Select suggestions (additive margin from leader, max 3)
  │
- └─ return SailSuggestionResult { evaluations, suggested, conditions }
+ └─ return SailSuggestionResult { evaluations, suggested, isFallback, conditions }
 ```
 
 ## Phase 1 — Per-sail evaluation (`evaluateSail`)
@@ -58,16 +64,12 @@ estimate boat speed from the sail's polar grid. It also returns a raw
 
 ### 3. Confidence tier
 
-The raw confidence value is bucketed into a discrete tier using zone-specific
-thresholds:
+The raw confidence value is bucketed into a discrete tier using a single
+threshold set (`config.confidenceTiers`, default high ≥ 0.65 / moderate ≥ 0.35).
 
-| Zone     | High ≥ | Moderate ≥ | Low    |
-| -------- | ------ | ---------- | ------ |
-| upwind   | 0.70   | 0.40       | < 0.40 |
-| reaching | 0.60   | 0.30       | < 0.30 |
-| downwind | 0.65   | 0.35       | < 0.35 |
-
-The tier drives how polar vs. limit scores are blended during ranking.
+The tier is a **display label only** — nothing in ranking branches on it. The
+continuous blend (below) reads the raw confidence directly. The `moderate`
+threshold doubles as the normalisation gate (see ranking step 1).
 
 ### 4. TWA limit scoring
 
@@ -75,13 +77,20 @@ Each sail can have min/max TWA boundaries defined at discrete TWS values.
 `interpolateTwaLimits` linearly interpolates these to the current TWS (clamping
 when outside the defined range).
 
-`computeLimitScore` then evaluates how well the requested TWA fits:
+`computeLimitScore` then evaluates how well the requested TWA fits, treating
+the window as a "safe to fly" range rather than a preference curve — so it is a
+**trapezoid**, not a bell curve:
 
-- Raised-cosine bell curve centred on the midpoint of [minTwa, maxTwa].
-- Score = **1.0** at the centre (ideal angle), tapering to **0.0** at the
-  edges, then decaying linearly to a floor of **−0.5** outside the limits.
-- One-sided limits (only min or only max) assume a synthetic range using a
-  fixed 20° offset.
+- Flat **1.0** across the middle `plateauFraction` (70 %) of the window — a sail
+  sailed at the deep edge of its window is **not** punished for being
+  off-centre.
+- Linear taper from 1.0 down to `edgeScore` (**0.3**) between the plateau and
+  the edge.
+- Outside the window, linear decay to a floor of `outsideFloor` (**−0.5**).
+- The step from 0.3 (just inside) to ~0 (just outside) is a deliberate
+  discontinuity: in-range always beats out-of-range by a margin.
+- One-sided limits (only min or only max) assume a synthetic range using
+  `oneSidedOffsetDeg` (20°).
 - Returns `null` when no limits are defined.
 
 ### 5. Guards
@@ -90,42 +99,68 @@ Guards are pluggable penalty functions. Each guard inspects the sail and
 conditions and may return a `{ penalty, reason }`. Penalties are subtracted
 from the ranking score.
 
+Guards receive a full `GuardContext` (`{ sail, twa, tws, windZone, limits,
+hasLimits, confidence, config }`), not just the raw angle.
+
 Currently registered (via `guardRegistry`):
 
-- **symmetryGuard** — penalises symmetric sails at TWA < 160° and asymmetric
-  sails at TWA > 160°. Penalty = 0.05 per degree past the threshold, capped
-  at 1.0.
+- **symmetryGuard** — a nudge, not a veto. Penalises symmetric sails below the
+  dead band (`deadBandMinTwa` 150°) and asymmetric sails above it
+  (`deadBandMaxTwa` 170°); the 150–170° band covers normal crossover angles and
+  is penalty-free. Slope 0.01/°, capped at `maxPenalty` **0.2** — a fraction of
+  the ~1.05 score scale. When `skipWhenLimitsDefined` (default `true`) and the
+  sail has user-entered TWA limits, the guard defers to them entirely.
 
 To add a guard: implement the `SuggestionGuard` interface and append it to the
 `suggestionGuards` array in `util/guards/guardRegistry.ts`.
 
 ## Phase 2 — Ranking & selection (`rankSails`)
 
+`rankSails` returns **new** `RankedSailEvaluation` records — it never mutates
+the `SailEvaluation` inputs from `evaluateSail`.
+
 ### 1. Normalise polar scores
 
-Each sail's predicted speed is divided by the fastest sail's speed, producing
-a 0–1 `polarScore`.
+Each sail's predicted speed is divided by the fastest **trusted** sail's speed
+(predicted speed > 0 and confidence ≥ the moderate threshold), producing a 0–1
+`polarScore`. Gating the denominator stops a single low-confidence over-estimate
+from deflating every trustworthy sail's score. A low-confidence sail may end up
+with `polarScore > 1`, but the blend gives it near-zero polar weight, so that's
+harmless.
 
-### 2. Compute ranking score
+### 2. Compute ranking score (continuous blend)
 
-Blending strategy varies by confidence tier:
+Every sail lands on **one continuous 0–~1.05 scale**, regardless of how much
+polar data it has — no cliffs at tier boundaries:
 
-| Tier         | Formula                                                | Rationale                                  |
-| ------------ | ------------------------------------------------------ | ------------------------------------------ |
-| **High**     | `polarScore + 0.1 × max(limitScore, 0) − guardPenalty` | Trust polars; limits are a small bonus     |
-| **Moderate** | `c × polarScore + (1 − c) × limitScore − guardPenalty` | Blend proportionally to raw confidence `c` |
-| **Low**      | `limitScore − guardPenalty` (or −∞ if no limits)       | Polars too sparse to trust                 |
+```
+w            = smoothstep(confidence, lowConfidence 0.25, highConfidence 0.70)
+rankingScore = w·polarScore + (1−w)·limitScore + ε·confidence − guardPenalty
+```
 
-The corresponding `polarWeight` and `limitWeight` are written into the
-evaluation's `reasoning` for auditability.
+- At high confidence `w → 1` (polars dominate); at low confidence `w → 0` (pure
+  limit ranking — the fallback philosophy survives intact).
+- `ε·confidence` (ε = `evidenceBonus` 0.05) is an **evidence tiebreaker**: when
+  a limits-only sail and a polars-proven sail are otherwise equal, the measured
+  one edges out the asserted one.
+- Null handling: no polars → `w = 0` (pure limits, `limitScore − guardPenalty`);
+  no limits → `w·polarScore + ε·confidence − guardPenalty`; neither → −∞
+  (excluded).
+
+The resolved `polarWeight` (= `w`) and `limitWeight` (= `1 − w`) are written
+into the ranked record's `reasoning` for auditability.
 
 ### 3. Sort & select
 
 - Sort all evaluations descending by `rankingScore`.
-- Select sails scoring within 80 % of the leader's score.
-- Return 0–3 suggestions. If no sail has a finite ranking score, the suggested
-  list is empty; otherwise the result is capped at 3. Sails with −∞ scores are
-  excluded.
+- Select sails within an **additive margin** of the leader
+  (`score ≥ leaderScore − margin`, default 0.15) — robust across the whole score
+  range, including negative and near-zero leaders.
+- Return 0–3 suggestions (capped at `maxSuggested`). If no sail has a finite
+  ranking score, the suggested list is empty; sails with −∞ scores are excluded.
+- `isFallback` flags a result whose leader scores below `fallbackScoreFloor`
+  (0) — e.g. every sail is outside its limits — so the UI can show a least-bad
+  guess differently from a confident pick.
 
 ## Data layer
 
@@ -145,18 +180,21 @@ via `useMemo`, recomputing only when inputs change.
 
 ```
 SailSuggestionResult
-├── evaluations: SailEvaluation[]   // all sails, sorted
-├── suggested:   SailEvaluation[]   // top 1–3 picks
+├── evaluations: RankedSailEvaluation[]   // all sails, sorted
+├── suggested:   RankedSailEvaluation[]   // top 1–3 picks
+├── isFallback:  boolean                  // leader is a least-bad guess
 └── conditions:  { twa, tws, windZone }
 
-SailEvaluation
+SailEvaluation                            // produced by evaluateSail
 ├── sail, predictedSpeed, confidence, confidenceTier, windZone
 ├── limitScore, hasLimits, limitsExceeded
-├── polarScore, rankingScore
 ├── guards: SuggestionGuardResult[]
-└── reasoning: EvaluationReasoning { polarUsed, limitUsed, polarWeight,
-│                                     limitWeight, guardPenaltyTotal,
+└── reasoning: EvaluationReasoning { polarUsed, limitUsed, guardPenaltyTotal,
 │                                     pointsUsed }
+
+RankedSailEvaluation extends SailEvaluation  // produced by rankSails
+├── polarScore, rankingScore
+└── reasoning: RankedEvaluationReasoning     // + polarWeight, limitWeight
 ```
 
 ## File map
@@ -169,9 +207,10 @@ sailSuggestion/
 ├── hooks/
 │   └── useSailSuggestions.ts       React hook (data + suggestSails)
 ├── model/
-│   ├── confidenceTier.ts           tier thresholds & classifyConfidence
-│   ├── guard.ts                    SuggestionGuard / GuardResult interfaces
-│   ├── sailEvaluation.ts           SailEvaluation & EvaluationReasoning
+│   ├── suggestionConfig.ts         SuggestionConfig & DEFAULT_SUGGESTION_CONFIG
+│   ├── confidenceTier.ts           classifyConfidence (display label)
+│   ├── guard.ts                    SuggestionGuard / GuardContext interfaces
+│   ├── sailEvaluation.ts           SailEvaluation, RankedSailEvaluation
 │   ├── sailSuggestion.ts           SailSuggestionResult
 │   └── windZone.ts                 WindZone type & getWindZone
 └── util/
@@ -181,5 +220,5 @@ sailSuggestion/
     ├── limitScoring.ts             interpolateTwaLimits, computeLimitScore
     └── guards/
         ├── guardRegistry.ts        registered guards array
-        └── symmetryGuard.ts        symmetric/asymmetric penalty
+        └── symmetryGuard.ts        symmetric/asymmetric nudge
 ```

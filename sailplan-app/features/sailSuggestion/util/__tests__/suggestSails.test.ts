@@ -144,17 +144,19 @@ describe('suggestSails — integration', () => {
       buildLimitsMap(),
     );
 
-    // Asymmetric spinnaker gets guard penalty at TWA>160
-    const asymEval = result.evaluations.find(
-      e => e.sail.name === 'Asymmetric Spinnaker',
-    )!;
-    expect(asymEval.guards.length).toBeGreaterThan(0);
+    // Symmetric spinnaker has the strongest deep-downwind polars → it leads.
+    expect(result.evaluations[0].sail.name).toBe('Symmetric Spinnaker');
 
-    // Symmetric spinnaker should have no guard penalty at 170°
+    // 170° is the top edge of the dead band, so the symmetric sail is never
+    // penalised; the asym has user limits so its guard defers to them.
     const symEval = result.evaluations.find(
       e => e.sail.name === 'Symmetric Spinnaker',
     )!;
     expect(symEval.guards.length).toBe(0);
+    const asymEval = result.evaluations.find(
+      e => e.sail.name === 'Asymmetric Spinnaker',
+    )!;
+    expect(asymEval.guards.length).toBe(0);
   });
 
   it('no polars: sails ranked by limits; sails without limits excluded', () => {
@@ -269,14 +271,12 @@ describe('suggestSails — integration', () => {
     }
   });
 
-  it('all sails with identical polars: differentiates by limits and guards', () => {
+  it('all sails with identical polars: differentiates by limits', () => {
+    // Patchy identical polars → moderate confidence, so the limit term (weight
+    // 1−w) still contributes and can differentiate otherwise-equal sails.
     const identicalPolars: PolarPoint[] = [
-      { tws: 10, twa: 150, speed: 6.0 },
-      { tws: 12, twa: 150, speed: 6.5 },
-      { tws: 14, twa: 150, speed: 7.0 },
-      { tws: 10, twa: 160, speed: 6.2 },
-      { tws: 12, twa: 160, speed: 6.8 },
-      { tws: 14, twa: 160, speed: 7.2 },
+      { tws: 10, twa: 120, speed: 6.0 },
+      { tws: 14, twa: 170, speed: 7.0 },
     ];
 
     const samePolars = new Map<number, PolarPoint[]>([
@@ -287,9 +287,9 @@ describe('suggestSails — integration', () => {
 
     const result = suggestSails(150, 12, sails, samePolars, buildLimitsMap());
 
-    // With identical polars, differentiation comes from limits and guards
     expect(result.evaluations.length).toBe(3);
-    // Not all ranking scores should be identical due to limit differences
+    // The code zero is out of its 60–125° window at 150°, so its (weighted)
+    // negative limit score separates it from the in-window kites.
     const scores = result.evaluations.map(e => e.rankingScore);
     const uniqueScores = new Set(scores);
     expect(uniqueScores.size).toBeGreaterThan(1);

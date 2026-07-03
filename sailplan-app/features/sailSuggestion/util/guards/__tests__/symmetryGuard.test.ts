@@ -1,4 +1,7 @@
 import type { Sail } from '~/features/sail';
+import type { GuardContext } from '../../../model/guard';
+import { DEFAULT_SUGGESTION_CONFIG } from '../../../model/suggestionConfig';
+import { getWindZone } from '../../../model/windZone';
 import { symmetryGuard } from '../../guards/symmetryGuard';
 
 function makeSail(symmetrical: boolean): Sail {
@@ -13,61 +16,92 @@ function makeSail(symmetrical: boolean): Sail {
   };
 }
 
+function makeCtx(
+  sail: Sail,
+  twa: number,
+  overrides: Partial<GuardContext> = {},
+): GuardContext {
+  return {
+    sail,
+    twa,
+    tws: 12,
+    windZone: getWindZone(twa),
+    limits: { minTwa: null, maxTwa: null },
+    hasLimits: false,
+    confidence: 0.5,
+    config: DEFAULT_SUGGESTION_CONFIG,
+    ...overrides,
+  };
+}
+
+// Defaults: dead band 150–170°, 0.01/°, cap 0.2, skipWhenLimitsDefined true.
 describe('symmetryGuard', () => {
   describe('symmetric sails', () => {
     const sail = makeSail(true);
 
-    it('returns null at TWA=170° (no penalty)', () => {
-      expect(symmetryGuard.evaluate(sail, 170, 12)).toBeNull();
+    it('returns null inside the dead band (150/160/170°)', () => {
+      expect(symmetryGuard.evaluate(makeCtx(sail, 150))).toBeNull();
+      expect(symmetryGuard.evaluate(makeCtx(sail, 160))).toBeNull();
+      expect(symmetryGuard.evaluate(makeCtx(sail, 170))).toBeNull();
     });
 
-    it('returns null at TWA=160° (boundary, no penalty)', () => {
-      expect(symmetryGuard.evaluate(sail, 160, 12)).toBeNull();
-    });
-
-    it('applies penalty at TWA=150° (10° past → 0.5)', () => {
-      const result = symmetryGuard.evaluate(sail, 150, 12)!;
+    it('applies a small penalty below the dead band (140° → 0.10)', () => {
+      const result = symmetryGuard.evaluate(makeCtx(sail, 140))!;
       expect(result).not.toBeNull();
-      expect(result.penalty).toBeCloseTo(0.5, 5);
+      expect(result.penalty).toBeCloseTo(0.1, 5);
       expect(result.guardName).toBe('symmetry');
     });
 
-    it('applies capped penalty at TWA=140° (20° past → 1.0)', () => {
-      const result = symmetryGuard.evaluate(sail, 140, 12)!;
-      expect(result.penalty).toBeCloseTo(1.0, 5);
-    });
-
-    it('caps penalty at 1.0 for large offsets (TWA=90°)', () => {
-      const result = symmetryGuard.evaluate(sail, 90, 12)!;
-      expect(result.penalty).toBe(1.0);
+    it('caps the penalty at 0.2 for large offsets (100°)', () => {
+      const result = symmetryGuard.evaluate(makeCtx(sail, 100))!;
+      expect(result.penalty).toBeCloseTo(0.2, 5);
     });
   });
 
   describe('asymmetric sails', () => {
     const sail = makeSail(false);
 
-    it('returns null at TWA=150° (no penalty)', () => {
-      expect(symmetryGuard.evaluate(sail, 150, 12)).toBeNull();
+    it('returns null inside the dead band (150/160/170°)', () => {
+      expect(symmetryGuard.evaluate(makeCtx(sail, 150))).toBeNull();
+      expect(symmetryGuard.evaluate(makeCtx(sail, 160))).toBeNull();
+      expect(symmetryGuard.evaluate(makeCtx(sail, 170))).toBeNull();
     });
 
-    it('returns null at TWA=160° (boundary, no penalty)', () => {
-      expect(symmetryGuard.evaluate(sail, 160, 12)).toBeNull();
-    });
-
-    it('applies penalty at TWA=165° (5° past → 0.25)', () => {
-      const result = symmetryGuard.evaluate(sail, 165, 12)!;
+    it('applies a small penalty above the dead band (175° → 0.05)', () => {
+      const result = symmetryGuard.evaluate(makeCtx(sail, 175))!;
       expect(result).not.toBeNull();
-      expect(result.penalty).toBeCloseTo(0.25, 5);
+      expect(result.penalty).toBeCloseTo(0.05, 5);
     });
 
-    it('applies penalty at TWA=175° (15° past → 0.75)', () => {
-      const result = symmetryGuard.evaluate(sail, 175, 12)!;
-      expect(result.penalty).toBeCloseTo(0.75, 5);
+    it('caps the penalty at 0.2 for large offsets (190°)', () => {
+      const result = symmetryGuard.evaluate(makeCtx(sail, 190))!;
+      expect(result.penalty).toBeCloseTo(0.2, 5);
+    });
+  });
+
+  describe('skipWhenLimitsDefined', () => {
+    it('defers to user-entered limits (no penalty when hasLimits)', () => {
+      const sail = makeSail(true);
+      const result = symmetryGuard.evaluate(
+        makeCtx(sail, 140, { hasLimits: true }),
+      );
+      expect(result).toBeNull();
     });
 
-    it('caps penalty at 1.0 at TWA=180° (20° past)', () => {
-      const result = symmetryGuard.evaluate(sail, 180, 12)!;
-      expect(result.penalty).toBeCloseTo(1.0, 5);
+    it('still runs when the flag is off', () => {
+      const sail = makeSail(true);
+      const config = {
+        ...DEFAULT_SUGGESTION_CONFIG,
+        symmetryGuard: {
+          ...DEFAULT_SUGGESTION_CONFIG.symmetryGuard,
+          skipWhenLimitsDefined: false,
+        },
+      };
+      const result = symmetryGuard.evaluate(
+        makeCtx(sail, 140, { hasLimits: true, config }),
+      );
+      expect(result).not.toBeNull();
+      expect(result!.penalty).toBeCloseTo(0.1, 5);
     });
   });
 });

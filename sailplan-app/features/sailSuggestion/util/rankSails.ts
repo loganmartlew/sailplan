@@ -1,46 +1,75 @@
-import type { SailEvaluation } from '../model/sailEvaluation';
+import type {
+  RankedSailEvaluation,
+  SailEvaluation,
+} from '../model/sailEvaluation';
+import type { SuggestionConfig } from '../model/suggestionConfig';
 
-const SUGGESTED_THRESHOLD = 0.8;
-const MAX_SUGGESTED = 3;
+/**
+ * Smoothstep in [0, 1]: 0 at/below `e0`, 1 at/above `e1`, with a smooth
+ * (C¹-continuous) ramp between — no cliffs.
+ */
+function smoothstep(x: number, e0: number, e1: number): number {
+  const t = Math.min(1, Math.max(0, (x - e0) / (e1 - e0)));
+  return t * t * (3 - 2 * t);
+}
 
 /**
  * Normalises, scores, sorts, and selects the top sail suggestions.
  *
- * Operates on the array of {@link SailEvaluation} records produced by
- * `evaluateSail()`. This is the second (and final) phase of the suggestion
- * pipeline: it fills in the `polarScore`, `rankingScore`, and weight fields
- * that were left as placeholders by the evaluation step.
+ * Takes the {@link SailEvaluation} records from `evaluateSail()` and returns
+ * **new** {@link RankedSailEvaluation} records — inputs are never mutated, and
+ * `ranked` shares no references with the input array.
  *
  * Steps:
  *
  * 1. **Normalise polar scores** — divide each sail's predicted speed by the
- *    fastest sail's speed so all polar scores are on a 0-1 scale.
+ *    fastest *trusted* sail's speed (finding 2.2: a single low-confidence
+ *    over-estimate must not deflate everyone's polar score).
  *
- * 2. **Compute ranking score** — blend polar and limit scores using a
- *    weighting strategy that depends on the confidence tier:
- *    - **High** — trust polars fully; limits are a small 10 % bonus.
- *    - **Moderate** — blend polars and limits proportionally to raw
- *      confidence (higher confidence → more polar weight).
- *    - **Low** — ignore polars; rank purely by limit score. If there are no
- *      limits either, the sail is effectively unrankable (-Infinity).
- *    Guard penalties are always subtracted after blending.
+ * 2. **Blend into one continuous score** — every sail lands on one 0–~1.05
+ *    scale regardless of how much polar data it has (finding 1.1):
+ *
+ *      w            = smoothstep(confidence, lowConfidence, highConfidence)
+ *      rankingScore = w·polarScore + (1−w)·limitScore + ε·confidence − guard
+ *
+ *    At high confidence this converges to polars-dominate; at low confidence to
+ *    pure limit ranking (the fallback philosophy). `ε·confidence` is an
+ *    evidence tiebreaker: an equally-good polars-proven sail edges out a
+ *    limits-only one. Confidence *tiers* are display labels only — nothing
+ *    here branches on them.
  *
  * 3. **Sort** — descending by ranking score.
  *
- * 4. **Select suggestions** — take all sails within 80 % of the leader's
- *    score, clamped to a minimum of 1 and a maximum of 3 suggestions.
- *    Sails with -Infinity scores are excluded entirely.
+ * 4. **Select suggestions** — every sail within an additive `margin` of the
+ *    leader (finding 2.3), capped at `maxSuggested`. Robust for negative and
+ *    near-zero leaders. `isFallback` flags a leader below `fallbackScoreFloor`.
  *
- * @returns `ranked` (all evaluations sorted) and `suggested` (the
- *          top picks to show to the user).
+ * @returns `ranked` (all evaluations, new records, sorted), `suggested` (top
+ *          picks), and `isFallback`.
  */
-export function rankSails(evaluations: SailEvaluation[]): {
-  ranked: SailEvaluation[];
-  suggested: SailEvaluation[];
+export function rankSails(
+  evaluations: SailEvaluation[],
+  config: SuggestionConfig,
+): {
+  ranked: RankedSailEvaluation[];
+  suggested: RankedSailEvaluation[];
+  isFallback: boolean;
 } {
-  // --- Step 1: Normalise polar scores ---
-  // Find the fastest predicted speed across all sails to use as divisor.
-  const maxSpeed = evaluations.reduce(
+  const { blend, confidenceTiers, selection } = config;
+
+  // --- Step 1: Normalise polar scores against the trusted pool ---
+  // Only sails at/above the moderate confidence gate contribute to maxSpeed, so
+  // a garbage low-confidence over-estimate can't deflate trustworthy sails.
+  // (A low-confidence sail may then get polarScore > 1; the blend gives it
+  // near-zero polar weight, so that's harmless.)
+  const trusted = evaluations.filter(
+    e =>
+      e.predictedSpeed !== null &&
+      e.predictedSpeed > 0 &&
+      e.confidence >= confidenceTiers.moderate,
+  );
+  const pool = trusted.length > 0 ? trusted : evaluations;
+  const maxSpeed = pool.reduce(
     (max, e) =>
       e.predictedSpeed !== null && e.predictedSpeed > max
         ? e.predictedSpeed
@@ -48,96 +77,72 @@ export function rankSails(evaluations: SailEvaluation[]): {
     0,
   );
 
-  for (const evaluation of evaluations) {
-    if (
-      maxSpeed > 0 &&
-      evaluation.predictedSpeed !== null &&
-      evaluation.predictedSpeed > 0
-    ) {
-      evaluation.polarScore = evaluation.predictedSpeed / maxSpeed;
-    } else {
-      evaluation.polarScore = null;
-    }
-  }
-
-  // --- Step 2: Compute final rankingScore per confidence tier ---
-  // Weighting strategy shifts from polar-dominant (high confidence) to
-  // limit-dominant (low confidence) as the data becomes less trustworthy.
-  for (const evaluation of evaluations) {
-    const { confidenceTier, polarScore, limitScore, reasoning } = evaluation;
+  // --- Step 2: Build a new ranked record per sail with the continuous blend ---
+  const ranked: RankedSailEvaluation[] = evaluations.map(evaluation => {
+    const { predictedSpeed, confidence, limitScore, reasoning } = evaluation;
     const guardPenalty = reasoning.guardPenaltyTotal;
 
-    switch (confidenceTier) {
-      case 'high': {
-        // Polars are reliable — use them as the primary signal.
-        // Limits contribute a small bonus (10 %) to differentiate sails
-        // with otherwise similar speeds.
-        reasoning.polarWeight = 1.0;
-        if (limitScore !== null) {
-          reasoning.limitWeight = 0.1;
-          evaluation.rankingScore =
-            (polarScore ?? 0) + 0.1 * Math.max(limitScore, 0) - guardPenalty;
-        } else {
-          reasoning.limitWeight = 0;
-          evaluation.rankingScore = (polarScore ?? 0) - guardPenalty;
-        }
-        break;
-      }
+    const polarScore =
+      maxSpeed > 0 && predictedSpeed !== null && predictedSpeed > 0
+        ? predictedSpeed / maxSpeed
+        : null;
 
-      case 'moderate': {
-        // Blend polars and limits proportionally to confidence.
-        // c close to 1 → mostly polars; c close to 0 → mostly limits.
-        const c = evaluation.confidence;
-        reasoning.polarWeight = c;
-        if (limitScore !== null) {
-          reasoning.limitWeight = 1 - c;
-          evaluation.rankingScore =
-            c * (polarScore ?? 0) + (1 - c) * limitScore - guardPenalty;
-        } else {
-          reasoning.limitWeight = 0;
-          evaluation.rankingScore = c * (polarScore ?? 0) - guardPenalty;
-        }
-        break;
-      }
+    // w = 0 with no polar evidence (pure limits); otherwise the smoothstep.
+    const w = polarScore === null ? 0 : smoothstep(confidence, blend.lowConfidence, blend.highConfidence);
 
-      case 'low': {
-        // Polars are unreliable — fall back entirely to limit scoring.
-        // Without limits, the sail cannot be meaningfully ranked.
-        reasoning.polarWeight = 0;
-        if (limitScore !== null) {
-          reasoning.limitWeight = 1.0;
-          evaluation.rankingScore = limitScore - guardPenalty;
-        } else {
-          reasoning.limitWeight = 0;
-          evaluation.rankingScore = -Infinity;
-        }
-        break;
-      }
+    let rankingScore: number;
+    let polarWeight: number;
+    let limitWeight: number;
+
+    if (polarScore !== null && limitScore !== null) {
+      polarWeight = w;
+      limitWeight = 1 - w;
+      rankingScore =
+        w * polarScore +
+        (1 - w) * limitScore +
+        blend.evidenceBonus * confidence -
+        guardPenalty;
+    } else if (polarScore !== null) {
+      polarWeight = w;
+      limitWeight = 0;
+      rankingScore =
+        w * polarScore + blend.evidenceBonus * confidence - guardPenalty;
+    } else if (limitScore !== null) {
+      polarWeight = 0;
+      limitWeight = 1;
+      rankingScore = limitScore - guardPenalty;
+    } else {
+      // Neither polars nor limits — unrankable.
+      polarWeight = 0;
+      limitWeight = 0;
+      rankingScore = -Infinity;
     }
-  }
+
+    return {
+      ...evaluation,
+      polarScore,
+      rankingScore,
+      reasoning: { ...reasoning, polarWeight, limitWeight },
+    };
+  });
 
   // --- Step 3: Sort by rankingScore descending ---
-  const ranked = [...evaluations].sort(
-    (a, b) => b.rankingScore - a.rankingScore,
-  );
+  ranked.sort((a, b) => b.rankingScore - a.rankingScore);
 
   // --- Step 4: Select the "suggested" subset ---
-  // Keep sails within 80 % of the top score, with at least 1 and at most 3.
   const eligible = ranked.filter(e => e.rankingScore > -Infinity);
-
   if (eligible.length === 0) {
-    return { ranked, suggested: [] };
+    return { ranked, suggested: [], isFallback: false };
   }
 
   const leaderScore = eligible[0].rankingScore;
-  const threshold = leaderScore * SUGGESTED_THRESHOLD;
+  // Additive margin: robust across the whole score range (incl. negatives). The
+  // leader always satisfies its own margin, so `suggested` is never empty here.
+  const suggested = eligible
+    .filter(e => e.rankingScore >= leaderScore - selection.margin)
+    .slice(0, selection.maxSuggested);
 
-  const suggested = eligible.filter(e => e.rankingScore >= threshold);
+  const isFallback = leaderScore < selection.fallbackScoreFloor;
 
-  const finalSuggested =
-    suggested.length === 0
-      ? eligible.slice(0, 1)
-      : suggested.slice(0, MAX_SUGGESTED);
-
-  return { ranked, suggested: finalSuggested };
+  return { ranked, suggested, isFallback };
 }

@@ -1,5 +1,8 @@
 import type { SailTwaLimit } from '~/features/sailTwaLimit/model/sailTwaLimit';
+import { DEFAULT_SUGGESTION_CONFIG } from '../../model/suggestionConfig';
 import { interpolateTwaLimits, computeLimitScore } from '../limitScoring';
+
+const curve = DEFAULT_SUGGESTION_CONFIG.limitCurve;
 
 // Helper to create SailTwaLimit rows (only tws/minTwa/maxTwa matter for scoring)
 function makeLimitRow(
@@ -82,80 +85,79 @@ describe('interpolateTwaLimits', () => {
 });
 
 // ---------------------------------------------------------------------------
-// computeLimitScore
+// computeLimitScore — trapezoid (plateauFraction 0.7, edgeScore 0.3)
 // ---------------------------------------------------------------------------
 describe('computeLimitScore', () => {
   // Range: minTwa=60, maxTwa=140 → center=100, halfRange=40
 
-  it('returns ≈1.0 at range center', () => {
-    expect(computeLimitScore(100, 60, 140)).toBeCloseTo(1.0, 2);
+  it('is a flat 1.0 across the plateau (t = 0 and t = 0.7)', () => {
+    expect(computeLimitScore(100, 60, 140, curve)).toBeCloseTo(1.0, 5);
+    // t = 0.7 → 100 + 0.7 * 40 = 128 (plateau edge)
+    expect(computeLimitScore(128, 60, 140, curve)).toBeCloseTo(1.0, 5);
+    // Anywhere inside the plateau stays 1.0.
+    expect(computeLimitScore(108, 60, 140, curve)).toBeCloseTo(1.0, 5);
   });
 
-  it('returns very close to 1.0 near center (within ~20% of half-range)', () => {
-    // 20% of 40 = 8 degrees from center → t=0.2
-    const score = computeLimitScore(108, 60, 140)!;
-    expect(score).toBeGreaterThan(0.9);
+  it('tapers linearly from the plateau to edgeScore at the edge', () => {
+    // Edge (t = 1): TWA 140 (and 60) → edgeScore 0.3.
+    expect(computeLimitScore(140, 60, 140, curve)).toBeCloseTo(0.3, 5);
+    expect(computeLimitScore(60, 60, 140, curve)).toBeCloseTo(0.3, 5);
+    // Midway through the taper (t = 0.85) → 1 - 0.5 * (1 - 0.3) = 0.65.
+    expect(computeLimitScore(100 + 0.85 * 40, 60, 140, curve)).toBeCloseTo(
+      0.65,
+      5,
+    );
   });
 
-  it('returns ≈0.0 at range edge', () => {
-    expect(computeLimitScore(60, 60, 140)).toBeCloseTo(0.0, 2);
-    expect(computeLimitScore(140, 60, 140)).toBeCloseTo(0.0, 2);
-  });
-
-  it('demonstrates smooth roll-off at 70% position', () => {
-    // t=0.7 → 0.5*(1+cos(0.7π)) ≈ 0.5*(1 + (-0.588)) ≈ 0.206
-    const score = computeLimitScore(100 + 0.7 * 40, 60, 140)!;
-    expect(score).toBeCloseTo(0.206, 1);
+  it('in-range edge beats just-outside by a margin (deliberate discontinuity)', () => {
+    const insideEdge = computeLimitScore(140, 60, 140, curve)!; // 0.3
+    const justOutside = computeLimitScore(140.4, 60, 140, curve)!; // slightly < 0
+    expect(insideEdge).toBeGreaterThan(justOutside);
+    expect(insideEdge - justOutside).toBeGreaterThan(0.25);
   });
 
   it('returns slightly negative just outside range', () => {
     // TWA=145 → t = |145-100|/40 = 1.125, outside → -0.5*(1.125-1) = -0.0625
-    const score = computeLimitScore(145, 60, 140)!;
+    const score = computeLimitScore(145, 60, 140, curve)!;
     expect(score).toBeLessThan(0);
     expect(score).toBeGreaterThan(-0.5);
   });
 
   it('clamps at -0.5 floor for far-outside TWA', () => {
     // TWA=200 → t = 100/40 = 2.5, outside → -0.5*(2.5-1) = -0.75 → clamped to -0.5
-    expect(computeLimitScore(200, 60, 140)).toBeCloseTo(-0.5, 2);
+    expect(computeLimitScore(200, 60, 140, curve)).toBeCloseTo(-0.5, 2);
   });
 
   it('returns null when both limits are null', () => {
-    expect(computeLimitScore(100, null, null)).toBeNull();
+    expect(computeLimitScore(100, null, null, curve)).toBeNull();
   });
 
   it('scores correctly for one-sided minTwa only (center = minTwa+20)', () => {
-    // Only minTwa=60 → center=80, halfRange=20
-    const score = computeLimitScore(80, 60, null)!;
-    expect(score).toBeCloseTo(1.0, 2);
-    // At minTwa itself: t = |60-80|/20 = 1.0 → score ≈ 0.0
-    expect(computeLimitScore(60, 60, null)).toBeCloseTo(0.0, 2);
+    // Only minTwa=60 → center=80, halfRange=20; plateau covers t ≤ 0.7.
+    expect(computeLimitScore(80, 60, null, curve)).toBeCloseTo(1.0, 5);
+    // At minTwa itself: t = |60-80|/20 = 1.0 → edgeScore 0.3.
+    expect(computeLimitScore(60, 60, null, curve)).toBeCloseTo(0.3, 5);
   });
 
   it('scores correctly for one-sided maxTwa only (center = maxTwa-20)', () => {
-    // Only maxTwa=140 → center=120, halfRange=20
-    const score = computeLimitScore(120, null, 140)!;
-    expect(score).toBeCloseTo(1.0, 2);
-    // At maxTwa itself: t = |140-120|/20 = 1.0 → score ≈ 0.0
-    expect(computeLimitScore(140, null, 140)).toBeCloseTo(0.0, 2);
+    // Only maxTwa=140 → center=120, halfRange=20.
+    expect(computeLimitScore(120, null, 140, curve)).toBeCloseTo(1.0, 5);
+    // At maxTwa itself: t = |140-120|/20 = 1.0 → edgeScore 0.3.
+    expect(computeLimitScore(140, null, 140, curve)).toBeCloseTo(0.3, 5);
   });
 
-  it('confirms bell-curve shape (not linear)', () => {
-    // center=100, halfRange=40
-    const at25 = computeLimitScore(100 + 0.25 * 40, 60, 140)!;
-    const at50 = computeLimitScore(100 + 0.5 * 40, 60, 140)!;
-    const at75 = computeLimitScore(100 + 0.75 * 40, 60, 140)!;
+  it('does not punish an in-window deep angle (headline downwind case)', () => {
+    // Asym window 100–160, sailed at the deep edge 155° → t ≈ 0.833.
+    // Old bell curve scored ≈ 0.07; trapezoid keeps it high.
+    const score = computeLimitScore(155, 100, 160, curve)!;
+    expect(score).toBeGreaterThan(0.6);
+  });
 
-    // Monotonically decreasing
-    expect(at25).toBeGreaterThan(at50);
-    expect(at50).toBeGreaterThan(at75);
-
-    // Bell-curve: score drops slowly near center, steeply near edges
-    // Compare the drop across the inner quarter (0→25%) vs outer quarter (75→100%)
-    const innerDrop = 1.0 - at25; // drop from center to 25%
-    const outerDrop = at75; // drop from 75% to edge (0)
-    // For a raised cosine, innerDrop ≈ 0.146 and outerDrop ≈ 0.146 (symmetric)
-    // Instead verify the bell shape: center region (0-50%) retains more than outer (50-100%)
-    expect(at25).toBeGreaterThan(at75); // 25% from center > 75% from center
+  it('is monotonically non-increasing from center to edge', () => {
+    const at25 = computeLimitScore(100 + 0.25 * 40, 60, 140, curve)!;
+    const at50 = computeLimitScore(100 + 0.5 * 40, 60, 140, curve)!;
+    const at75 = computeLimitScore(100 + 0.75 * 40, 60, 140, curve)!;
+    expect(at25).toBeGreaterThanOrEqual(at50);
+    expect(at50).toBeGreaterThanOrEqual(at75);
   });
 });

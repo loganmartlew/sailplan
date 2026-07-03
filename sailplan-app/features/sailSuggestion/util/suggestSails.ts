@@ -2,6 +2,10 @@ import type { Sail } from '~/features/sail';
 import type { PolarPoint } from '~/features/sailPolar/model/interpolation';
 import type { SailTwaLimit } from '~/features/sailTwaLimit/model/sailTwaLimit';
 import type { SailSuggestionResult } from '../model/sailSuggestion';
+import {
+  DEFAULT_SUGGESTION_CONFIG,
+  type SuggestionConfig,
+} from '../model/suggestionConfig';
 import { getWindZone } from '../model/windZone';
 import { evaluateSail } from './evaluateSail';
 import { suggestionGuards } from './guards/guardRegistry';
@@ -13,18 +17,20 @@ export function suggestSails(
   sails: Sail[],
   allPolars: Map<number, PolarPoint[]>,
   allLimits: Map<number, SailTwaLimit[]>,
+  config: SuggestionConfig = DEFAULT_SUGGESTION_CONFIG,
 ): SailSuggestionResult {
   const evaluations = sails.map(sail => {
     const polars = allPolars.get(sail.id) ?? [];
     const limits = allLimits.get(sail.id) ?? [];
-    return evaluateSail(sail, twa, tws, polars, limits, suggestionGuards);
+    return evaluateSail(sail, twa, tws, polars, limits, suggestionGuards, config);
   });
 
-  const { ranked, suggested } = rankSails(evaluations);
+  const { ranked, suggested, isFallback } = rankSails(evaluations, config);
 
   return {
     evaluations: ranked,
     suggested,
+    isFallback,
     conditions: {
       twa,
       tws,

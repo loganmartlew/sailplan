@@ -17,15 +17,21 @@ import {
   NewSailPolarDialog,
   SailPolarSubmitValues,
 } from '~/features/sailPolar';
-import type { SailEvaluation } from '~/features/sailSuggestion/model/sailEvaluation';
 import { formatAngle } from '~/lib/format';
 import { Plus, Sailboat, MoveRight } from '~/lib/icons';
 import { cn } from '~/lib/utils';
 import { TackDirectionBadge } from './TackDirectionBadge';
-import { useSailSuggestions } from '~/features/sailSuggestion';
+import {
+  useSailSuggestions,
+  type RankedSailEvaluation,
+} from '~/features/sailSuggestion';
 import Color from 'color';
 
-function SailSuggestionBadges({ suggested }: { suggested: SailEvaluation[] }) {
+function SailSuggestionBadges({
+  suggested,
+}: {
+  suggested: RankedSailEvaluation[];
+}) {
   if (suggested.length === 0) {
     return (
       <Text className='text-sm text-muted-foreground'>No Suggestions</Text>
@@ -98,21 +104,6 @@ export function CourseLegCard({
 
   const sailSuggestions = useSailSuggestions(twa.angle, tws);
   const suggested = sailSuggestions?.suggested ?? [];
-
-  // if (from.mark.name === '') {
-  console.log(
-    JSON.stringify(
-      {
-        from: from.mark.name,
-        to: to.mark.name,
-        twa: twa.angle,
-        suggested,
-      },
-      null,
-      2,
-    ),
-  );
-  // }
 
   async function handlePolarSubmit(data: SailPolarSubmitValues) {
     await createSailPolar(data);

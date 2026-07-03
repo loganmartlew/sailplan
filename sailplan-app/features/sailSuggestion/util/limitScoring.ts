@@ -1,4 +1,5 @@
 import type { SailTwaLimit } from '~/features/sailTwaLimit/model/sailTwaLimit';
+import type { SuggestionConfig } from '../model/suggestionConfig';
 
 export interface InterpolatedLimits {
   minTwa: number | null;
@@ -21,8 +22,13 @@ export interface InterpolatedLimits {
  *   one TWS but null at the other, the defined value is used for both to
  *   avoid extrapolating into undefined territory.
  *
+ * **Ordering precondition:** callers pass rows ordered by `tws` (the query in
+ * `api/getSailSuggestionData.ts` already orders by `sailTwaLimit.tws`). The
+ * defensive re-sort below exists only to tolerate unordered ad-hoc
+ * callers/tests and is otherwise redundant.
+ *
  * @param tws  - The current true wind speed to interpolate at.
- * @param limits - All TWA limit rows for one sail, in any order.
+ * @param limits - All TWA limit rows for one sail, ordered by `tws`.
  * @returns Interpolated min/max TWA boundaries (either or both may be null).
  */
 export function interpolateTwaLimits(
@@ -78,33 +84,40 @@ export function interpolateTwaLimits(
   };
 }
 
-const ONE_SIDED_OFFSET = 20;
-const OUTSIDE_FLOOR = -0.5;
-
 /**
  * Scores how well a TWA angle fits within the sail's allowed TWA window.
  *
- * Uses a raised-cosine bell curve centered on the midpoint of the TWA range:
- * - Score = 1.0 at the center of [minTwa, maxTwa] (ideal angle).
- * - Score tapers smoothly to 0.0 at the edges (still within limits).
- * - Score goes negative outside the limits, linearly decaying to a floor
- *   of -0.5 (penalises out-of-range but doesn't dominate ranking).
+ * A TWA window is a "safe/appropriate to fly" range, **not** a preference
+ * curve — the midpoint is not the ideal angle. So the shape is a trapezoid,
+ * not a bell curve:
+ * - Flat **1.0** across the middle `plateauFraction` of the window — being at
+ *   the deep edge of a downwind sail's window is not punished.
+ * - Linear taper from 1.0 down to `edgeScore` between the plateau and the edge.
+ * - Outside the window, linear decay to `outsideFloor`.
+ *
+ * The step from `edgeScore` (just inside) to 0 (just outside) is a
+ * **deliberate discontinuity**: in-range must always beat out-of-range by a
+ * margin. Do not "fix" it into a continuous curve.
  *
  * One-sided limits (only min or only max defined) assume a synthetic range
- * by adding/subtracting a fixed offset. Returns null when no limits are
- * defined, indicating the score is not applicable.
+ * using `oneSidedOffsetDeg`. Returns null when no limits are defined,
+ * indicating the score is not applicable.
  *
  * @param twa    - The true wind angle to evaluate.
  * @param minTwa - Lower TWA boundary (null if undefined).
  * @param maxTwa - Upper TWA boundary (null if undefined).
- * @returns A score in the range [-0.5, 1.0], or null if no limits exist.
+ * @param curve  - Trapezoid tuning from `SuggestionConfig.limitCurve`.
+ * @returns A score in `[outsideFloor, 1.0]`, or null if no limits exist.
  */
 export function computeLimitScore(
   twa: number,
   minTwa: number | null,
   maxTwa: number | null,
+  curve: SuggestionConfig['limitCurve'],
 ): number | null {
   if (minTwa === null && maxTwa === null) return null;
+
+  const { plateauFraction, edgeScore, outsideFloor, oneSidedOffsetDeg } = curve;
 
   let center: number;
   let halfRange: number;
@@ -114,13 +127,13 @@ export function computeLimitScore(
     center = (minTwa + maxTwa) / 2;
     halfRange = (maxTwa - minTwa) / 2;
   } else if (minTwa !== null) {
-    // Only a minimum: assume the ideal is slightly above the min.
-    center = minTwa + ONE_SIDED_OFFSET;
-    halfRange = ONE_SIDED_OFFSET;
+    // Only a minimum: assume the window extends a fixed offset above the min.
+    center = minTwa + oneSidedOffsetDeg;
+    halfRange = oneSidedOffsetDeg;
   } else {
-    // Only a maximum: assume the ideal is slightly below the max.
-    center = maxTwa! - ONE_SIDED_OFFSET;
-    halfRange = ONE_SIDED_OFFSET;
+    // Only a maximum: assume the window extends a fixed offset below the max.
+    center = maxTwa! - oneSidedOffsetDeg;
+    halfRange = oneSidedOffsetDeg;
   }
 
   if (halfRange <= 0) halfRange = 1; // guard against degenerate min === max
@@ -128,11 +141,17 @@ export function computeLimitScore(
   // t = 0 at center, t = 1 at edge, t > 1 outside the range.
   const t = Math.abs(twa - center) / halfRange;
 
-  if (t <= 1) {
-    // Inside range: raised cosine bell, 1.0 → 0.0.
-    return 0.5 * (1 + Math.cos(Math.PI * t));
+  if (t <= plateauFraction) {
+    // Flat plateau across the middle of the window.
+    return 1.0;
   }
 
-  // Outside range: gentle linear penalty, floored at OUTSIDE_FLOOR.
-  return Math.max(OUTSIDE_FLOOR, -0.5 * (t - 1));
+  if (t <= 1) {
+    // Linear taper from 1.0 at the plateau edge down to edgeScore at the edge.
+    const taper = (t - plateauFraction) / (1 - plateauFraction);
+    return 1 - taper * (1 - edgeScore);
+  }
+
+  // Outside range: gentle linear penalty, floored at outsideFloor.
+  return Math.max(outsideFloor, -0.5 * (t - 1));
 }

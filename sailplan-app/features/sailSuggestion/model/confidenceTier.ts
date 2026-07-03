@@ -1,5 +1,3 @@
-import type { WindZone } from './windZone';
-
 export type ConfidenceTier = 'high' | 'moderate' | 'low';
 
 export interface ConfidenceThresholds {
@@ -7,17 +5,18 @@ export interface ConfidenceThresholds {
   moderate: number;
 }
 
-export const CONFIDENCE_THRESHOLDS: Record<WindZone, ConfidenceThresholds> = {
-  upwind: { high: 0.7, moderate: 0.4 },
-  reaching: { high: 0.6, moderate: 0.3 },
-  downwind: { high: 0.65, moderate: 0.35 },
-};
-
+/**
+ * Buckets a raw confidence value (0–1) into a discrete tier.
+ *
+ * Since the continuous blend landed (finding 1.1), the tier is a **display
+ * label only** — nothing in ranking branches on it. The per-zone threshold
+ * record was collapsed to a single set (finding 2.4); pass
+ * `config.confidenceTiers`.
+ */
 export function classifyConfidence(
   confidence: number,
-  zone: WindZone,
+  thresholds: ConfidenceThresholds,
 ): ConfidenceTier {
-  const thresholds = CONFIDENCE_THRESHOLDS[zone];
   if (confidence >= thresholds.high) return 'high';
   if (confidence >= thresholds.moderate) return 'moderate';
   return 'low';

@@ -60,8 +60,8 @@ one plan:
 
 | Package | Status      |
 | ------- | ----------- |
-| 0       | Not started |
-| A       | Not started |
+| 0       | Done        |
+| A       | Done        |
 | B       | Not started |
 | C       | Not started |
 | D       | Not started |
