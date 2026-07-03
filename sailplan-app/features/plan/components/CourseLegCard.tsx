@@ -22,7 +22,10 @@ import { formatAngle } from '~/lib/format';
 import { Plus, Sailboat, MoveRight } from '~/lib/icons';
 import { cn } from '~/lib/utils';
 import { TackDirectionBadge } from './TackDirectionBadge';
-import { useSailSuggestions } from '~/features/sailSuggestion';
+import {
+  useSailSuggestions,
+  type SailSuggestionData,
+} from '~/features/sailSuggestion';
 import Color from 'color';
 
 function SailSuggestionBadges({ suggested }: { suggested: SailEvaluation[] }) {
@@ -62,6 +65,7 @@ interface CourseLegCardProps {
   bearing: number;
   twa: TWA;
   tws: number;
+  suggestionData: SailSuggestionData | null;
 }
 
 function MarkTitle({ mark }: { mark: CourseMarkWithMark }) {
@@ -93,10 +97,11 @@ export function CourseLegCard({
   bearing,
   twa,
   tws,
+  suggestionData,
 }: CourseLegCardProps) {
   const [polarDialogOpen, setPolarDialogOpen] = useState(false);
 
-  const sailSuggestions = useSailSuggestions(twa.angle, tws);
+  const sailSuggestions = useSailSuggestions(suggestionData, twa.angle, tws);
   const suggested = sailSuggestions?.suggested ?? [];
 
   // if (from.mark.name === '') {

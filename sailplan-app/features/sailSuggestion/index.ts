@@ -20,6 +20,7 @@ export type { SailSuggestionResult } from './model/sailSuggestion';
 export { suggestSails } from './util/suggestSails';
 
 // API
+export type { SailSuggestionData } from './api/getSailSuggestionData';
 export { useSailSuggestionData } from './api/getSailSuggestionData';
 
 // Hooks

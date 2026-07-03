@@ -8,7 +8,8 @@ ranks every sail in the active boat profile and returns up to 3 top picks.
 | Export                                                | Purpose                                         |
 | ----------------------------------------------------- | ----------------------------------------------- |
 | `suggestSails(twa, tws, sails, allPolars, allLimits)` | Pure function — core pipeline                   |
-| `useSailSuggestions(twa, tws)`                        | React hook — fetches data, calls `suggestSails` |
+| `useSailSuggestionData(boatProfileId)`                | React hook — fetches sails/polars/limits once   |
+| `useSailSuggestions(data, twa, tws)`                  | React hook — pure `suggestSails` compute (memo) |
 
 ## Pipeline overview
 
@@ -138,8 +139,12 @@ boat profile and aggregates the results into `Map`s keyed by sail ID:
 | Polars | `sailPolar` (inner join `sail`)    | `Map<sailId, PolarPoint[]>`   |
 | Limits | `sailTwaLimit` (inner join `sail`) | `Map<sailId, SailTwaLimit[]>` |
 
-The React hook `useSailSuggestions` composes the data layer with `suggestSails`
-via `useMemo`, recomputing only when inputs change.
+The two hooks are split so N callers can share one subscription: a screen
+calls `useSailSuggestionData(boatProfileId)` **once** and passes the result
+down; each consumer then calls `useSailSuggestions(data, twa, tws)`, a pure
+`useMemo` wrapper around `suggestSails` with no queries of its own. This is
+how `app/(plan)/course/plan.tsx` gives every `CourseLegCard` in a course
+access to the same live data without each card mounting its own queries.
 
 ## Key types
 
@@ -167,7 +172,7 @@ sailSuggestion/
 ├── api/
 │   └── getSailSuggestionData.ts    Drizzle queries → SailSuggestionData
 ├── hooks/
-│   └── useSailSuggestions.ts       React hook (data + suggestSails)
+│   └── useSailSuggestions.ts       React hook (pure suggestSails compute)
 ├── model/
 │   ├── confidenceTier.ts           tier thresholds & classifyConfidence
 │   ├── guard.ts                    SuggestionGuard / GuardResult interfaces

@@ -62,7 +62,7 @@ one plan:
 | ------- | ----------- |
 | 0       | Not started |
 | A       | Not started |
-| B       | Not started |
+| B       | Done        |
 | C       | Not started |
 | D       | Not started |
 
