@@ -9,9 +9,29 @@ import {
   interpolateSpeed,
   computeConfidence,
   estimateSailSpeed,
+  type ScoredPolarPoint,
 } from '../interpolation';
 
-const cfg = DEFAULT_INTERPOLATION_CONFIG;
+/**
+ * This suite pins the **IDW path** (scattered-point interpolation). The
+ * default `'auto'` strategy and the bilinear grid path are covered in
+ * `bilinear.test.ts`.
+ */
+const cfg: InterpolationConfig = {
+  ...DEFAULT_INTERPOLATION_CONFIG,
+  strategy: 'idw',
+};
+
+/** Pairs points with their distances, as `selectNearestPoints` would. */
+function scored(
+  target: { tws: number; twa: number },
+  points: PolarPoint[],
+): ScoredPolarPoint[] {
+  return points.map(point => ({
+    point,
+    distance: computeDistance(target, point, cfg.twaScale),
+  }));
+}
 
 // ---------------------------------------------------------------------------
 // computeDistance
@@ -91,9 +111,15 @@ describe('selectNearestPoints', () => {
     expect(result.length).toBeLessThanOrEqual(cfg.k);
   });
 
-  it('returns points sorted by distance (nearest first)', () => {
+  it('returns points sorted by distance (nearest first), with distances', () => {
     const result = selectNearestPoints({ tws: 10, twa: 90 }, points, cfg);
-    expect(result[0]).toEqual({ tws: 10, twa: 90, speed: 5 });
+    expect(result[0].point).toEqual({ tws: 10, twa: 90, speed: 5 });
+    expect(result[0].distance).toBe(0);
+    for (let i = 1; i < result.length; i++) {
+      expect(result[i].distance).toBeGreaterThanOrEqual(
+        result[i - 1].distance,
+      );
+    }
   });
 
   it('excludes points outside the search window', () => {
@@ -102,7 +128,7 @@ describe('selectNearestPoints', () => {
       { tws: 10, twa: 90, speed: 5 },
     ];
     const result = selectNearestPoints({ tws: 10, twa: 90 }, farPoints, cfg);
-    expect(result).toEqual([{ tws: 10, twa: 90, speed: 5 }]);
+    expect(result.map(r => r.point)).toEqual([{ tws: 10, twa: 90, speed: 5 }]);
   });
 
   it('returns empty array when no points in window', () => {
@@ -125,7 +151,7 @@ describe('selectNearestPoints', () => {
     ];
     const result = selectNearestPoints({ tws: 10, twa: 90 }, borderPoints, cfg);
     expect(result.length).toBe(1);
-    expect(result[0].tws).toBe(18);
+    expect(result[0].point.tws).toBe(18);
   });
 
   it('respects maxTwaDelta boundary', () => {
@@ -135,7 +161,7 @@ describe('selectNearestPoints', () => {
     ];
     const result = selectNearestPoints({ tws: 10, twa: 90 }, borderPoints, cfg);
     expect(result.length).toBe(1);
-    expect(result[0].twa).toBe(130);
+    expect(result[0].point.twa).toBe(130);
   });
 });
 
@@ -144,7 +170,7 @@ describe('selectNearestPoints', () => {
 // ---------------------------------------------------------------------------
 describe('interpolateSpeed', () => {
   it('returns 0 speed for empty points', () => {
-    const result = interpolateSpeed({ tws: 10, twa: 90 }, [], cfg);
+    const result = interpolateSpeed([], cfg);
     expect(result.predictedSpeed).toBe(0);
     expect(result.pointsUsed).toEqual([]);
   });
@@ -154,15 +180,14 @@ describe('interpolateSpeed', () => {
       { tws: 10, twa: 90, speed: 6.5 },
       { tws: 12, twa: 95, speed: 7 },
     ];
-    const result = interpolateSpeed({ tws: 10, twa: 90 }, points, cfg);
+    const result = interpolateSpeed(scored({ tws: 10, twa: 90 }, points), cfg);
     expect(result.predictedSpeed).toBe(6.5);
     expect(result.pointsUsed).toEqual([{ tws: 10, twa: 90, speed: 6.5 }]);
   });
 
   it('returns the single point speed when only one point given', () => {
     const result = interpolateSpeed(
-      { tws: 10, twa: 90 },
-      [{ tws: 12, twa: 95, speed: 7 }],
+      scored({ tws: 10, twa: 90 }, [{ tws: 12, twa: 95, speed: 7 }]),
       cfg,
     );
     expect(result.predictedSpeed).toBe(7);
@@ -174,7 +199,7 @@ describe('interpolateSpeed', () => {
       { tws: 12, twa: 90, speed: 4 }, // ΔTWS = +2
       { tws: 8, twa: 90, speed: 8 }, // ΔTWS = -2
     ];
-    const result = interpolateSpeed({ tws: 10, twa: 90 }, points, cfg);
+    const result = interpolateSpeed(scored({ tws: 10, twa: 90 }, points), cfg);
     expect(result.predictedSpeed).toBeCloseTo(6, 5);
   });
 
@@ -183,7 +208,7 @@ describe('interpolateSpeed', () => {
       { tws: 11, twa: 90, speed: 10 }, // very close, dist = 1
       { tws: 18, twa: 90, speed: 2 }, // far, dist = 8
     ];
-    const result = interpolateSpeed({ tws: 10, twa: 90 }, points, cfg);
+    const result = interpolateSpeed(scored({ tws: 10, twa: 90 }, points), cfg);
     // Closer point (speed=10) should dominate
     expect(result.predictedSpeed).toBeGreaterThan(8);
   });
@@ -196,7 +221,7 @@ describe('interpolateSpeed', () => {
       { tws: 12, twa: 90, speed: 5 }, // dist = 2
       { tws: 14, twa: 90, speed: 9 }, // dist = 4
     ];
-    const result = interpolateSpeed({ tws: 10, twa: 90 }, points, cfg);
+    const result = interpolateSpeed(scored({ tws: 10, twa: 90 }, points), cfg);
     expect(result.predictedSpeed).toBeCloseTo(5.8, 1);
   });
 });
@@ -306,11 +331,13 @@ describe('computeConfidence', () => {
 });
 
 // ---------------------------------------------------------------------------
-// estimateSailSpeed (integration)
+// estimateSailSpeed (integration, IDW path pinned)
 // ---------------------------------------------------------------------------
-describe('estimateSailSpeed', () => {
+describe('estimateSailSpeed (strategy: idw)', () => {
+  const idw = { strategy: 'idw' as const };
+
   it('returns zero result for empty polars', () => {
-    const result = estimateSailSpeed({ tws: 10, twa: 90 }, []);
+    const result = estimateSailSpeed({ tws: 10, twa: 90 }, [], idw);
     expect(result.predictedSpeed).toBe(0);
     expect(result.confidence).toBe(0);
     expect(result.pointsUsed).toEqual([]);
@@ -322,7 +349,7 @@ describe('estimateSailSpeed', () => {
       { tws: 12, twa: 100, speed: 7 },
       { tws: 8, twa: 80, speed: 5 },
     ];
-    const result = estimateSailSpeed({ tws: 10, twa: 90 }, points);
+    const result = estimateSailSpeed({ tws: 10, twa: 90 }, points, idw);
     expect(result.predictedSpeed).toBe(6.2);
   });
 
@@ -333,23 +360,25 @@ describe('estimateSailSpeed', () => {
       { tws: 8, twa: 100, speed: 5 },
       { tws: 12, twa: 100, speed: 7 },
     ];
-    const result = estimateSailSpeed({ tws: 10, twa: 90 }, points);
+    const result = estimateSailSpeed({ tws: 10, twa: 90 }, points, idw);
     // All equidistant → should average to 5.5
     expect(result.predictedSpeed).toBeCloseTo(5.5, 1);
     expect(result.confidence).toBeGreaterThanOrEqual(0.6);
   });
 
   it('handles single polar point', () => {
-    const result = estimateSailSpeed({ tws: 10, twa: 90 }, [
-      { tws: 12, twa: 95, speed: 6 },
-    ]);
+    const result = estimateSailSpeed(
+      { tws: 10, twa: 90 },
+      [{ tws: 12, twa: 95, speed: 6 }],
+      idw,
+    );
     expect(result.predictedSpeed).toBe(6);
     expect(result.pointsUsed.length).toBe(1);
   });
 
   it('ignores far-away points and returns low confidence', () => {
     const points: PolarPoint[] = [{ tws: 30, twa: 170, speed: 10 }];
-    const result = estimateSailSpeed({ tws: 10, twa: 90 }, points);
+    const result = estimateSailSpeed({ tws: 10, twa: 90 }, points, idw);
     expect(result.predictedSpeed).toBe(0);
     expect(result.confidence).toBe(0);
   });
@@ -361,15 +390,17 @@ describe('estimateSailSpeed', () => {
         points.push({ tws, twa, speed: tws * 0.5 + twa * 0.02 });
       }
     }
-    const result = estimateSailSpeed({ tws: 10, twa: 90 }, points);
+    const result = estimateSailSpeed({ tws: 10, twa: 90 }, points, idw);
     expect(result.confidence).toBeGreaterThanOrEqual(0.6);
     expect(result.pointsUsed.length).toBeGreaterThan(0);
   });
 
   it('produces low confidence for a single distant point', () => {
-    const result = estimateSailSpeed({ tws: 10, twa: 90 }, [
-      { tws: 17, twa: 125, speed: 5 },
-    ]);
+    const result = estimateSailSpeed(
+      { tws: 10, twa: 90 },
+      [{ tws: 17, twa: 125, speed: 5 }],
+      idw,
+    );
     expect(result.confidence).toBeLessThan(0.3);
   });
 
@@ -379,7 +410,10 @@ describe('estimateSailSpeed', () => {
       { tws: 12, twa: 95, speed: 6 },
       { tws: 14, twa: 100, speed: 7 },
     ];
-    const resultK1 = estimateSailSpeed({ tws: 11, twa: 92 }, points, { k: 1 });
+    const resultK1 = estimateSailSpeed({ tws: 11, twa: 92 }, points, {
+      ...idw,
+      k: 1,
+    });
     expect(resultK1.pointsUsed.length).toBeLessThanOrEqual(1);
   });
 
@@ -397,7 +431,7 @@ describe('estimateSailSpeed', () => {
       { tws: 20, twa: 90, speed: 7.5 },
       { tws: 20, twa: 140, speed: 8.0 },
     ];
-    const result = estimateSailSpeed({ tws: 11, twa: 95 }, points);
+    const result = estimateSailSpeed({ tws: 11, twa: 95 }, points, idw);
     expect(result.predictedSpeed).toBeGreaterThan(4);
     expect(result.predictedSpeed).toBeLessThan(8);
     expect(result.confidence).toBeGreaterThan(0.3);

@@ -64,6 +64,6 @@ one plan:
 | A       | Done        |
 | B       | Done        |
 | C       | Not started |
-| D       | Not started |
+| D       | Done        |
 
 Update this table as packages land (link the PR/commit).

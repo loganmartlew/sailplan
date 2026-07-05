@@ -74,7 +74,7 @@ picking the right one for the leg's TWA/TWS.
 | **Polar**       | A sail's performance model: at a given TWS and TWA, how fast (`speed`) the boat goes. Stored as many discrete points in `sailPolar`. |
 | **Polar point** | One `(tws, twa, speed)` sample. `PolarPoint` in code.                                                       |
 | **Polar diagram** | The classic radial plot of speed vs. wind angle. Rendered as `polar` or `scatter` chart (`polarChartType` setting). |
-| **Interpolation** | Estimating boat speed at a TWS/TWA that isn't an exact stored point, using **Inverse Distance Weighting (IDW)** over nearby points. See [`features/sailPolar`](../features/sailPolar/README.md). |
+| **Interpolation** | Estimating boat speed at a TWS/TWA that isn't an exact stored point — **bilinear** over the polar grid, falling back to **Inverse Distance Weighting (IDW)** over nearby points when the data isn't gridded. See [`features/sailPolar`](../features/sailPolar/README.md). |
 | **Confidence**  | How trustworthy an interpolated speed is (0–1), based on how close/dense/bracketing the nearby polar points are. Bucketed into high/moderate/low **tiers**. |
 
 ## TWA limits

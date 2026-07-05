@@ -18,19 +18,58 @@ A polar is many discrete `PolarPoint`s (`{ tws, twa, speed }`), stored in the
 
 ## Interpolation (`util/interpolation.ts`)
 
-Real conditions rarely land on a stored point, so boat speed is **estimated** by
-**Inverse Distance Weighting (IDW)** over nearby points.
+Real conditions rarely land on a stored point, so boat speed is **estimated**.
+Polar data is naturally a grid (TWS columns × TWA rows), so the primary path is
+**bilinear grid interpolation**; **Inverse Distance Weighting (IDW)** over
+nearby points remains as the fallback for scattered or ragged data.
 
 ### `estimateSailSpeed(target, points, config?) → InterpolationResult`
 
-The entry point. Pipeline:
+The entry point. With the default `strategy: 'auto'`:
+
+```
+1. buildPolarGrid     — group points into TWS columns, rows sorted by TWA
+2. Bilinear attempt   — bracket TWS between two columns (gap ≤ maxTwsGap),
+                        linearly interpolate TWA within each (gap ≤ maxTwaGap),
+                        blend the column speeds linearly in TWS
+3. On failure → IDW   — the pre-grid scattered-point path (below)
+→ { predictedSpeed, confidence, pointsUsed }
+```
+
+There is no global "is it a grid" heuristic — **the grid attempt is the
+detection**. If the data can't bracket or clamp the target (single-point
+columns, a ragged column missing the TWA range, over-wide gaps, too far
+outside the grid), that query falls back to IDW. `strategy: 'idw'` forces the
+fallback path everywhere (pre-upgrade behaviour); `'bilinear'` forces the grid
+path and returns a zero result when it fails.
+
+On a regular grid the bilinear path recovers stored speeds **exactly** at grid
+nodes and the linear blend of the 4 bracketing corners between them — unlike
+IDW, which plateaus at data points and can never predict above/below its
+neighbours. Targets just outside the grid **clamp** to the nearest column/row
+(degrading to 1-D interpolation) with confidence reduced in proportion to the
+overshoot, bounded by `maxTwsDelta`/`maxTwaDelta`.
+
+**Confidence (bilinear)** is a bracketing statement — per-axis factors,
+multiplied:
+
+```
+axisFactor = 1.0                       when bracketed (gap ≤ maxGap)
+           = max(0, 1 − dist/maxDelta) when clamped past the grid's edge
+gapFactor  = min(1, typicalGap/actualGap)   per axis; typicalGap = median
+                                            spacing of that axis's grid lines
+confidence = twsFactor × twaFactor × twsGapFactor × twaGapFactor
+```
+
+A target bracketed inside a regularly spaced grid scores **1.0**.
+
+### IDW fallback
 
 ```
 1. Filter points to a search window (|ΔTWS| ≤ maxTwsDelta, |ΔTWA| ≤ maxTwaDelta)
-2. selectNearestPoints — k nearest by weighted distance
+2. selectNearestPoints — k nearest by weighted distance (returned with distances)
 3. interpolateSpeed   — IDW blend:  Σ(speed·w) / Σw,  w = 1/distᵖ
 4. computeConfidence  — 0–1 reliability score
-→ { predictedSpeed, confidence, pointsUsed }
 ```
 
 **Distance metric** is a weighted Euclidean where TWA degrees are scaled to be
@@ -40,7 +79,7 @@ comparable to TWS knots:
 distance = sqrt(ΔTWS² + (ΔTWA · twaScale)²)
 ```
 
-**Confidence (0–1)** blends three factors (weights in config):
+**Confidence (IDW, 0–1)** blends three factors (weights in config):
 
 | Factor       | Default weight | Meaning                                                    |
 | ------------ | -------------- | ---------------------------------------------------------- |
@@ -48,9 +87,11 @@ distance = sqrt(ΔTWS² + (ΔTWA · twaScale)²)
 | point count  | 0.3            | How many points fall in the window (saturates at `k`)      |
 | coverage     | 0.2            | Whether points bracket the target in both TWS and TWA      |
 
-The suggestion engine buckets this raw score into high/moderate/low tiers with
-zone-specific thresholds — see
-[sailSuggestion](../sailSuggestion/README.md#3-confidence-tier).
+The suggestion engine buckets the raw confidence (either path) into
+high/moderate/low display tiers — see
+[sailSuggestion](../sailSuggestion/README.md#3-confidence-tier). Bilinear
+confidences skew higher than IDW's on grid data by design: a target sitting
+inside four real measurements deserves it.
 
 ### Tuning (`model/interpolation.ts`)
 
@@ -59,16 +100,19 @@ zone-specific thresholds — see
 
 | Param            | Default | Meaning                                                    |
 | ---------------- | ------- | ---------------------------------------------------------- |
-| `k`              | 6       | Nearest points used                                        |
+| `strategy`       | `'auto'` | Bilinear when the data grids around the target, else IDW  |
+| `maxTwsGap`      | 8       | Max TWS gap (kn) between bracketing columns bilinear trusts |
+| `maxTwaGap`      | 20      | Max TWA gap (°) between bracketing rows bilinear trusts    |
+| `k`              | 6       | Nearest points used (IDW)                                  |
 | `p`              | 2       | IDW exponent (higher → closer points dominate)             |
-| `twaScale`       | 0.25    | 4° TWA ≈ 1 kn TWS in the distance metric                   |
-| `maxTwsDelta`    | 8       | Search window half-width in TWS (kn)                       |
-| `maxTwaDelta`    | 40      | Search window half-width in TWA (°)                        |
-| `confidenceWeights` | 0.5 / 0.3 / 0.2 | distance / pointCount / coverage (sum to 1)       |
+| `twaScale`       | 0.25    | 4° TWA ≈ 1 kn TWS in the distance metric (IDW)             |
+| `maxTwsDelta`    | 8       | Search window half-width in TWS (kn); also bounds bilinear clamping |
+| `maxTwaDelta`    | 40      | Search window half-width in TWA (°); also bounds bilinear clamping |
+| `confidenceWeights` | 0.5 / 0.3 / 0.2 | distance / pointCount / coverage (IDW, sum to 1) |
 
 `estimateSailSpeed` accepts a `Partial<InterpolationConfig>` to override any of
-these. With no points in range it returns `{ predictedSpeed: 0, confidence: 0,
-pointsUsed: [] }`.
+these (the suggestion engine passes `suggestionConfig.interpolation` through).
+With no data it returns `{ predictedSpeed: 0, confidence: 0, pointsUsed: [] }`.
 
 ## Charts, import, CRUD
 
@@ -89,7 +133,8 @@ sailPolar/
 │   ├── sailPolar.ts        SailPolar type + schema
 │   └── interpolation.ts    PolarPoint, InterpolationConfig, DEFAULT_INTERPOLATION_CONFIG
 ├── util/
-│   ├── interpolation.ts    estimateSailSpeed + IDW internals  (+ __tests__/)
+│   ├── interpolation.ts    estimateSailSpeed: bilinear path + IDW fallback  (+ __tests__/)
+│   ├── polarGrid.ts        grid build + axis bracket search for the bilinear path
 │   ├── chartData.ts        polar/scatter chart shaping
 │   └── sharing.ts          CSV import/export
 └── components/

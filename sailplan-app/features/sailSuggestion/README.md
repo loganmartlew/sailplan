@@ -24,7 +24,7 @@ suggestSails
  ├─ for each sail ── evaluateSail ──┐
  │                                   │
  │    1. Wind zone classification    │
- │    2. Polar interpolation (IDW)   │  → SailEvaluation (per sail)
+ │    2. Polar interpolation         │  → SailEvaluation (per sail)
  │    3. Confidence tier mapping     │
  │    4. TWA limit scoring           │
  │    5. Guard evaluation            │
@@ -52,16 +52,17 @@ TWA is mapped to a zone used later for confidence thresholds:
 
 ### 2. Polar interpolation
 
-`estimateSailSpeed` (from `sailPolar`) uses Inverse Distance Weighting (IDW) to
-estimate boat speed from the sail's polar grid. It also returns a raw
-`confidence` score (0–1) composed of:
-
-- **Distance score (50 %)** — proximity of the nearest polar points to the
-  target TWA/TWS, relative to the maximum search radius.
-- **Point count score (30 %)** — how many of the k nearest neighbours were
-  found vs. the maximum.
-- **Coverage score (20 %)** — whether the found points bracket the target in
-  both the TWS and TWA dimensions.
+`estimateSailSpeed` (from `sailPolar`) estimates boat speed from the sail's
+polar data and returns a raw `confidence` score (0–1). With the default
+`'auto'` strategy it interpolates **bilinearly** over the polar grid (TWS
+columns × TWA rows) — confidence is then a bracketing statement: 1.0 when the
+target sits inside four real measurements, reduced when clamped past the
+grid's edge or across unusually wide gaps. When the data doesn't form a usable
+grid around the target (scattered imports, ragged columns), it falls back to
+**Inverse Distance Weighting (IDW)**, whose confidence blends distance
+(50 %), point count (30 %), and coverage (20 %) scores. See the
+[sailPolar README](../sailPolar/README.md#interpolation-utilinterpolationts)
+for the full model.
 
 ### 3. Confidence tier
 

@@ -28,8 +28,8 @@ Some features have non-obvious internal logic and carry their own README:
   → directions, and the per-boat-profile plan store
 - [`features/coordinate/README.md`](../features/coordinate/README.md) — bearing
   and TWA math, coordinate formats (DMS/DMM), tack determination
-- [`features/sailPolar/README.md`](../features/sailPolar/README.md) — IDW polar
-  interpolation and confidence scoring
+- [`features/sailPolar/README.md`](../features/sailPolar/README.md) — bilinear
+  polar interpolation (IDW fallback) and confidence scoring
 
 ## How to keep these docs useful
 
