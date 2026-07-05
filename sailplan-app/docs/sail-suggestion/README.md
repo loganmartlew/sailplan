@@ -58,12 +58,12 @@ one plan:
 
 ## Status
 
-| Package | Status      |
-| ------- | ----------- |
-| 0       | Done        |
-| A       | Done        |
-| B       | Done        |
-| C       | Not started |
-| D       | Done        |
+| Package | Status |
+| ------- | ------ |
+| 0       | Done   |
+| A       | Done   |
+| B       | Done   |
+| C       | Done   |
+| D       | Done   |
 
 Update this table as packages land (link the PR/commit).

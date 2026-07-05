@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { View } from 'react-native';
+import { Pressable, View } from 'react-native';
 import {
   Badge,
   Button,
@@ -22,6 +22,7 @@ import { Plus, Sailboat, MoveRight } from '~/lib/icons';
 import { cn } from '~/lib/utils';
 import { TackDirectionBadge } from './TackDirectionBadge';
 import {
+  SuggestionBreakdownDialog,
   useSailSuggestions,
   type RankedSailEvaluation,
   type SailSuggestionData,
@@ -30,8 +31,10 @@ import Color from 'color';
 
 function SailSuggestionBadges({
   suggested,
+  isFallback,
 }: {
   suggested: RankedSailEvaluation[];
+  isFallback: boolean;
 }) {
   if (suggested.length === 0) {
     return (
@@ -43,6 +46,20 @@ function SailSuggestionBadges({
   const colorIsLight = new Color(
     topSail.sail.color?.toLowerCase() || '#888888',
   ).isLight();
+
+  if (isFallback) {
+    // Least-bad pick: muted outline instead of the confident solid badge.
+    return (
+      <>
+        <Badge variant='outline' style={{ borderColor: topSail.sail.color }}>
+          <Text className='text-sm text-foreground'>{topSail.sail.name}</Text>
+        </Badge>
+        <Text className='text-xs italic text-muted-foreground'>
+          best available
+        </Text>
+      </>
+    );
+  }
 
   return (
     <>
@@ -104,9 +121,14 @@ export function CourseLegCard({
   suggestionData,
 }: CourseLegCardProps) {
   const [polarDialogOpen, setPolarDialogOpen] = useState(false);
+  const [breakdownOpen, setBreakdownOpen] = useState(false);
 
   const sailSuggestions = useSailSuggestions(suggestionData, twa.angle, tws);
   const suggested = sailSuggestions?.suggested ?? [];
+
+  function openBreakdown() {
+    if (sailSuggestions) setBreakdownOpen(true);
+  }
 
   async function handlePolarSubmit(data: SailPolarSubmitValues) {
     await createSailPolar(data);
@@ -157,11 +179,17 @@ export function CourseLegCard({
           </View>
         </View>
         <View className='flex-row justify-between items-center'>
-          <View className='flex-row gap-1 items-center'>
+          <Pressable
+            className='flex-row gap-1 items-center'
+            onPress={openBreakdown}
+          >
             <Sailboat size={16} className='text-muted-foreground mr-2' />
-            <SailSuggestionBadges suggested={suggested} />
-          </View>
-          <Button variant='transparent' size='icon'>
+            <SailSuggestionBadges
+              suggested={suggested}
+              isFallback={sailSuggestions?.isFallback ?? false}
+            />
+          </Pressable>
+          <Button variant='transparent' size='icon' onPress={openBreakdown}>
             <MoveRight size={16} className='text-accent-foreground' />
           </Button>
         </View>
@@ -172,6 +200,13 @@ export function CourseLegCard({
         onFormSubmit={handlePolarSubmit}
         defaultTwa={twa.angle}
       />
+      {sailSuggestions && (
+        <SuggestionBreakdownDialog
+          result={sailSuggestions}
+          open={breakdownOpen}
+          onOpenChange={setBreakdownOpen}
+        />
+      )}
     </Card>
   );
 }
