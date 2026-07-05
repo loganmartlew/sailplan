@@ -163,6 +163,27 @@ into the ranked record's `reasoning` for auditability.
   (0) — e.g. every sail is outside its limits — so the UI can show a least-bad
   guess differently from a confident pick.
 
+## Reasoning UI
+
+`SuggestionBreakdownDialog` (opened from a course leg card's suggestion row or
+its trailing arrow button) is a pure display of one leg's
+`SailSuggestionResult` — no queries of its own. It shows:
+
+- **Conditions header** — TWA, TWS, wind zone (from `result.conditions`).
+- A **"best available"** warning banner when `result.isFallback` (the leg
+  card's badge row also switches to a muted outline badge with a
+  "best available" caption).
+- **Every evaluated sail** in rank order (`result.evaluations`), each as a
+  `SailEvaluationCard`: colour-swatch name badge, a **Suggested** marker for
+  sails in `result.suggested`, the confidence tier badge + raw value
+  (`ConfidenceTierBadge`), ranking score, predicted speed, polar/limit scores
+  with their resolved blend weights, an "Outside TWA limits" warning when
+  `limitsExceeded`, and one line per guard result (reason + penalty).
+
+Scores render to two decimals; angles/speeds go through `~/lib/format`.
+`reasoning.pointsUsed` is deliberately **not** rendered (debug-grade,
+unbounded length).
+
 ## Data layer
 
 `useSailSuggestionData` runs three live Drizzle queries filtered by the active
@@ -209,6 +230,10 @@ sailSuggestion/
 ├── index.ts                        public exports
 ├── api/
 │   └── getSailSuggestionData.ts    Drizzle queries → SailSuggestionData
+├── components/
+│   ├── SuggestionBreakdownDialog.tsx  per-leg reasoning breakdown (dialog shell)
+│   ├── SailEvaluationCard.tsx         one sail's breakdown block
+│   └── ConfidenceTierBadge.tsx        tier → colour badge (+ raw value)
 ├── hooks/
 │   └── useSailSuggestions.ts       React hook (pure suggestSails compute)
 ├── model/

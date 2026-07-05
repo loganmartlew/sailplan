@@ -26,6 +26,10 @@ export type { SailSuggestionResult } from './model/sailSuggestion';
 // Util
 export { suggestSails } from './util/suggestSails';
 
+// Components
+export { SuggestionBreakdownDialog } from './components/SuggestionBreakdownDialog';
+export { ConfidenceTierBadge } from './components/ConfidenceTierBadge';
+
 // API
 export type { SailSuggestionData } from './api/getSailSuggestionData';
 export { useSailSuggestionData } from './api/getSailSuggestionData';
