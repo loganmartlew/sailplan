@@ -1,5 +1,6 @@
 export * from './model/legPlanData';
 export * from './model/coursePlanData';
+export * from './model/courseLegData';
 export * from './store/planStore';
 export * from './components/CourseLegCard';
 export * from './components/CustomLocation';

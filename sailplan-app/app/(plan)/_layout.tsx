@@ -37,6 +37,12 @@ export default function Layout() {
           title: 'Course Plan',
         }}
       />
+      <Stack.Screen
+        name='course/leg'
+        options={{
+          title: 'Leg Details',
+        }}
+      />
     </Stack>
   );
 }

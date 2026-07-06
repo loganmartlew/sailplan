@@ -1,9 +1,9 @@
-import Color from 'color';
 import { View } from 'react-native';
-import { Badge, Text } from '~/components/ui';
+import { Badge, Separator, Text } from '~/components/ui';
 import { useSettings } from '~/features/settings';
 import { formatSpeed } from '~/lib/format';
 import { Check } from '~/lib/icons';
+import { cn } from '~/lib/utils';
 import type { RankedSailEvaluation } from '../model/sailEvaluation';
 import { ConfidenceTierBadge } from './ConfidenceTierBadge';
 
@@ -15,35 +15,45 @@ interface SailEvaluationCardProps {
   evaluation: RankedSailEvaluation;
   /** Whether this sail made the suggested cut. */
   suggested: boolean;
+  /** Reveal the raw ranking/polar/limit breakdown beneath the summary. */
+  showDetails?: boolean;
+}
+
+function DetailRow({ label, value }: { label: string; value: string }) {
+  return (
+    <View className='flex-row items-center justify-between gap-2'>
+      <Text className='text-xs text-muted-foreground'>{label}</Text>
+      <Text className='text-xs font-medium text-foreground'>{value}</Text>
+    </View>
+  );
 }
 
 export function SailEvaluationCard({
   evaluation,
   suggested,
+  showDetails = false,
 }: SailEvaluationCardProps) {
   const { speedUnit } = useSettings();
   const { sail, reasoning } = evaluation;
 
-  const colorIsLight = new Color(
-    sail.color?.toLowerCase() || '#888888',
-  ).isLight();
-
   return (
-    <View className='gap-1.5 rounded-lg border border-border p-3'>
+    <View
+      className={cn(
+        'gap-3 rounded-2xl border p-4',
+        suggested ? 'border-primary/40 bg-primary/5' : 'border-border bg-card',
+      )}
+    >
       <View className='flex-row items-center gap-2'>
-        <Badge
-          variant='default'
-          className='shrink'
-          style={{ backgroundColor: sail.color }}
+        <View
+          className='w-4 h-4 rounded-full'
+          style={{ backgroundColor: sail.color?.toLowerCase() || '#888888' }}
+        />
+        <Text
+          className='shrink text-base font-semibold text-foreground'
+          numberOfLines={1}
         >
-          <Text
-            className='text-sm'
-            numberOfLines={1}
-            style={{ color: colorIsLight ? '#000000' : '#FFFFFF' }}
-          >
-            {sail.name}
-          </Text>
-        </Badge>
+          {sail.name}
+        </Text>
         <View className='flex-1' />
         {suggested && (
           <Badge variant='secondary' className='flex-row items-center gap-1'>
@@ -53,26 +63,22 @@ export function SailEvaluationCard({
         )}
         <ConfidenceTierBadge
           tier={evaluation.confidenceTier}
-          confidence={evaluation.confidence}
+          confidence={showDetails ? evaluation.confidence : undefined}
         />
       </View>
 
-      <Text className='text-sm text-foreground'>
-        score {formatScore(evaluation.rankingScore)}
-        {evaluation.predictedSpeed != null &&
-          ` · predicted ${formatSpeed(evaluation.predictedSpeed, speedUnit)}`}
-      </Text>
-      <Text className='text-sm text-muted-foreground'>
-        polar{' '}
-        {evaluation.polarScore != null
-          ? `${formatScore(evaluation.polarScore)} (w ${formatScore(reasoning.polarWeight)})`
-          : '—'}
-        {'  ·  '}
-        limit{' '}
-        {evaluation.limitScore != null
-          ? `${formatScore(evaluation.limitScore)} (w ${formatScore(reasoning.limitWeight)})`
-          : '—'}
-      </Text>
+      <View className='flex-row items-baseline gap-2'>
+        <Text className='text-sm text-muted-foreground'>Predicted speed</Text>
+        {evaluation.predictedSpeed != null ? (
+          <Text className='text-lg font-bold text-primary'>
+            {formatSpeed(evaluation.predictedSpeed, speedUnit)}
+          </Text>
+        ) : (
+          <Text className='text-sm italic text-muted-foreground'>
+            no polar data
+          </Text>
+        )}
+      </View>
 
       {evaluation.limitsExceeded && (
         <Text className='text-sm text-destructive'>
@@ -83,9 +89,48 @@ export function SailEvaluationCard({
       )}
       {evaluation.guards.map(guard => (
         <Text key={guard.guardName} className='text-sm text-amber-500'>
-          ⚠ {guard.reason} (−{formatScore(guard.penalty)})
+          ⚠ {guard.reason}
         </Text>
       ))}
+
+      {showDetails && (
+        <>
+          <Separator />
+          <View className='gap-1.5'>
+            <DetailRow
+              label='Ranking score'
+              value={formatScore(evaluation.rankingScore)}
+            />
+            <DetailRow
+              label='Polar score'
+              value={
+                evaluation.polarScore != null
+                  ? `${formatScore(evaluation.polarScore)}  ·  weight ${formatScore(reasoning.polarWeight)}`
+                  : '—'
+              }
+            />
+            <DetailRow
+              label='Limit score'
+              value={
+                evaluation.limitScore != null
+                  ? `${formatScore(evaluation.limitScore)}  ·  weight ${formatScore(reasoning.limitWeight)}`
+                  : '—'
+              }
+            />
+            <DetailRow
+              label='Confidence'
+              value={formatScore(evaluation.confidence)}
+            />
+            {evaluation.guards.map(guard => (
+              <DetailRow
+                key={guard.guardName}
+                label={`Penalty · ${guard.guardName}`}
+                value={`−${formatScore(guard.penalty)}`}
+              />
+            ))}
+          </View>
+        </>
+      )}
     </View>
   );
 }

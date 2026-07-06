@@ -1,3 +1,4 @@
+import { router } from 'expo-router';
 import { useState } from 'react';
 import { Pressable, View } from 'react-native';
 import {
@@ -21,8 +22,8 @@ import { formatAngle } from '~/lib/format';
 import { Plus, Sailboat, MoveRight } from '~/lib/icons';
 import { cn } from '~/lib/utils';
 import { TackDirectionBadge } from './TackDirectionBadge';
+import { serializeCourseLegData, type CourseLegData } from '../model/courseLegData';
 import {
-  SuggestionBreakdownDialog,
   useSailSuggestions,
   type RankedSailEvaluation,
   type SailSuggestionData,
@@ -36,30 +37,19 @@ function SailSuggestionBadges({
   suggested: RankedSailEvaluation[];
   isFallback: boolean;
 }) {
-  if (suggested.length === 0) {
-    return (
-      <Text className='text-sm text-muted-foreground'>No Suggestions</Text>
-    );
+  // Only surface a sail name when we have a confident pick. A fallback
+  // ("best available") or an empty result is not a real suggestion, so we
+  // show a neutral placeholder — the leg is still drillable for the details.
+  const hasGoodOption = suggested.length > 0 && !isFallback;
+
+  if (!hasGoodOption) {
+    return <Text className='text-sm text-muted-foreground'>No suggestion</Text>;
   }
 
   const topSail = suggested[0];
   const colorIsLight = new Color(
     topSail.sail.color?.toLowerCase() || '#888888',
   ).isLight();
-
-  if (isFallback) {
-    // Least-bad pick: muted outline instead of the confident solid badge.
-    return (
-      <>
-        <Badge variant='outline' style={{ borderColor: topSail.sail.color }}>
-          <Text className='text-sm text-foreground'>{topSail.sail.name}</Text>
-        </Badge>
-        <Text className='text-xs italic text-muted-foreground'>
-          best available
-        </Text>
-      </>
-    );
-  }
 
   return (
     <>
@@ -121,13 +111,29 @@ export function CourseLegCard({
   suggestionData,
 }: CourseLegCardProps) {
   const [polarDialogOpen, setPolarDialogOpen] = useState(false);
-  const [breakdownOpen, setBreakdownOpen] = useState(false);
 
   const sailSuggestions = useSailSuggestions(suggestionData, twa.angle, tws);
   const suggested = sailSuggestions?.suggested ?? [];
 
-  function openBreakdown() {
-    if (sailSuggestions) setBreakdownOpen(true);
+  function openLegDetails() {
+    const legData: CourseLegData = {
+      from: {
+        name: from.mark.name,
+        direction: from.direction as CourseLegData['from']['direction'],
+      },
+      to: {
+        name: to.mark.name,
+        direction: to.direction as CourseLegData['to']['direction'],
+      },
+      bearing,
+      twa,
+      tws,
+    };
+
+    router.push({
+      pathname: '/course/leg',
+      params: { legData: serializeCourseLegData(legData) },
+    });
   }
 
   async function handlePolarSubmit(data: SailPolarSubmitValues) {
@@ -181,7 +187,7 @@ export function CourseLegCard({
         <View className='flex-row justify-between items-center'>
           <Pressable
             className='flex-row gap-1 items-center'
-            onPress={openBreakdown}
+            onPress={openLegDetails}
           >
             <Sailboat size={16} className='text-muted-foreground mr-2' />
             <SailSuggestionBadges
@@ -189,7 +195,7 @@ export function CourseLegCard({
               isFallback={sailSuggestions?.isFallback ?? false}
             />
           </Pressable>
-          <Button variant='transparent' size='icon' onPress={openBreakdown}>
+          <Button variant='transparent' size='icon' onPress={openLegDetails}>
             <MoveRight size={16} className='text-accent-foreground' />
           </Button>
         </View>
@@ -200,13 +206,6 @@ export function CourseLegCard({
         onFormSubmit={handlePolarSubmit}
         defaultTwa={twa.angle}
       />
-      {sailSuggestions && (
-        <SuggestionBreakdownDialog
-          result={sailSuggestions}
-          open={breakdownOpen}
-          onOpenChange={setBreakdownOpen}
-        />
-      )}
     </Card>
   );
 }
