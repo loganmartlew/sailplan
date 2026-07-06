@@ -75,7 +75,7 @@ round 1.
 | ---------------------------------------------------------------- | -------------------------------------------------------------------- | ---------- |
 | [Package E — Evaluation harness](./package-e-eval-harness.md)   | Opt-in accuracy sweep + fixture suite (noisy/clean/limits/upwind)     | —          |
 | [Package F — Coverage-aware ranking](./package-f-coverage-aware-ranking.md) | Implicit TWA envelopes from data coverage → trapezoid limit machinery | E          |
-| Package G — Noise-tolerant grid      | TWS/TWA binning so bilinear engages on logged data                    | E, F       |
+| [Package G — Noise-tolerant grid](./package-g-noise-tolerant-grid.md) | TWS clustering + TWA binning so bilinear engages on logged data       | E, F       |
 | Package H — Confidence recalibration | IDW coverage weight, `maxTwaDelta`, blend threshold re-tune           | E, F, G    |
 
 **Order is strict: E → F → G → H** — each of F/G/H moves the score space and
@@ -92,7 +92,7 @@ is judged by E's numbers.
 | D       | 1     | Done   |
 | E       | 2     | Done   |
 | F       | 2     | Done   |
-| G       | 2     | —      |
+| G       | 2     | Done   |
 | H       | 2     | —      |
 
 Update this table as packages land (link the PR/commit).

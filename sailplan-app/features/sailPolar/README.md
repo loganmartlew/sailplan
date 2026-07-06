@@ -28,20 +28,44 @@ nearby points remains as the fallback for scattered or ragged data.
 The entry point. With the default `strategy: 'auto'`:
 
 ```
-1. buildPolarGrid     — group points into TWS columns, rows sorted by TWA
+1. buildPolarGrid     — group points into TWS columns (exact TWS), rows by TWA
 2. Bilinear attempt   — bracket TWS between two columns (gap ≤ maxTwsGap),
                         linearly interpolate TWA within each (gap ≤ maxTwaGap),
                         blend the column speeds linearly in TWS
-3. On failure → IDW   — the pre-grid scattered-point path (below)
+3. On failure → clustered grid — buildClusteredPolarGrid, retry bilinear
+4. Still failing → IDW — the pre-grid scattered-point path (below)
 → { predictedSpeed, confidence, pointsUsed }
 ```
 
 There is no global "is it a grid" heuristic — **the grid attempt is the
-detection**. If the data can't bracket or clamp the target (single-point
-columns, a ragged column missing the TWA range, over-wide gaps, too far
-outside the grid), that query falls back to IDW. `strategy: 'idw'` forces the
-fallback path everywhere (pre-upgrade behaviour); `'bilinear'` forces the grid
-path and returns a zero result when it fails.
+detection**. If the exact-TWS grid can't bracket or clamp the target
+(single-point columns, a ragged column missing the TWA range, over-wide gaps,
+too far outside the grid), a **noise-tolerant clustered grid** is built and the
+bilinear attempt retried; only if that also fails does the query fall back to
+IDW. `strategy: 'idw'` forces the fallback path everywhere (pre-upgrade
+behaviour); `'bilinear'` forces the grid path (exact then clustered) and
+returns a zero result when both fail.
+
+### Noise-tolerant clustered grid (`buildClusteredPolarGrid`)
+
+Logged instrument data is a grid buried in noise: measurement scatter gives
+nearly every point a unique TWS, so **exact-TWS grouping yields only single-row
+columns and bilinear can never bracket** — the pre-G engine fell back to IDW on
+every logged import. The clustered builder revives the grid path:
+
+- **TWS clustering** — walk the sorted TWS values and start a new column
+  whenever the gap exceeds `twsClusterTolerance` (1 kn); each cluster becomes
+  one column at its points' mean TWS (a real centroid, not a lattice point).
+- **TWA binning** — group each column's points into fixed-width `twaBinDeg` (4°)
+  bins, each collapsed to one row at the bin's mean TWA carrying the bin's
+  **median** speed (robust to per-run speed scatter). Gap-based clustering can't
+  be used on TWA — per-node angular noise overlaps the node spacing — so a fixed
+  bin is used here.
+
+On clean hand-entered tables this reduces to the identity of `buildPolarGrid`
+(each exact TWS is its own cluster; each single-point bin keeps its speed), so
+trying it only after the exact grid fails never perturbs clean data. Introduced
+in [Package G](../../docs/sail-suggestion/package-g-noise-tolerant-grid.md).
 
 On a regular grid the bilinear path recovers stored speeds **exactly** at grid
 nodes and the linear blend of the 4 bracketing corners between them — unlike
@@ -103,6 +127,8 @@ inside four real measurements deserves it.
 | `strategy`       | `'auto'` | Bilinear when the data grids around the target, else IDW  |
 | `maxTwsGap`      | 8       | Max TWS gap (kn) between bracketing columns bilinear trusts |
 | `maxTwaGap`      | 20      | Max TWA gap (°) between bracketing rows bilinear trusts    |
+| `twsClusterTolerance` | 1  | Max TWS gap (kn) within one clustered column (noisy-grid revival) |
+| `twaBinDeg`      | 4       | TWA bin width (°) for de-noising rows within a clustered column |
 | `k`              | 6       | Nearest points used (IDW)                                  |
 | `p`              | 2       | IDW exponent (higher → closer points dominate)             |
 | `twaScale`       | 0.25    | 4° TWA ≈ 1 kn TWS in the distance metric (IDW)             |

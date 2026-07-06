@@ -26,13 +26,17 @@ const FIXTURES_DIR = path.resolve(__dirname, '../../../../polars/fixtures');
  * deterministic). `wrongLeaderAdjusted` / `expectedAbsentAdjusted` are
  * ceilings; `bilinearServed` is a floor.
  *
- * Tightened 2026-07-06 after **Package F** (coverage-aware ranking): implicit
- * TWA envelopes collapse the extrapolation failures on every fixture whose
- * mis-ranked sails lack explicit limits. `with-limits` improves less because
- * its residual failures are explicitly-limited sails (A2/A6) still extrapolating
- * past their user limits — F leaves the explicit path untouched by design; a
- * follow-up (extend trust-suppression to explicit limits) is the next lever.
- * See `docs/sail-suggestion/package-f-coverage-aware-ranking.md`.
+ * Tightened 2026-07-06 after **Package G** (noise-tolerant grid): a clustered
+ * grid built when exact-TWS grouping fails revives the bilinear path on logged
+ * data, so `bilinearServed` jumps from 0 to ~84 % on the noisy fixtures. Its
+ * de-noised speed estimates also improve leader accuracy on `with-limits`
+ * (23 → 14) and `upwind` (4 → 2) and hold `noisy-log`/`clean-grid`. See
+ * `docs/sail-suggestion/package-g-noise-tolerant-grid.md`.
+ *
+ * Prior tightening (2026-07-06) was **Package F** (coverage-aware ranking):
+ * implicit TWA envelopes collapsed the extrapolation failures on every fixture
+ * whose mis-ranked sails lack explicit limits. See
+ * `docs/sail-suggestion/package-f-coverage-aware-ranking.md`.
  *
  * Pre-F baselines (packages 0/A–D) in parentheses for reference.
  */
@@ -44,34 +48,36 @@ const BASELINES: Record<
     bilinearServed: number;
   }
 > = {
-  // 90 conditions; 2.2 % wrong leader (13.3 % strict), 0 % absent, 0 % bilinear.
-  // (pre-F: 52.2 % / 12.2 % / 0 %.)
+  // 90 conditions; 2.2 % wrong leader (13.3 % strict), 0 % absent, 84.3 % bilinear.
+  // G revives bilinear (0 → 455) and holds leader accuracy. (pre-F: 52.2 %.)
   'noisy-log': {
     wrongLeaderAdjusted: 2,
     expectedAbsentAdjusted: 0,
-    bilinearServed: 0,
+    bilinearServed: 455,
   },
   // 90 conditions; 0 % wrong leader (0 % strict), 0 % absent, 85.2 % bilinear.
+  // Held byte-for-byte: clustering reduces to the exact grid on clean data.
   // (pre-F: 31.1 % / 1.1 % / 85.2 %.)
   'clean-grid': {
     wrongLeaderAdjusted: 0,
     expectedAbsentAdjusted: 0,
     bilinearServed: 460,
   },
-  // 90 conditions; 25.6 % wrong leader (37.8 % strict), 10 % absent, 0 % bilinear.
-  // Residual = explicitly-limited sails extrapolating past their limits (see above).
-  // (pre-F: 54.4 % / 14.4 % / 0 %.)
+  // 90 conditions; 15.6 % wrong leader (33.3 % strict), 6.7 % absent, 84.3 % bilinear.
+  // G's de-noised speeds improve ranking (F: 23 → 14); residual = explicitly-
+  // limited sails extrapolating past their limits. (pre-F: 54.4 %.)
   'with-limits': {
-    wrongLeaderAdjusted: 23,
-    expectedAbsentAdjusted: 9,
-    bilinearServed: 0,
+    wrongLeaderAdjusted: 14,
+    expectedAbsentAdjusted: 6,
+    bilinearServed: 455,
   },
-  // 120 conditions (30 skipped in the 60–95° gap); 3.3 % wrong leader
-  // (10.8 % strict), 0 % absent, 2.4 % bilinear. (pre-F: 44.2 % / 12.5 % / 2.4 %.)
+  // 120 conditions (30 skipped in the 60–95° gap); 1.7 % wrong leader
+  // (9.2 % strict), 0 % absent, 58.6 % bilinear. G: F's 4 → 2, 20 → 492.
+  // (pre-F: 44.2 % / 12.5 % / 2.4 %.)
   upwind: {
-    wrongLeaderAdjusted: 4,
+    wrongLeaderAdjusted: 2,
     expectedAbsentAdjusted: 0,
-    bilinearServed: 20,
+    bilinearServed: 492,
   },
 };
 

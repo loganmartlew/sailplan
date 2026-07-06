@@ -210,7 +210,7 @@ move the score space).
 | ------- | ------ | ------------------------------------------------------- |
 | E       | Done   | locked (see below)                                      |
 | F       | Done   | `noisy-log` wrong-leader 52.2 % → **2.2 %** (see below)  |
-| G       | —      |                                                         |
+| G       | Done   | `noisy-log` bilinear-served 0 % → **84.3 %** (see below) |
 | H       | —      |                                                         |
 
 Update this table as packages land (link the PR/commit and the harness
@@ -250,3 +250,28 @@ unchanged by design), and the round-1 blend still weights a negative
 `limitScore` by `(1−w)≈0` at high confidence. Extending the same suppression to
 explicit limits is the highest-value follow-up — a natural Package H sub-item.
 The `bilinear served` floors are untouched (that is Package G's job).
+
+### After Package G (noise-tolerant grid)
+
+Locked 2026-07-06 (`npm run eval:suggestions`, default config;
+`twsClusterTolerance: 1`, `twaBinDeg: 4`). When exact-TWS grouping fails — the
+signature of logged data — a clustered grid revives the bilinear path (R2.1),
+so `bilinear served` jumps from 0 to ~84 % on the noisy fixtures. Its de-noised
+speeds also lift leader accuracy on `with-limits` and `upwind` while holding
+`noisy-log` and `clean-grid`:
+
+| Fixture      | Wrong leader     | strict           | Expected absent | Bilinear served  |
+| ------------ | ---------------- | ---------------- | --------------- | ---------------- |
+| `noisy-log`  | 2/90 (2.2 %)     | 12/90 (13.3 %)   | 0/90 (0 %)      | **455/540 (84.3 %)** |
+| `clean-grid` | 0/90 (0 %)       | 0/90 (0 %)       | 0/90 (0 %)      | 460/540 (85.2 %) |
+| `with-limits`| **14/90 (15.6 %)** | 30/90 (33.3 %) | **6/90 (6.7 %)** | **455/540 (84.3 %)** |
+| `upwind`     | **2/120 (1.7 %)**| 11/120 (9.2 %)   | 0/120 (0 %)     | **492/840 (58.6 %)** |
+
+G clears its gate — bilinear serves > 0 % on `noisy-log` (84.3 %) and holds
+`clean-grid`'s 85.2 % ceiling (the sweep conditions past the grid's edges still
+fall to IDW on both paths, so 85.2 %, not 100 %, is the achievable bound). Every
+score improves or holds. `clean-grid` is held **byte-for-byte**: on noise-free
+data the clustered builder reduces to the exact grid, so the exact attempt still
+serves it and the clustered path is never reached. `with-limits` still trails on
+leader accuracy for the same reason as under F — explicitly-limited sails
+extrapolating past their limits — which remains Package H's target.

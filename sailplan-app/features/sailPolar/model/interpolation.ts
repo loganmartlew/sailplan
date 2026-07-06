@@ -24,6 +24,23 @@ export interface InterpolationConfig {
   maxTwsGap: number;
   /** Max gap (degrees) between bracketing TWA grid rows for bilinear to trust them */
   maxTwaGap: number;
+  /**
+   * Noise-tolerant grid revival (Package G). When exact-TWS grouping yields no
+   * usable columns — the signature of logged data, where measurement noise gives
+   * nearly every point a unique TWS — a *clustered* grid is built instead.
+   * `twsClusterTolerance` is the max TWS gap (knots) within one column cluster:
+   * a wider gap starts a new column, so it must sit below the real column
+   * spacing yet above the per-node TWS scatter.
+   */
+  twsClusterTolerance: number;
+  /**
+   * TWA bin width (degrees) used to de-noise rows within a clustered column:
+   * points are grouped into fixed-width TWA bins, each collapsed to one
+   * synthetic row at the bin's mean TWA carrying the bin's **median** speed.
+   * Gap-based clustering can't be used on TWA — per-node angular scatter
+   * overlaps the node spacing — so a fixed bin is used here instead.
+   */
+  twaBinDeg: number;
   /** Number of nearest polar points to use for interpolation (IDW path) */
   k: number;
   /** Exponent for inverse distance weighting (higher = closer points dominate more) */
@@ -55,6 +72,8 @@ export const DEFAULT_INTERPOLATION_CONFIG: InterpolationConfig = {
   strategy: 'auto',
   maxTwsGap: 8,
   maxTwaGap: 20,
+  twsClusterTolerance: 1,
+  twaBinDeg: 4,
   k: 6,
   p: 2,
   twaScale: 0.25,

@@ -1,6 +1,12 @@
 import type { PolarPoint } from '../../model/interpolation';
+import { DEFAULT_INTERPOLATION_CONFIG } from '../../model/interpolation';
 import { estimateSailSpeed } from '../interpolation';
-import { buildPolarGrid, bracketAxis, medianAxisGap } from '../polarGrid';
+import {
+  buildPolarGrid,
+  buildClusteredPolarGrid,
+  bracketAxis,
+  medianAxisGap,
+} from '../polarGrid';
 
 /**
  * Covers the bilinear grid path and the `'auto'` strategy's IDW fallback.
@@ -88,6 +94,75 @@ describe('medianAxisGap', () => {
   it('returns the median gap (odd and even counts)', () => {
     expect(medianAxisGap([0, 10, 20, 60])).toBe(10); // gaps 10,10,40 → 10
     expect(medianAxisGap([0, 10, 40])).toBe(20); // gaps 10,30 → 20
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Noise-tolerant clustered grid (Package G)
+// ---------------------------------------------------------------------------
+describe('buildClusteredPolarGrid', () => {
+  const cfg = DEFAULT_INTERPOLATION_CONFIG;
+
+  it('reduces to the exact grid on clean data (each TWS its own column)', () => {
+    const clustered = buildClusteredPolarGrid(GRID, cfg);
+    const exact = buildPolarGrid(GRID);
+    expect(clustered.twsColumns).toEqual(exact.twsColumns);
+    for (const tws of exact.twsColumns) {
+      expect(clustered.byTws.get(tws)).toEqual(exact.byTws.get(tws));
+    }
+  });
+
+  it('clusters TWS scatter into one column at the cluster mean', () => {
+    // Three logged samples of the "8 kn" node, none sharing an exact TWS.
+    const points: PolarPoint[] = [
+      { tws: 7.8, twa: 90, speed: 6.0 },
+      { tws: 8.0, twa: 90, speed: 6.2 },
+      { tws: 8.3, twa: 90, speed: 6.4 },
+    ];
+    const grid = buildClusteredPolarGrid(points, cfg);
+    expect(grid.twsColumns).toHaveLength(1);
+    expect(grid.twsColumns[0]).toBeCloseTo((7.8 + 8.0 + 8.3) / 3, 10);
+    // One TWA bin → one row carrying the median speed (robust to the outlier).
+    const rows = grid.byTws.get(grid.twsColumns[0])!;
+    expect(rows).toHaveLength(1);
+    expect(rows[0].speed).toBe(6.2);
+  });
+
+  it('starts a new column when the TWS gap exceeds the tolerance', () => {
+    const points: PolarPoint[] = [
+      { tws: 8.0, twa: 90, speed: 6 },
+      { tws: 8.4, twa: 90, speed: 6 }, // gap 0.4 ≤ 1 → same column
+      { tws: 10.0, twa: 90, speed: 7 }, // gap 1.6 > 1 → new column
+    ];
+    const grid = buildClusteredPolarGrid(points, cfg);
+    expect(grid.twsColumns).toHaveLength(2);
+    expect(grid.twsColumns[0]).toBeCloseTo(8.2, 10);
+    expect(grid.twsColumns[1]).toBe(10);
+  });
+
+  it('bins TWA within a column and takes the median speed per bin', () => {
+    // Two well-separated TWA nodes (~88°, ~108°), three noisy samples each,
+    // in one TWS cluster. Each node's samples fall inside a single 4° bin.
+    const points: PolarPoint[] = [
+      { tws: 8.0, twa: 87, speed: 5.0 },
+      { tws: 8.1, twa: 88, speed: 6.0 },
+      { tws: 7.9, twa: 89, speed: 5.5 },
+      { tws: 8.0, twa: 107, speed: 7.0 },
+      { tws: 8.2, twa: 108, speed: 8.0 },
+      { tws: 7.8, twa: 109, speed: 7.5 },
+    ];
+    const grid = buildClusteredPolarGrid(points, cfg);
+    const rows = grid.byTws.get(grid.twsColumns[0])!;
+    expect(rows.map(r => Math.round(r.twa))).toEqual([88, 108]);
+    expect(rows[0].speed).toBe(5.5); // median(5.0, 6.0, 5.5)
+    expect(rows[1].speed).toBe(7.5); // median(7.0, 8.0, 7.5)
+  });
+
+  it('returns an empty grid for no points', () => {
+    expect(buildClusteredPolarGrid([], cfg)).toEqual({
+      twsColumns: [],
+      byTws: new Map(),
+    });
   });
 });
 
@@ -204,6 +279,43 @@ describe("estimateSailSpeed — 'auto' falls back to IDW", () => {
     const auto = estimateSailSpeed(target, ragged);
     const idw = estimateSailSpeed(target, ragged, { strategy: 'idw' });
     expect(auto).toEqual(idw);
+  });
+
+  it('revives the bilinear path on a noisy grid (Package G / R2.1)', () => {
+    // A regular grid buried in logged-instrument noise: every point gets a
+    // unique TWS (±0.3 kn) and jittered TWA (±2°), so exact-TWS grouping yields
+    // only single-row columns and the pre-G engine fell back to IDW every time.
+    let seed = 12345;
+    const rand = () => {
+      seed = (seed * 1103515245 + 12345) & 0x7fffffff;
+      return seed / 0x7fffffff;
+    };
+    const jitter = (amp: number) => (rand() * 2 - 1) * amp;
+    const noisy: PolarPoint[] = [];
+    for (const tws of [8, 10, 12, 14]) {
+      for (const twa of [80, 90, 100, 110]) {
+        for (let s = 0; s < 3; s++) {
+          noisy.push({
+            tws: tws + jitter(0.3),
+            twa: twa + jitter(2),
+            speed: linear(tws, twa) * (1 + jitter(0.05)),
+          });
+        }
+      }
+    }
+    // Exact grouping cannot form a usable column: every TWS is unique.
+    expect(
+      [...buildPolarGrid(noisy).byTws.values()].every(c => c.length < 2),
+    ).toBe(true);
+
+    const target = { tws: 11, twa: 95 };
+    const auto = estimateSailSpeed(target, noisy);
+    const idw = estimateSailSpeed(target, noisy, { strategy: 'idw' });
+    // The clustered grid served it — a different (and better-bracketed) answer
+    // than IDW, with real confidence.
+    expect(auto).not.toEqual(idw);
+    expect(auto.confidence).toBeGreaterThan(0);
+    expect(auto.predictedSpeed).toBeCloseTo(linear(11, 95), 0);
   });
 
   it('behaves identically to IDW on a scattered point cloud', () => {

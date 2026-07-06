@@ -7,6 +7,7 @@ import {
 import {
   type PolarGrid,
   buildPolarGrid,
+  buildClusteredPolarGrid,
   bracketAxis,
   medianAxisGap,
 } from './polarGrid';
@@ -363,8 +364,18 @@ export function estimateSailSpeed(
   };
 
   if (cfg.strategy !== 'idw' && points.length > 0) {
-    const bilinear = interpolateBilinear(target, buildPolarGrid(points), cfg);
-    if (bilinear) return bilinear;
+    // Try the exact-TWS grid first: it recovers clean hand-entered tables
+    // byte-for-byte. Only when that can't serve the target — the signature of
+    // logged data, where TWS noise makes every column single-row — build a
+    // noise-tolerant clustered grid and retry (Package G).
+    const exact = interpolateBilinear(target, buildPolarGrid(points), cfg);
+    if (exact) return exact;
+    const clustered = interpolateBilinear(
+      target,
+      buildClusteredPolarGrid(points, cfg),
+      cfg,
+    );
+    if (clustered) return clustered;
     if (cfg.strategy === 'bilinear') {
       return { predictedSpeed: 0, confidence: 0, pointsUsed: [] };
     }
