@@ -1,15 +1,33 @@
 import { View } from 'react-native';
 import { Badge, Separator, Text } from '~/components/ui';
 import { useSettings } from '~/features/settings';
-import { formatSpeed } from '~/lib/format';
+import { formatAngle, formatSpeed } from '~/lib/format';
 import { Check } from '~/lib/icons';
 import { cn } from '~/lib/utils';
 import type { RankedSailEvaluation } from '../model/sailEvaluation';
+import type { InterpolatedLimits } from '../util/limitScoring';
+import type { WindZone } from '../model/windZone';
 import { ConfidenceTierBadge } from './ConfidenceTierBadge';
 
 /** Unrankable sails carry a −∞ score — render a dash, not the raw float. */
 const formatScore = (score: number): string =>
   Number.isFinite(score) ? score.toFixed(2) : '—';
+
+const windZoneLabels: Record<WindZone, string> = {
+  upwind: 'Upwind',
+  reaching: 'Reaching',
+  downwind: 'Downwind',
+};
+
+/** Render the interpolated usable-TWA window as a compact human range. */
+function formatUsableWindow({ minTwa, maxTwa }: InterpolatedLimits): string {
+  if (minTwa == null && maxTwa == null) return '—';
+  if (minTwa != null && maxTwa != null) {
+    return `${formatAngle(minTwa)} – ${formatAngle(maxTwa)}`;
+  }
+  if (minTwa != null) return `≥ ${formatAngle(minTwa)}`;
+  return `≤ ${formatAngle(maxTwa as number)}`;
+}
 
 interface SailEvaluationCardProps {
   evaluation: RankedSailEvaluation;
@@ -19,11 +37,21 @@ interface SailEvaluationCardProps {
   showDetails?: boolean;
 }
 
+function GroupLabel({ children }: { children: string }) {
+  return (
+    <Text className='text-xs font-semibold uppercase tracking-wider text-muted-foreground'>
+      {children}
+    </Text>
+  );
+}
+
 function DetailRow({ label, value }: { label: string; value: string }) {
   return (
     <View className='flex-row items-center justify-between gap-2'>
       <Text className='text-xs text-muted-foreground'>{label}</Text>
-      <Text className='text-xs font-medium text-foreground'>{value}</Text>
+      <Text className='shrink text-right text-xs font-medium text-foreground'>
+        {value}
+      </Text>
     </View>
   );
 }
@@ -35,6 +63,13 @@ export function SailEvaluationCard({
 }: SailEvaluationCardProps) {
   const { speedUnit } = useSettings();
   const { sail, reasoning } = evaluation;
+
+  const pointsUsed = reasoning.pointsUsed;
+  const limitBasis = evaluation.hasLimits
+    ? 'User limits'
+    : evaluation.limitScore != null
+      ? 'Polar coverage'
+      : 'None';
 
   return (
     <View
@@ -96,7 +131,9 @@ export function SailEvaluationCard({
       {showDetails && (
         <>
           <Separator />
+
           <View className='gap-1.5'>
+            <GroupLabel>Ranking</GroupLabel>
             <DetailRow
               label='Ranking score'
               value={formatScore(evaluation.rankingScore)}
@@ -121,14 +158,44 @@ export function SailEvaluationCard({
               label='Confidence'
               value={formatScore(evaluation.confidence)}
             />
-            {evaluation.guards.map(guard => (
+            {reasoning.guardPenaltyTotal > 0 && (
               <DetailRow
-                key={guard.guardName}
-                label={`Penalty · ${guard.guardName}`}
-                value={`−${formatScore(guard.penalty)}`}
+                label='Guard penalty'
+                value={`−${formatScore(reasoning.guardPenaltyTotal)}`}
               />
-            ))}
+            )}
           </View>
+
+          <View className='gap-1.5'>
+            <GroupLabel>Basis</GroupLabel>
+            <DetailRow label='Wind zone' value={windZoneLabels[evaluation.windZone]} />
+            <DetailRow
+              label='Predicted from'
+              value={
+                pointsUsed.length > 0
+                  ? `${pointsUsed.length} polar point${pointsUsed.length === 1 ? '' : 's'}`
+                  : 'no polar data'
+              }
+            />
+            <DetailRow label='Limit basis' value={limitBasis} />
+            <DetailRow
+              label='Usable TWA'
+              value={formatUsableWindow(reasoning.usableTwa)}
+            />
+          </View>
+
+          {pointsUsed.length > 0 && (
+            <View className='gap-1.5'>
+              <GroupLabel>Interpolation points</GroupLabel>
+              {pointsUsed.map((point, index) => (
+                <DetailRow
+                  key={`${point.tws}-${point.twa}-${index}`}
+                  label={`${formatSpeed(point.tws, speedUnit)} · ${formatAngle(point.twa)}`}
+                  value={formatSpeed(point.speed, speedUnit)}
+                />
+              ))}
+            </View>
+          )}
         </>
       )}
     </View>

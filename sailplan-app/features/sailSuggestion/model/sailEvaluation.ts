@@ -1,5 +1,6 @@
 import type { Sail } from '~/features/sail';
 import type { PolarPoint } from '~/features/sailPolar';
+import type { InterpolatedLimits } from '../util/limitScoring';
 import type { ConfidenceTier } from './confidenceTier';
 import type { SuggestionGuardResult } from './guard';
 import type { WindZone } from './windZone';
@@ -10,6 +11,12 @@ export interface EvaluationReasoning {
   limitUsed: boolean;
   guardPenaltyTotal: number;
   pointsUsed: PolarPoint[];
+  /**
+   * The interpolated usable-TWA window the limit score was computed against
+   * (explicit user limits or the implicit polar-coverage envelope). Both bounds
+   * are null when the sail has no usable-range signal at all.
+   */
+  usableTwa: InterpolatedLimits;
 }
 
 /** Reasoning after ranking — adds the blend weights `rankSails` resolved. */

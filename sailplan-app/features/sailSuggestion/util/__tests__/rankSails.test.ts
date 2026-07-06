@@ -34,6 +34,7 @@ function makeEvaluation(
       limitUsed: false,
       guardPenaltyTotal: 0,
       pointsUsed: [],
+      usableTwa: { minTwa: null, maxTwa: null },
     },
     ...overrides,
   };
@@ -101,6 +102,7 @@ describe('rankSails', () => {
           limitUsed: false,
           guardPenaltyTotal: 0.1,
           pointsUsed: [],
+          usableTwa: { minTwa: null, maxTwa: null },
         },
       }),
     ];

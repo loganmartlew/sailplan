@@ -152,6 +152,7 @@ export function evaluateSail(
       limitUsed: limitScore !== null,
       guardPenaltyTotal,
       pointsUsed,
+      usableTwa: scoringLimits,
     },
   };
 }
