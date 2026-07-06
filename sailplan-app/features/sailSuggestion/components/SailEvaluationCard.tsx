@@ -75,7 +75,11 @@ export function SailEvaluationCard({
       </Text>
 
       {evaluation.limitsExceeded && (
-        <Text className='text-sm text-destructive'>⚠ Outside TWA limits</Text>
+        <Text className='text-sm text-destructive'>
+          {evaluation.hasLimits
+            ? '⚠ Outside TWA limits'
+            : '⚠ Outside observed range'}
+        </Text>
       )}
       {evaluation.guards.map(guard => (
         <Text key={guard.guardName} className='text-sm text-amber-500'>

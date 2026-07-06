@@ -158,6 +158,68 @@ describe('evaluateSail — low confidence', () => {
 });
 
 // ---------------------------------------------------------------------------
+// evaluateSail — implicit coverage envelope (Package F)
+// ---------------------------------------------------------------------------
+describe('evaluateSail — implicit coverage envelope', () => {
+  // A downwind band (TWA 125–140) with enough points to assert an envelope,
+  // and no explicit limits.
+  const bandPolars: PolarPoint[] = [];
+  for (const tws of [10, 12, 14]) {
+    for (const twa of [125, 130, 135, 140]) {
+      bandPolars.push({ tws, twa, speed: 8 });
+    }
+  }
+
+  it('scores an in-band angle through the trapezoid without suppressing trust', () => {
+    // TWA 132 sits inside the observed band → limit score applies, positive, and
+    // confidence is left at full strength (still high tier).
+    const result = evaluateSail(makeSail(), 132, 12, bandPolars, [], noGuards, cfg);
+
+    expect(result.hasLimits).toBe(false); // implicit, not user-entered
+    expect(result.reasoning.limitUsed).toBe(true);
+    expect(result.limitScore!).toBeGreaterThan(0);
+    expect(result.limitsExceeded).toBe(false);
+    expect(result.confidenceTier).toBe('high');
+  });
+
+  it('penalises and distrusts an angle the sail was never logged at', () => {
+    // TWA 95 is ~30° below the band → out-of-range decay AND suppressed
+    // confidence, so the extrapolated speed can no longer carry the ranking.
+    const inBand = evaluateSail(makeSail(), 132, 12, bandPolars, [], noGuards, cfg);
+    const outOfBand = evaluateSail(makeSail(), 95, 12, bandPolars, [], noGuards, cfg);
+
+    expect(outOfBand.limitScore!).toBeLessThan(0);
+    expect(outOfBand.limitsExceeded).toBe(true);
+    // Trust is damped relative to the same sail evaluated inside its band.
+    expect(outOfBand.confidence).toBeLessThan(inBand.confidence);
+  });
+
+  it('does not assert an envelope below minPoints', () => {
+    const fewPoints: PolarPoint[] = [
+      { tws: 12, twa: 130, speed: 8 },
+      { tws: 12, twa: 135, speed: 8 },
+    ];
+    const result = evaluateSail(makeSail(), 90, 12, fewPoints, [], noGuards, cfg);
+
+    // No envelope → scored on polars alone, exactly as before Package F.
+    expect(result.limitScore).toBeNull();
+    expect(result.reasoning.limitUsed).toBe(false);
+  });
+
+  it('lets explicit limits take precedence over the implicit envelope', () => {
+    // Explicit limits [60,120] contradict the polar band (125–140). At TWA 90 —
+    // inside the explicit window but outside the polar band — the explicit
+    // limits win: positive score, flagged as user limits, trust not suppressed.
+    const limits = [makeLimitRow(10, 60, 120), makeLimitRow(15, 60, 120)];
+    const result = evaluateSail(makeSail(), 90, 12, bandPolars, limits, noGuards, cfg);
+
+    expect(result.hasLimits).toBe(true);
+    expect(result.limitScore!).toBeGreaterThan(0);
+    expect(result.limitsExceeded).toBe(false);
+  });
+});
+
+// ---------------------------------------------------------------------------
 // evaluateSail — wind zone classification
 // ---------------------------------------------------------------------------
 describe('evaluateSail — wind zone classification', () => {

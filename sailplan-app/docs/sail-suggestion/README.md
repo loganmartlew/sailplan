@@ -1,12 +1,20 @@
 # Sail Suggestion Engine — Improvement Docs
 
-Central home for the July 2026 suggestion-engine review and the implementation
-plans that came out of it.
+Central home for the July 2026 suggestion-engine reviews and the
+implementation plans that came out of them.
 
-- [`improvements.md`](./improvements.md) — the review findings: what's wrong,
-  why, and the agreed direction. Findings are organised into **tiers** by
-  severity (1 = wrong suggestions, 2 = algorithmic, 3 = perf/integration,
-  4 = code health).
+- [`improvements.md`](./improvements.md) — the **round-1** review findings:
+  what's wrong, why, and the agreed direction. Findings are organised into
+  **tiers** by severity (1 = wrong suggestions, 2 = algorithmic,
+  3 = perf/integration, 4 = code health). Shipped as packages 0/A–D (all
+  done — see status below).
+- [`accuracy-review.md`](./accuracy-review.md) — the **round-2** quantitative
+  evaluation, run after packages 0–D landed: a 90-condition sweep against the
+  generated test polars measured **73 % wrong top picks**, traced to IDW
+  extrapolation dominance, a bilinear path that never engages on noisy data,
+  and confidence that under-punishes extrapolation. Defines packages **E–H**
+  (evaluation harness, coverage-aware ranking, noise-tolerant grid,
+  confidence recalibration).
 - The **implementation plans** below are organised into **work packages** —
   the units the work actually ships in. This split is deliberate: the tier-1
   scoring flaws and several tier-2/4 items share one score space and must ship
@@ -56,14 +64,35 @@ one plan:
 | 4.x `interpolateTwaLimits` ordering precondition           | 4    | A (ride-along) |
 | 4.x Test gaps (scenario table, negative leader, guards)    | 4    | A (test gate)  |
 
+## Round 2 — accuracy packages
+
+Defined in [`accuracy-review.md`](./accuracy-review.md) (which holds the full
+findings, product decisions D1–D3, per-package gates, and effort estimates).
+Detailed per-package plan docs get written as each package starts, as in
+round 1.
+
+| Plan                                                            | Ships                                                                | Depends on |
+| ---------------------------------------------------------------- | -------------------------------------------------------------------- | ---------- |
+| [Package E — Evaluation harness](./package-e-eval-harness.md)   | Opt-in accuracy sweep + fixture suite (noisy/clean/limits/upwind)     | —          |
+| [Package F — Coverage-aware ranking](./package-f-coverage-aware-ranking.md) | Implicit TWA envelopes from data coverage → trapezoid limit machinery | E          |
+| Package G — Noise-tolerant grid      | TWS/TWA binning so bilinear engages on logged data                    | E, F       |
+| Package H — Confidence recalibration | IDW coverage weight, `maxTwaDelta`, blend threshold re-tune           | E, F, G    |
+
+**Order is strict: E → F → G → H** — each of F/G/H moves the score space and
+is judged by E's numbers.
+
 ## Status
 
-| Package | Status |
-| ------- | ------ |
-| 0       | Done   |
-| A       | Done   |
-| B       | Done   |
-| C       | Done   |
-| D       | Done   |
+| Package | Round | Status |
+| ------- | ----- | ------ |
+| 0       | 1     | Done   |
+| A       | 1     | Done   |
+| B       | 1     | Done   |
+| C       | 1     | Done   |
+| D       | 1     | Done   |
+| E       | 2     | Done   |
+| F       | 2     | Done   |
+| G       | 2     | —      |
+| H       | 2     | —      |
 
 Update this table as packages land (link the PR/commit).

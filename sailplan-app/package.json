@@ -6,6 +6,7 @@
     "android": "cross-env APP_VARIANT=development expo run:android",
     "ios": "cross-env APP_VARIANT=development expo run:ios",
     "test": "jest --watchAll",
+    "eval:suggestions": "jest --config jest.eval.config.js --runInBand",
     "lint": "expo lint",
     "prebuild:development": "cross-env APP_VARIANT=development expo prebuild --clean",
     "build:android:development": "eas build --platform android --profile development",

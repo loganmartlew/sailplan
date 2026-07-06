@@ -19,7 +19,7 @@ folders:
 | Folder           | What it is                                                                 | Docs                                    |
 | ---------------- | -------------------------------------------------------------------------- | --------------------------------------- |
 | `sailplan-app/`  | **The product.** Expo / React Native (Android) app. Do your work here.     | [`sailplan-app/AGENTS.md`](sailplan-app/AGENTS.md) |
-| `polars/`        | A standalone Node script that generates random polar CSVs for test data.   | [see below](#the-polars-folder)         |
+| `polars/`        | Standalone Node generator for polar test data + eval fixtures.             | [see below](#the-polars-folder)         |
 
 **Almost all work happens in `sailplan-app/`.** Start with its
 [`AGENTS.md`](sailplan-app/AGENTS.md), which links into a full
@@ -28,13 +28,22 @@ sailing **domain glossary**, feature catalogue, UI, testing, routing).
 
 ## The `polars/` folder
 
-A throwaway utility, not shipped with the app.
+Test-data generation for the app's polar import **and** for the
+sail-suggestion evaluation harness. Not shipped with the app.
 
-- `generate-polars.js` — Node script that writes `polars_random.csv`, a grid of
-  random `(TWS, TWA, speed)` polar points. Used to hand-feed test data into the
-  app's polar import. Run with `node generate-polars.js`.
-- Not part of the app build, has no dependency on `sailplan-app/`, and has no
-  tests.
+- `generate-polars.js` — seeded Node script that writes the fixture variants
+  in `fixtures/` (CSV + ground-truth manifest per variant). Run with
+  `node generate-polars.js [variant…]`; output is deterministic and committed.
+- `fixtures/` — the generated fixture suite (`noisy-log`, `clean-grid`,
+  `with-limits`, `upwind`), consumed by the app's opt-in accuracy sweep
+  (`npm run eval:suggestions` in `sailplan-app/`) and importable into the app.
+  See
+  [`sailplan-app/docs/sail-suggestion/package-e-eval-harness.md`](sailplan-app/docs/sail-suggestion/package-e-eval-harness.md).
+- `polars_random.csv` — legacy unseeded dataset (the round-2 accuracy review
+  was measured on it); kept for hand-feeding the import, no longer
+  regenerated.
+- Not part of the app build and has no dependency on `sailplan-app/` (the
+  app's eval harness reads `fixtures/`, not the other way around).
 
 ## Ground rules for agents
 

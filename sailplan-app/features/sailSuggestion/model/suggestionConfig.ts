@@ -29,6 +29,22 @@ export interface SuggestionConfig {
     /** Synthetic half-window for one-sided limits (degrees). */
     oneSidedOffsetDeg: number;
   };
+  /**
+   * Implicit TWA envelope (coverageEnvelope + evaluateSail). When a sail has
+   * polar data but no explicit user limits, its own data coverage stands in as
+   * a usable-range envelope (product decision D2): angles it was never logged
+   * at are scored as out-of-range rather than trusted extrapolations.
+   */
+  coverageEnvelope: {
+    /** Min polar points near the TWS region required to assert an envelope. */
+    minPoints: number;
+    /** Knots window around the target TWS used to gather "this region" points. */
+    twsTolerance: number;
+    /** Fraction trimmed from each end of the TWA span to reject stray outliers. */
+    trimFraction: number;
+    /** Outward expansion (degrees) of the observed TWA span, per side. */
+    marginDeg: number;
+  };
   /** Symmetry guard (symmetryGuard). */
   symmetryGuard: {
     /** No penalty for either symmetry inside this TWA band. */
@@ -68,6 +84,12 @@ export const DEFAULT_SUGGESTION_CONFIG: SuggestionConfig = {
     edgeScore: 0.3,
     outsideFloor: -0.5,
     oneSidedOffsetDeg: 20,
+  },
+  coverageEnvelope: {
+    minPoints: 4,
+    twsTolerance: 6,
+    trimFraction: 0.05,
+    marginDeg: 5,
   },
   symmetryGuard: {
     deadBandMinTwa: 150,
