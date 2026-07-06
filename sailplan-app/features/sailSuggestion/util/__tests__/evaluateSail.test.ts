@@ -94,17 +94,17 @@ describe('evaluateSail — high confidence', () => {
 // evaluateSail — moderate confidence
 // ---------------------------------------------------------------------------
 describe('evaluateSail — moderate confidence', () => {
-  // Few polars, not close to target → moderate confidence
+  // Two points that bracket the target in TWS only (both above it in TWA), so
+  // coverage is partial (0.5) — enough to land between the moderate (0.35) and
+  // high (0.65) thresholds. Fewer than minPoints, so no implicit envelope.
   const moderatePolars: PolarPoint[] = [
-    { tws: 8, twa: 75, speed: 5.0 },
-    { tws: 16, twa: 105, speed: 6.5 },
+    { tws: 8, twa: 100, speed: 5.0 },
+    { tws: 16, twa: 110, speed: 6.5 },
   ];
 
   it('classifies moderate confidence correctly', () => {
     const result = evaluateSail(makeSail(), 90, 12, moderatePolars, [], noGuards, cfg);
 
-    // With 2 distant points, confidence lands between the moderate (0.35) and
-    // high (0.65) thresholds.
     expect(result.confidenceTier).toBe('moderate');
     expect(result.predictedSpeed).toBeGreaterThan(0);
   });
@@ -216,6 +216,70 @@ describe('evaluateSail — implicit coverage envelope', () => {
     expect(result.hasLimits).toBe(true);
     expect(result.limitScore!).toBeGreaterThan(0);
     expect(result.limitsExceeded).toBe(false);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// evaluateSail — explicit limit trust suppression (Package H)
+// ---------------------------------------------------------------------------
+describe('evaluateSail — explicit limit trust suppression', () => {
+  // A dense grid around a downwind band (TWA 150–180) → high raw confidence, so
+  // any suppression is visible. Mirrors a fast asym whose polars extend past its
+  // user limit.
+  const grid: PolarPoint[] = [];
+  for (const tws of [13, 15, 17]) {
+    for (const twa of [150, 160, 170, 180]) {
+      grid.push({ tws, twa, speed: 8 });
+    }
+  }
+
+  it('zeroes trust for an angle outside the user window', () => {
+    const limits = [makeLimitRow(15, 140, 165)];
+    const inside = evaluateSail(makeSail(), 158, 15, grid, limits, noGuards, cfg);
+    const outside = evaluateSail(makeSail(), 178, 15, grid, limits, noGuards, cfg);
+
+    // 178° is past the user's max (165°): the extrapolated speed is not trusted.
+    expect(outside.limitsExceeded).toBe(true);
+    expect(outside.confidence).toBe(0);
+    expect(outside.confidenceTier).toBe('low');
+    // 158° is inside the window → trust survives.
+    expect(inside.confidence).toBeGreaterThan(0);
+  });
+
+  it('keeps full trust across the whole in-window range, taper included', () => {
+    // 163° sits in the trapezoid *taper* of a narrow [140,165] window but in the
+    // *plateau* of a wide [140,200] one, so the two limit scores differ...
+    const narrow = evaluateSail(makeSail(), 163, 15, grid, [makeLimitRow(15, 140, 165)], noGuards, cfg);
+    const wide = evaluateSail(makeSail(), 163, 15, grid, [makeLimitRow(15, 140, 200)], noGuards, cfg);
+
+    expect(narrow.limitScore!).toBeLessThan(wide.limitScore!);
+    // ...yet an explicit window is a crisp yes/no: trust is full anywhere inside
+    // it, so confidence is identical (unlike an implicit envelope, which damps
+    // the taper). This is what protects a user-vouched edge angle.
+    expect(narrow.confidence).toBe(wide.confidence);
+    expect(narrow.confidence).toBeGreaterThan(0);
+  });
+
+  it('damps an implicit-envelope taper but not an explicit-limit one', () => {
+    // A narrow data band (TWA 150–156) yields a narrow implicit envelope, so
+    // 160° lands in *its* taper. A wide user window [140,175] puts the same 160°
+    // in its *plateau*. Same sail/angle/polars — the only difference is whether
+    // the limit is the user's (crisp) or inferred from coverage (fuzzy).
+    const narrowBand: PolarPoint[] = [];
+    for (const tws of [13, 15, 17]) {
+      for (const twa of [150, 152, 154, 156]) {
+        narrowBand.push({ tws, twa, speed: 8 });
+      }
+    }
+    const explicit = evaluateSail(makeSail(), 160, 15, narrowBand, [makeLimitRow(15, 140, 175)], noGuards, cfg);
+    const implicit = evaluateSail(makeSail(), 160, 15, narrowBand, [], noGuards, cfg);
+
+    expect(explicit.hasLimits).toBe(true);
+    expect(implicit.hasLimits).toBe(false); // implicit envelope, not user limits
+    expect(explicit.limitScore!).toBeGreaterThan(0);
+    expect(implicit.limitScore!).toBeGreaterThan(0);
+    // Explicit keeps full trust in-window; the implicit envelope damps its taper.
+    expect(explicit.confidence).toBeGreaterThan(implicit.confidence);
   });
 });
 

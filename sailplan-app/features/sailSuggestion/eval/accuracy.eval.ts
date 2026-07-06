@@ -26,10 +26,17 @@ const FIXTURES_DIR = path.resolve(__dirname, '../../../../polars/fixtures');
  * deterministic). `wrongLeaderAdjusted` / `expectedAbsentAdjusted` are
  * ceilings; `bilinearServed` is a floor.
  *
- * Tightened 2026-07-06 after **Package G** (noise-tolerant grid): a clustered
- * grid built when exact-TWS grouping fails revives the bilinear path on logged
- * data, so `bilinearServed` jumps from 0 to ~84 % on the noisy fixtures. Its
- * de-noised speed estimates also improve leader accuracy on `with-limits`
+ * Tightened 2026-07-06 after **Package H** (confidence & window recalibration):
+ * trust-suppression now enforces explicit user limits too (full trust inside the
+ * window, zero outside), so fast sails extrapolating past their limits stop
+ * winning — `with-limits` collapses 14 → 2 wrong-leader and 6 → 0 expected-
+ * absent, reaching parity with `noisy-log`. The other fixtures hold. See
+ * `docs/sail-suggestion/package-h-confidence-recalibration.md`.
+ *
+ * Prior tightening (2026-07-06) was **Package G** (noise-tolerant grid): a
+ * clustered grid built when exact-TWS grouping fails revives the bilinear path on
+ * logged data, so `bilinearServed` jumps from 0 to ~84 % on the noisy fixtures.
+ * Its de-noised speed estimates also improve leader accuracy on `with-limits`
  * (23 → 14) and `upwind` (4 → 2) and hold `noisy-log`/`clean-grid`. See
  * `docs/sail-suggestion/package-g-noise-tolerant-grid.md`.
  *
@@ -63,12 +70,14 @@ const BASELINES: Record<
     expectedAbsentAdjusted: 0,
     bilinearServed: 460,
   },
-  // 90 conditions; 15.6 % wrong leader (33.3 % strict), 6.7 % absent, 84.3 % bilinear.
-  // G's de-noised speeds improve ranking (F: 23 → 14); residual = explicitly-
-  // limited sails extrapolating past their limits. (pre-F: 54.4 %.)
+  // 90 conditions; 2.2 % wrong leader (13.3 % strict), 0 % absent, 84.3 % bilinear.
+  // H enforces explicit limits (trust-suppressed outside the user window), so the
+  // extrapolation wins collapse (G: 14 → 2, absent 6 → 0) — now at parity with
+  // `noisy-log`; the 2 residuals are the same benign A6/A5 (120°) and A2/S1.5
+  // (155°) crossovers. (pre-F: 54.4 %.)
   'with-limits': {
-    wrongLeaderAdjusted: 14,
-    expectedAbsentAdjusted: 6,
+    wrongLeaderAdjusted: 2,
+    expectedAbsentAdjusted: 0,
     bilinearServed: 455,
   },
   // 120 conditions (30 skipped in the 60–95° gap); 1.7 % wrong leader

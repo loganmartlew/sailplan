@@ -32,10 +32,11 @@ const clamp01 = (value: number): number => Math.max(0, Math.min(1, value));
  * 3. **TWA limit scoring** — score how well the requested TWA fits the sail's
  *    usable window. Explicit user limits win; otherwise the sail's own polar
  *    coverage stands in as an implicit envelope (Package F / decision D2).
- * 4. **Trust suppression** — for an implicit envelope, damp the polar
- *    confidence toward the limit fallback outside the observed band: absence of
- *    data at an angle is evidence the sail isn't flown there, not a licence to
- *    extrapolate. The trapezoid itself is the trust curve.
+ * 4. **Trust suppression** — damp the polar confidence toward the limit fallback
+ *    so an extrapolated speed can't carry the ranking outside the usable band.
+ *    An implicit envelope (Package F) is damped smoothly by the trapezoid taper
+ *    (its edge is a fuzzy data boundary); an explicit user limit (Package H) is
+ *    a crisp window — full trust inside, zero outside.
  * 5. **Confidence tier** — map the (possibly suppressed) confidence to a
  *    display label using a single threshold set.
  * 6. **Guards** — run each registered guard (e.g. symmetry) with a full
@@ -85,16 +86,30 @@ export function evaluateSail(
   );
   const limitsExceeded = limitScore !== null && limitScore < 0;
 
-  // 4. Trust suppression for implicit envelopes. The trapezoid *is* the trust
-  //    curve — clamp01(limitScore) is 1.0 across the observed band and 0
-  //    outside it — so damping confidence by it makes the (now-negative) limit
-  //    fallback drive the ranking instead of a trusted extrapolated speed, and
-  //    drops the sail out of the normalisation pool at angles it never sailed.
-  //    Explicit limits are left untouched: their behaviour must stay unchanged.
-  const confidence =
-    usingImplicitEnvelope && limitScore !== null
-      ? rawConfidence * clamp01(limitScore)
-      : rawConfidence;
+  // 4. Trust suppression — damp the polar confidence toward the limit fallback so
+  //    an extrapolated speed can't carry the ranking at an angle the sail
+  //    shouldn't fly. The two limit sources earn different curves because their
+  //    edges mean different things:
+  //    - **Implicit envelope (Package F)** — inferred from noisy polar coverage,
+  //      so its edge is *fuzzy*. Damp smoothly by `clamp01(limitScore)`: the
+  //      trapezoid taper is the graded trust as the target leaves observed data.
+  //    - **Explicit user limit (Package H)** — a crisp, deliberate statement.
+  //      Inside the window the user vouches for the sail *in full* (taper doubt
+  //      would wrongly penalise a legitimately-usable edge angle, e.g. near a
+  //      one-sided limit's max); outside it's a hard cutoff. So: full trust
+  //      in-window, zero outside.
+  //    Both zero out beyond the edge, dropping the sail from the normalisation
+  //    pool and letting the (negative) limit fallback drive its rank. F left
+  //    explicit limits unsuppressed to keep that score-space move measurable; H
+  //    closes the gap so a fast sail can no longer win past its user limit.
+  let confidence: number;
+  if (limitScore === null) {
+    confidence = rawConfidence;
+  } else if (usingImplicitEnvelope) {
+    confidence = rawConfidence * clamp01(limitScore);
+  } else {
+    confidence = limitScore < 0 ? 0 : rawConfidence;
+  }
 
   // 5. Map the (possibly suppressed) confidence to a discrete display tier.
   const confidenceTier = classifyConfidence(confidence, config.confidenceTiers);

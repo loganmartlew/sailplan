@@ -79,9 +79,14 @@ export const DEFAULT_INTERPOLATION_CONFIG: InterpolationConfig = {
   twaScale: 0.25,
   maxTwsDelta: 8,
   maxTwaDelta: 40,
+  // Coverage is weighted equal-highest (Package H / finding R2.3): it is the
+  // only term that knows whether the target is *bracketed* rather than
+  // extrapolated, so a one-sided TWA bracket must hurt materially. pointCount is
+  // demoted — a dense band maxes it out regardless of where the target sits, so
+  // it's the least trustworthy signal of extrapolation. (Pre-H: 0.5/0.3/0.2.)
   confidenceWeights: {
-    distance: 0.5,
-    pointCount: 0.3,
-    coverage: 0.2,
+    distance: 0.4,
+    pointCount: 0.2,
+    coverage: 0.4,
   },
 };

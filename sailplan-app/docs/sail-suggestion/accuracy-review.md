@@ -211,7 +211,7 @@ move the score space).
 | E       | Done   | locked (see below)                                      |
 | F       | Done   | `noisy-log` wrong-leader 52.2 % → **2.2 %** (see below)  |
 | G       | Done   | `noisy-log` bilinear-served 0 % → **84.3 %** (see below) |
-| H       | —      |                                                         |
+| H       | Done   | `with-limits` wrong-leader 15.6 % → **2.2 %** (see below)|
 
 Update this table as packages land (link the PR/commit and the harness
 numbers before/after).
@@ -275,3 +275,29 @@ data the clustered builder reduces to the exact grid, so the exact attempt still
 serves it and the clustered path is never reached. `with-limits` still trails on
 leader accuracy for the same reason as under F — explicitly-limited sails
 extrapolating past their limits — which remains Package H's target.
+
+### After Package H (confidence & window recalibration)
+
+Locked 2026-07-06 (`npm run eval:suggestions`, default config). Trust-suppression
+now enforces **explicit** user limits too — full trust inside the window, zero
+outside (a crisp cutoff, unlike the implicit envelope's smooth taper) — so the
+last failure class collapses: explicitly-limited sails can no longer win by
+extrapolating their polar past the user window. `with-limits` reaches parity with
+`noisy-log`; every other fixture holds:
+
+| Fixture      | Wrong leader     | strict           | Expected absent | Bilinear served  |
+| ------------ | ---------------- | ---------------- | --------------- | ---------------- |
+| `noisy-log`  | 2/90 (2.2 %)     | 12/90 (13.3 %)   | 0/90 (0 %)      | 455/540 (84.3 %) |
+| `clean-grid` | 0/90 (0 %)       | 0/90 (0 %)       | 0/90 (0 %)      | 460/540 (85.2 %) |
+| `with-limits`| **2/90 (2.2 %)** | **12/90 (13.3 %)** | **0/90 (0 %)** | 455/540 (84.3 %) |
+| `upwind`     | 2/120 (1.7 %)    | 11/120 (9.2 %)   | 0/120 (0 %)     | 492/840 (58.6 %) |
+
+H clears its gate: D3-adjusted leader accuracy is 97.8 % on `noisy-log` and
+100 % on `clean-grid` (both already met after F+G; H holds them and lifts
+`with-limits`). `with-limits`'s two residuals are the same benign crossovers
+`noisy-log` carries (A6/A5 at the 120° band edge, A2/S1.5 at 155° @ 14 kn) —
+near-ties, not extrapolation. The R2.3 IDW `maxTwaDelta` tighten was evaluated
+and **rejected** (coupled to the bilinear clamp — it regresses `bilinearServed`
+with zero accuracy gain, the extrapolation being already cut upstream at the
+usable band); the coverage-weight rebalance ships but is a no-op on these
+fixtures (see [`package-h-confidence-recalibration.md`](./package-h-confidence-recalibration.md)).
