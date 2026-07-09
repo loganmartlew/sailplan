@@ -45,6 +45,22 @@ export interface SuggestionConfig {
     /** Outward expansion (degrees) of the observed TWA span, per side. */
     marginDeg: number;
   };
+  /**
+   * Wind-range guard (windRangeGuard). Penalises sails flown outside their
+   * user-declared usable wind-speed range (`minTws`/`maxTws` on the sail).
+   * A soft taper, not a veto (decision D6): out-of-range sails stay visible in
+   * the breakdown and can still be the flagged fallback pick.
+   */
+  windRangeGuard: {
+    /** Penalty per knot of TWS excess beyond the range edge (linear ramp). */
+    penaltyPerKnot: number;
+    /**
+     * Cap on the penalty. Large enough to rank any out-of-range sail below any
+     * in-range one (the full ranking-score span is ≈1.75, max ~1.05 to floor
+     * ~−0.7), but finite so fallback selection stays possible.
+     */
+    maxPenalty: number;
+  };
   /** Symmetry guard (symmetryGuard). */
   symmetryGuard: {
     /** No penalty for either symmetry inside this TWA band. */
@@ -90,6 +106,14 @@ export const DEFAULT_SUGGESTION_CONFIG: SuggestionConfig = {
     twsTolerance: 6,
     trimFraction: 0.05,
     marginDeg: 5,
+  },
+  windRangeGuard: {
+    // At 0.5/kt the penalty reaches its 2.0 cap 4 kt past the range edge — a
+    // soft taper matching the fuzziness of a judgement like "~18 kt". The 2.0
+    // cap exceeds the full ranking-score span so a fully out-of-range sail
+    // always ranks below every in-range one, yet stays selectable as fallback.
+    penaltyPerKnot: 0.5,
+    maxPenalty: 2.0,
   },
   symmetryGuard: {
     deadBandMinTwa: 150,

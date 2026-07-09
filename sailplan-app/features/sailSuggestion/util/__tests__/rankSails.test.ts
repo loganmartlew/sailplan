@@ -13,6 +13,8 @@ function makeSail(id: number, name: string): Sail {
     sailArea: null,
     symmetrical: false,
     masthead: false,
+    minTws: null,
+    maxTws: null,
     boatProfileId: 1,
   };
 }

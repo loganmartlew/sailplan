@@ -15,6 +15,8 @@ function makeSail(overrides: Partial<Sail> = {}): Sail {
     sailArea: null,
     symmetrical: false,
     masthead: false,
+    minTws: null,
+    maxTws: null,
     boatProfileId: 1,
     ...overrides,
   };

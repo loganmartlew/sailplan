@@ -30,6 +30,12 @@ export const sail = sqliteTable('sail', {
     .notNull()
     .default(false),
   masthead: integer('masthead', { mode: 'boolean' }).notNull().default(false),
+  // Usable wind-speed range (knots). Nullable = unbounded on that side. Free
+  // numeric values, NOT snapped to the TWS_VALUES grid (Package I / D5): the
+  // limits table answers "at this wind speed, which angles?"; this range answers
+  // "is this wind speed on the table at all?".
+  minTws: real('minTws'),
+  maxTws: real('maxTws'),
   boatProfileId: integer('boatProfileId')
     .notNull()
     .references(() => boatProfile.id),

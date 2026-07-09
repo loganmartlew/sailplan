@@ -9,6 +9,7 @@ import m0004 from './0004_whole_randall_flagg.sql';
 import m0005 from './0005_calm_iron_patriot.sql';
 import m0006 from './0006_busy_red_hulk.sql';
 import m0007 from './0007_majestic_hitman.sql';
+import m0008 from './0008_uneven_lilith.sql';
 
   export default {
     journal,
@@ -20,7 +21,8 @@ m0003,
 m0004,
 m0005,
 m0006,
-m0007
+m0007,
+m0008
     }
   }
   

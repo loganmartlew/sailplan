@@ -111,6 +111,8 @@ export function buildFixture(
     sailArea: null,
     symmetrical: s.symmetrical,
     masthead: false,
+    minTws: null,
+    maxTws: null,
     boatProfileId: 1,
   }));
   const idByName = new Map(sails.map(s => [s.name.toLowerCase(), s.id]));

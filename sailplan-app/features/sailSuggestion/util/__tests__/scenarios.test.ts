@@ -19,7 +19,14 @@ import { suggestSails } from '../suggestSails';
 
 let nextSailId = 1;
 
-function makeSail(name: string, symmetrical: boolean): Sail {
+function makeSail(
+  name: string,
+  symmetrical: boolean,
+  windRange: { minTws: number | null; maxTws: number | null } = {
+    minTws: null,
+    maxTws: null,
+  },
+): Sail {
   return {
     id: nextSailId++,
     name,
@@ -27,6 +34,8 @@ function makeSail(name: string, symmetrical: boolean): Sail {
     sailArea: null,
     symmetrical,
     masthead: false,
+    minTws: windRange.minTws,
+    maxTws: windRange.maxTws,
     boatProfileId: 1,
   };
 }
@@ -407,5 +416,70 @@ describe('sail suggestion scenarios', () => {
     for (const evaluation of result.evaluations) {
       expect(evaluation.rankingScore).toBe(-Infinity);
     }
+  });
+
+  // --- Package I: per-sail wind range (windRangeGuard) --------------------
+
+  // S13 — in-range ranking is untouched: a sail with a wind ceiling flown well
+  // inside its range ranks exactly as it would without any range set.
+  it('S13: a wind range set but in-range leaves ranking unchanged', () => {
+    const build = (ceiling: number | null) => {
+      const fast = makeSail('Fast', false, { minTws: null, maxTws: ceiling });
+      const slow = makeSail('Slow', false);
+      const polars = new Map<number, PolarPoint[]>([
+        [fast.id, makeGrid(DENSE_TWS, DENSE_TWA, 8)],
+        [slow.id, makeGrid(DENSE_TWS, DENSE_TWA, 5)],
+      ]);
+      // Sailed at 15 kt — comfortably below the 18 kt ceiling.
+      return suggestSails(160, 15, [fast, slow], polars, new Map());
+    };
+
+    const withRange = build(18);
+    const withoutRange = build(null);
+
+    expect(orderedNames(withRange)).toEqual(['Fast', 'Slow']);
+    expect(orderedNames(withRange)).toEqual(orderedNames(withoutRange));
+    expect(evalFor(withRange, 'Fast').reasoning.guardPenaltyTotal).toBe(0);
+  });
+
+  // S14 — out-of-range ranks below in-range: the same fast sail, sailed above
+  // its ceiling, drops below a slower rival that has no ceiling — but stays
+  // visible in the breakdown (not vetoed).
+  it('S14: a sail sailed above its wind ceiling ranks below an in-range rival', () => {
+    const fast = makeSail('Fast', false, { minTws: null, maxTws: 18 });
+    const slow = makeSail('Slow', false);
+    const polars = new Map<number, PolarPoint[]>([
+      [fast.id, makeGrid(DENSE_TWS.concat([23, 25]), DENSE_TWA, 8)],
+      [slow.id, makeGrid(DENSE_TWS.concat([23, 25]), DENSE_TWA, 5)],
+    ]);
+
+    // Sailed at 24 kt — 6 kt over Fast's ceiling, so its penalty is capped.
+    const result = suggestSails(160, 24, [fast, slow], polars, new Map());
+
+    expect(rankOf(result, 'Slow')).toBeLessThan(rankOf(result, 'Fast'));
+    expect(evalFor(result, 'Fast').reasoning.guardPenaltyTotal).toBeGreaterThan(0);
+    // Still present in the evaluations list — a taper, not a veto.
+    expect(result.evaluations.some(e => e.sail.name === 'Fast')).toBe(true);
+  });
+
+  // S15 — fallback still works: when every sail is above its ceiling, the result
+  // is non-empty, flagged fallback, and led by the least-far-out sail.
+  it('S15: all sails above their ceiling → non-empty fallback pick', () => {
+    // Ceilings 14 and 17, sailed at 20 kt: LowCeiling is 6 kt over (penalty
+    // capped at 2.0), HighCeiling only 3 kt over (penalty 1.5). Both leaders
+    // land below zero, so the result is flagged fallback.
+    const low = makeSail('LowCeiling', false, { minTws: null, maxTws: 14 });
+    const high = makeSail('HighCeiling', false, { minTws: null, maxTws: 17 });
+    const polars = new Map<number, PolarPoint[]>([
+      [low.id, makeGrid([18, 20, 22], DENSE_TWA, 7)],
+      [high.id, makeGrid([18, 20, 22], DENSE_TWA, 7)],
+    ]);
+
+    // Sailed at 20 kt — over both ceilings, but HighCeiling is nearer its edge.
+    const result = suggestSails(160, 20, [low, high], polars, new Map());
+
+    expect(result.isFallback).toBe(true);
+    expect(result.suggested.length).toBeGreaterThanOrEqual(1);
+    expect(orderedNames(result)[0]).toBe('HighCeiling');
   });
 });

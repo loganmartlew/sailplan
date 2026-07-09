@@ -12,6 +12,8 @@ function makeSail(symmetrical: boolean): Sail {
     sailArea: null,
     symmetrical,
     masthead: false,
+    minTws: null,
+    maxTws: null,
     boatProfileId: 1,
   };
 }

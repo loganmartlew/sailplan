@@ -81,6 +81,16 @@ round 1.
 **Order is strict: E → F → G → H** — each of F/G/H moves the score space and
 is judged by E's numbers.
 
+## Round 3 — per-boat configuration
+
+Designed in a July 2026 grilling session on per-boat scoring configuration
+(structured domain facts over exposed engine tuning — decisions D4–D9 in the
+package doc).
+
+| Plan                                                                | Ships                                                                       | Depends on |
+| ------------------------------------------------------------------- | --------------------------------------------------------------------------- | ---------- |
+| [Package I — Sail usable range](./package-i-sail-usable-range.md)  | Per-sail wind range (`minTws`/`maxTws`) + `windRangeGuard` + unified limits UI + per-sail envelope chart | E (harness) |
+
 ## Status
 
 | Package | Round | Status |
@@ -94,5 +104,6 @@ is judged by E's numbers.
 | F       | 2     | Done   |
 | G       | 2     | Done   |
 | H       | 2     | Done   |
+| I       | 3     | Done   |
 
 Update this table as packages land (link the PR/commit).

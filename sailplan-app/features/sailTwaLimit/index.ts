@@ -4,3 +4,4 @@ export * from './api/upsertSailTwaLimits';
 export * from './api/deleteSailTwaLimits';
 export * from './api/ensureSailTwaLimits';
 export * from './components/TwaLimitsPreviewCard';
+export * from './components/UsableEnvelopeChart';

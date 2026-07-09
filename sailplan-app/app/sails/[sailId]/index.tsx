@@ -82,7 +82,7 @@ export default function SailDetailsPage() {
     <>
       <SailDetails sail={sail} />
       <TwaLimitsPreviewCard
-        sailId={sail.id}
+        sail={sail}
         onPress={() => router.push(`/sails/${sail.id}/twa-limits`)}
       />
       <SailPolars sail={sail} />
