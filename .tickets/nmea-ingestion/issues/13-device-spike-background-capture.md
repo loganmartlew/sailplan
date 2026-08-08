@@ -53,6 +53,19 @@ Resolved when the answer records: pass or fail per item, the actual stack that
 worked, the `app.config.js` diff required, and — if anything failed — what it
 means for founding decision 6.
 
+> **Unblocked by `14`.** The rig exists: `nmea-sim/hotspot.sh up` brings up the
+> access point on `10.42.0.1`, and `node nmea-sim.js generate --duration 10800`
+> makes the three hours of stream item 3 needs. Two notes for whoever takes
+> this:
+>
+> - `hotspot.sh up` and `hotspot.sh blackhole` are **untested end to end** —
+>   they need `sudo` and a phone, which `14` had neither of. This ticket is
+>   their first real run; expect to fix the script, and fix it in place.
+> - For item 5 to mean anything the test phone must have **working mobile
+>   data**, and must **not** have tapped "stay connected" on the no-internet
+>   prompt for that SSID (the choice is sticky — forget the network to reset
+>   it). The script prints both conditions when it starts.
+
 ## Answer
 
 <!-- filled on resolution -->

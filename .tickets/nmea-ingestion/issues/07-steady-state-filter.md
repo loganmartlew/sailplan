@@ -24,6 +24,16 @@ all produce speeds that don't belong in a polar.
    engine already clusters at 1 kn TWS and 4° TWA
    (`buildClusteredPolarGrid`) — should promotion match those, so proposed
    points land on the structure the interpolator expects, or stay independent?
+
+   **`03` narrowed this.** Promoted points are never pooled with imported ones
+   — each source is interpolated on its own grid and the answers blended — so
+   "match the imported table's structure" is no longer a consideration. What
+   remains is whether promotion's bins should match the *clustered* grid's,
+   since captured data will be served by that path. Note also that `03`
+   measured what happens when a capture's TWS range has no >1 kn gaps in it:
+   the whole range collapses into a single clustered column at the mean TWS.
+   If promotion emits points at bin centres, that collapse is avoided; if it
+   emits raw scatter, it is not.
 4. **The statistic. `12` produced a number that challenges founding decision
    7.** Measured against the noise model already in
    `polars/generate-polars.js` (20% at 0.82–0.92×, 65% at 0.97–1.03×, 15% at
@@ -50,6 +60,13 @@ all produce speeds that don't belong in a polar.
    make this measurable.
 
    Also resolve the interaction with the existing clustered grid's median.
+
+   **`03` adds a constraint here: whatever statistic is chosen is applied
+   once, at promotion, and interpolation must not re-apply it.** The
+   collision rule for stored points (`15`) is therefore deliberately neutral —
+   if promotion has already taken a high percentile for "target" and query
+   time took a max as well, the optimism compounds. Decide this statistic
+   knowing nothing downstream will add to it.
 5. **Minimum evidence.** How many samples must a bin contain before it earns a
    proposed point? A 95th percentile of four samples is just the maximum.
 6. **Outliers.** A GPS glitch or a wave surf can produce a speed the boat

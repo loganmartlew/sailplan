@@ -72,6 +72,25 @@ boat access is scarce and this ticket is on the critical path.
 6. **Units.** The app has a user `speedUnit` setting; NMEA has its own unit
    conventions per sentence. Where does conversion happen, and what is stored?
 
+> **Three things `14` handed this ticket, all measured rather than argued:**
+>
+> - **The real capture is already malformed.** In Signal K's
+>   `gofree-merrimac.log` — a genuine Navico GoFree stream, no fault injection
+>   — *all 142* `$SDVLW` sentences are corrupt (`$SDVLW,$SDVLW,,N,…`),
+>   `$IIXDR` carries `-1.-3` where a number belongs, and 331 of 6323 lines
+>   break NMEA's 82-character limit. Sentence-level validation is a **v1
+>   requirement**, not a hardening pass. Question 6's conversion step must
+>   never see an unvalidated field.
+> - **The wire costs a tenth before the app does anything.** Reducing `MWV,R`
+>   + `VHW` back to true wind recovers `MWV,T` to 0.106° mean / 0.423° max and
+>   0.034 kn mean — pure 1-dp quantisation in the sentences. Worth knowing when
+>   deciding what precision a sample row stores.
+> - **Question 4 is now testable, not hypothetical.**
+>   `node nmea-sim.js sail --script scripts/nasty.json` holds `VHW` stale for
+>   90 s while `MWV` keeps flowing, and emits the status-`V` "I have no data"
+>   form. Whatever this ticket decides, run it against that script before
+>   calling it settled.
+
 ## Answer
 
 <!-- filled on resolution -->

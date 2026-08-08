@@ -72,6 +72,37 @@ re-litigating any of the decisions below. Building it is a separate effort.
   founding decision 7. Build ticket: `14`. Full findings:
   [research/12](research/12-nmea-simulator.md).
 
+- [14 — Build the NMEA simulator](issues/14-build-the-simulator.md) — **built,
+  14 self-tests green.** [`nmea-sim/`](../../nmea-sim/README.md): replay of a
+  real Navico capture, a scripted sail at a known polar with ground truth, and
+  fault injection as a *filter over both* rather than a third mode. The fleet
+  ground truth moved to `polars/fleet.js`, shared with the fixture generator;
+  the four existing fixtures regenerate byte-identical. **The boat is now off
+  the critical path.** Two findings that change other tickets: holding the trim
+  factor over a realistic dwell (rather than redrawing per sample) **halves**
+  `12`'s p90 overstatement to +3.1 % and leaves **p75 nearly unbiased at
+  +0.9 %** — see the table in the answer, which is `07`'s evidence; and the
+  real GoFree capture turns out to be **already malformed** (every `$SDVLW`
+  corrupt, 331 over-length lines), so `05` should treat sentence validation as
+  v1, not hardening.
+
+- [03 — Does captured data poison a sail's existing polar grid?](issues/03-mixed-provenance-interpolation.md)
+  — **premise mostly wrong; one real gap and one shipped bug.** A race
+  **cannot** invalidate the rest of a table: outside the TWS band it covered,
+  error is unchanged and the exact grid still serves every query. Against a
+  *messy* (logged) import, mixing **helps**. Pooling capture sessions with each
+  other is **strictly good** (3.33 % → 2.58 % → 2.09 % as sessions accumulate).
+  What is real: inside a raced band, pooling collapses that whole TWS range
+  into a **single clustered column**, and the resulting answer is an
+  **uncontrolled blend** at an implicit weight (~0.45) set by point counts, not
+  by intent. **Decision: never pool sources** — interpolate per source, blend
+  at an explicit weight with an explicit coverage rule, which needs *no changes
+  to the interpolation engine*. **This amends founding decision 5: provenance
+  must separate, not merely annotate.** Weight and coverage radius deferred to
+  `16`. Bonus: duplicate points resolve **by row order** on the exact-TWS grid
+  — a bug reachable today via CSV import — now `15`. Prototype:
+  branch `prototype/03-mixed-provenance`.
+
 ### Founding decisions
 
 Settled while charting, before any ticket existed. Recorded here because they
@@ -92,6 +123,13 @@ have no ticket of their own; everything after this point gets one.
 5. **Provenance** — `sailPolar` gains a source column pointing back at the
    capture session, so promotion is reversible and measured points are
    distinguishable from imported ones.
+
+   ⚠️ **Amended by `03`.** The column is **load-bearing for separation**, not
+   just annotation: imported and captured points are never pooled into one
+   point set. Each source is interpolated on its own grid and the two answers
+   blended at an explicit weight, with measured contributing only where it has
+   coverage. Capture sessions still pool with *each other* — the rule applies
+   only at the imported/captured boundary.
 6. **Reliability** — recording must survive the screen being off, so an Android
    **foreground service** is a v1 requirement, not an enhancement. Gated by
    `02`.
@@ -101,11 +139,14 @@ have no ticket of their own; everything after this point gets one.
    wrong.
 
    ⚠️ **The "high percentile, not mean" part of this decision is now in
-   question.** `12` measured that a 90th-percentile derivation overstates the
-   polar by ~8.3% against the project's own noise model, because a percentile
-   over a noisy bin measures *instrument noise*, not sailing skill. `07` owns
-   resolving it, and can now settle it by measurement rather than argument.
-   The two-path structure is unaffected.
+   question, and there is now a measurement.** `12` computed that a
+   90th-percentile derivation overstates the polar by ~8.3% against the
+   project's own noise model, because a percentile over a noisy bin measures
+   *instrument noise*, not sailing skill. `14` then measured it end to end and
+   found the overstatement is **~+3.1% once trim is autocorrelated the way a
+   real boat's is**, with **p75 nearly unbiased (+0.9%)** and mean/p50 running
+   *negative*. `07` owns the choice and now makes it from a table, not from
+   taste. The two-path structure is unaffected.
 8. **Session shape** — belongs to a boat profile; carries name, start/end,
    notes, and an **optional** course link (optional so a casual sail can still
    be recorded). Conditions are derived from the captured data. No competitors,
@@ -127,7 +168,14 @@ have no ticket of their own; everything after this point gets one.
   true wind is water- or ground-referenced — the latter bakes tidal current
   into every polar. The reference-frame question is now sharp enough to be
   owned by `05` and measured by `04`; the wider calibration question stays
-  here.
+  here. **`03` measured the cost of leaving it unsolved:** a session recorded
+  with a +6 % boat-speed error is not rejected by pooling, it is *averaged in
+  proportionally* — one bad session in three drags fleet bias from −0.72 % to
+  +1.12 % and flips its sign. Median binning is robust to outliers, and
+  calibration drift is not an outlier; it is a coherent offset the median moves
+  along with. Deliberately left as fog (Logan, this session) rather than
+  ticketed, but it means the useful thing about session provenance is being
+  able to take a session back *out*.
 - **Generating `sailTwaLimit` rows from captured data.** The same tracks that
   yield polar points also reveal the angles a sail was actually usable at. An
   algorithm could propose limit rows or flag existing ones as wrong. Wanted
@@ -135,9 +183,6 @@ have no ticket of their own; everything after this point gets one.
 - **Boundary inference for sail assertions** — deriving when a sail actually
   went up/came down from step-changes in the data, rather than trusting the
   assertion timestamp.
-- **Merge vs. replace** when a sail already has polars and a session proposes
-  more. Partly informed by `03`.
-- **Aggregating several sessions** into one polar set for a sail.
 - **Battery and thermal behaviour** over a 3-hour recording.
 - **Session export / sharing** — the app already has CSV import/export for
   polars; whether sessions get the same treatment.
@@ -159,11 +204,19 @@ Ruled beyond this destination. Returns only as a fresh effort.
 Open tickets are found by scanning `issues/`; this list is not maintained.
 
 - Charting: frontier was `01`, `02`, `03`, `12`.
-- After the research round (`01`, `02`, `12` resolved): frontier is `03`, `04`,
-  `05`, `06`, `09`, `11`, `14`.
-  - **`14` is the highest-leverage** — it unblocks `07` and `13`, and it is
-    what keeps the boat off the critical path.
+- After the research round (`01`, `02`, `12` resolved): frontier was `03`,
+  `04`, `05`, `06`, `09`, `11`, `14`.
+- After `14`: frontier was `03`, `04`, `05`, `06`, `09`, `11`, `13`.
+- After `03`: frontier is `04`, `05`, `06`, `09`, `11`, `13`, `15`.
+  - **`05` is the highest-leverage** — it is the last thing between `07` and a
+    decision, and `07` now has measured evidence waiting for it.
+  - `13` is where the `hotspot.sh` rig gets its first end-to-end run with a
+    real phone.
+  - `15` is new from `03` and cheap — it is a shipped bug plus a call to make,
+    with the evidence already gathered.
+  - `16` is new from `03` but **blocked by `04`**: the blend weight can only be
+    chosen against real captured data.
   - `04` is technically unblocked but needs the boat; per the access
-    constraint above, nothing waits on it.
-  - `03`, `05`, `06`, `09` and `11` are all takeable now with no dependencies
-    on hardware.
+    constraint above, nothing waits on it — and after `14`, less than ever.
+    It now also gates `16`.
+  - `06`, `09` and `11` remain takeable with no dependencies on hardware.
