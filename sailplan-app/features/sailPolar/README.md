@@ -6,7 +6,7 @@ sail. This feature owns polar CRUD, CSV import, the polar/scatter charts, and th
 **interpolation engine** that the [sail suggestion pipeline](../sailSuggestion/README.md)
 relies on.
 
-See the [domain glossary](../../docs/domain-glossary.md#polars) for what a polar
+See [`CONTEXT.md`](../../../CONTEXT.md#polars) for what a polar
 is. The interpolation source ([`util/interpolation.ts`](util/interpolation.ts))
 carries thorough JSDoc — this README is the map.
 

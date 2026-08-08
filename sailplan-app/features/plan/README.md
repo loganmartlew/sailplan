@@ -5,7 +5,7 @@ per-leg guidance — the bearing to the next mark, the true wind angle (TWA) and
 tack you'll sail it on, and the suggested sail.
 
 New to the vocabulary (TWD, TWS, TWA, bearing, tack, leg)? Read the
-[domain glossary](../../docs/domain-glossary.md) first.
+[`CONTEXT.md`](../../../CONTEXT.md) first.
 
 ## Two entry flows
 

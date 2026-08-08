@@ -44,7 +44,7 @@ courseGroup ─┴─< course ─< courseMark >─ mark
 | `courseMark`   | `id`, `courseId`, `markId`, `order`, `direction?`       | Join row; `order` sequences the legs         |
 | `courseGroup`  | `id`, `name`                                             | Optional grouping of courses                 |
 
-See [domain-glossary.md](domain-glossary.md) for what TWS/TWA/polar/etc. mean.
+See [`../../CONTEXT.md`](../../CONTEXT.md) for what TWS/TWA/polar/etc. mean.
 
 ### Migrations
 
@@ -129,7 +129,7 @@ Consume settings with `useSettings()`; each has a matching setter
 (`setSpeedUnit`, …). Formatting/conversion helpers that respect the chosen units
 live in [`lib/format.ts`](../lib/format.ts) (`formatAngle`, speed/area/distance
 formatters). Defaults for hemisphere/coordinate format seed new coordinate
-entry. See also [domain-glossary.md](domain-glossary.md) for coordinate formats.
+entry. See also [`../../CONTEXT.md`](../../CONTEXT.md) for coordinate formats.
 
 ## zustand — transient plan state
 

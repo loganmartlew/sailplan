@@ -3,7 +3,7 @@
 Geographic and wind-angle math, plus the UI for entering coordinates. This is the
 shared toolbox the [plan feature](../plan/README.md) uses to turn marks + wind
 into bearing, TWA, and tack. Terms used here (bearing, TWA, tack, DMS/DMM) are
-defined in the [domain glossary](../../docs/domain-glossary.md).
+defined in [`CONTEXT.md`](../../../CONTEXT.md).
 
 Everything is exported from the barrel: `import { coordsToBearing, getTwa } from
 '~/features/coordinate'`.

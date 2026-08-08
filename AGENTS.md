@@ -49,8 +49,24 @@ sail-suggestion evaluation harness. Not shipped with the app.
 
 - **Work in `sailplan-app/`** unless the task is explicitly about the polar
   generator. Its `AGENTS.md` documents commands, conventions, and gotchas.
-- **Read the domain glossary early.** The domain is specialised (TWA, TWS,
-  polars, tacks, wind zones). See
-  [`sailplan-app/docs/domain-glossary.md`](sailplan-app/docs/domain-glossary.md).
+- **Read the domain context early.** The domain is specialised (TWA, TWS,
+  polars, tacks, wind zones). See [`CONTEXT.md`](CONTEXT.md).
 - **Match existing patterns.** The app is consistently feature-sliced; mirror
   the nearest existing feature rather than inventing structure.
+
+## Agent skills
+
+### Issue tracker
+
+Issues and specs live as local markdown under `.tickets/`. See
+`docs/agents/issue-tracker.md`.
+
+### Triage labels
+
+Default vocabulary (`needs-triage`, `needs-info`, `ready-for-agent`,
+`ready-for-human`, `wontfix`). See `docs/agents/triage-labels.md`.
+
+### Domain docs
+
+Single-context: [`CONTEXT.md`](CONTEXT.md) + `docs/adr/` at the repo root.
+See `docs/agents/domain.md`.

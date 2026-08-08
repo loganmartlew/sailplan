@@ -121,7 +121,7 @@ Full detail: [`docs/conventions.md`](docs/conventions.md).
 | [`docs/architecture.md`](docs/architecture.md) | The big picture: layers, providers, data flow, startup  |
 | [`docs/conventions.md`](docs/conventions.md)   | How to write code that fits: patterns, naming, forms    |
 | [`docs/data-layer.md`](docs/data-layer.md)     | Schema, migrations, `useLiveQuery`, MMKV, settings      |
-| [`docs/domain-glossary.md`](docs/domain-glossary.md) | **Sailing terms** and how they map to code/tables |
+| [`../CONTEXT.md`](../CONTEXT.md)               | **Sailing terms** and how they map to code/tables       |
 | [`docs/features.md`](docs/features.md)         | What each feature slice does                            |
 | [`docs/ui.md`](docs/ui.md)                     | Theming, `components/ui`, `components/form`, icons       |
 | [`docs/routing.md`](docs/routing.md)           | The screen/route tree                                   |

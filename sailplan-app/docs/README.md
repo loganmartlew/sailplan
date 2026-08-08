@@ -11,7 +11,7 @@ map; use these docs for depth.
 | [architecture.md](architecture.md)         | Layers, provider tree, startup gates, how data flows                   |
 | [conventions.md](conventions.md)           | Feature-slice anatomy, api/model patterns, forms, naming, the `~` alias|
 | [data-layer.md](data-layer.md)             | Drizzle schema, migrations, `useLiveQuery`, MMKV, settings & units     |
-| [domain-glossary.md](domain-glossary.md)   | Sailing vocabulary (TWA, TWS, polar, tack, wind zone…) mapped to code  |
+| [`../../CONTEXT.md`](../../CONTEXT.md)     | Sailing vocabulary (TWA, TWS, polar, tack, wind zone…) mapped to code  |
 | [features.md](features.md)                 | Catalogue of every `features/` slice and its responsibility            |
 | [ui.md](ui.md)                             | NativeWind theming, `components/ui`, `components/form`, icons           |
 | [routing.md](routing.md)                   | The Expo Router screen tree                                            |
