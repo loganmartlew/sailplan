@@ -1,0 +1,105 @@
+{
+  "name": "noisy-log",
+  "description": "Noisy logged-instrument-style scatter (3 samples/node, TWS/TWA/speed noise). The round-2 review dataset recipe, seeded. No explicit TWA limits.",
+  "seed": 42,
+  "recipe": "noisy",
+  "boundaryToleranceDeg": 5,
+  "sweep": {
+    "twaMin": 95,
+    "twaMax": 180,
+    "twaStep": 5,
+    "twsValues": [
+      6,
+      10,
+      14,
+      18,
+      22
+    ]
+  },
+  "sails": [
+    {
+      "name": "A6",
+      "symmetrical": false,
+      "twaBand": [
+        95,
+        120
+      ],
+      "baseSpeeds": {
+        "4": 2.8,
+        "10": 8.5,
+        "16": 10.5,
+        "26": 13.8
+      }
+    },
+    {
+      "name": "A5",
+      "symmetrical": false,
+      "twaBand": [
+        110,
+        130
+      ],
+      "baseSpeeds": {
+        "4": 3.1,
+        "10": 8.4,
+        "16": 11.7,
+        "26": 15.4
+      }
+    },
+    {
+      "name": "A3",
+      "symmetrical": false,
+      "twaBand": [
+        125,
+        140
+      ],
+      "baseSpeeds": {
+        "4": 3.2,
+        "10": 8.2,
+        "16": 13.4,
+        "26": 19.8
+      }
+    },
+    {
+      "name": "A2",
+      "symmetrical": false,
+      "twaBand": [
+        140,
+        165
+      ],
+      "baseSpeeds": {
+        "4": 2.8,
+        "10": 7.5,
+        "16": 11.9,
+        "26": 21
+      }
+    },
+    {
+      "name": "S1.5",
+      "symmetrical": true,
+      "twaBand": [
+        150,
+        170
+      ],
+      "baseSpeeds": {
+        "4": 2.6,
+        "10": 7,
+        "16": 11,
+        "26": 18.3
+      }
+    },
+    {
+      "name": "S1",
+      "symmetrical": true,
+      "twaBand": [
+        165,
+        180
+      ],
+      "baseSpeeds": {
+        "4": 2.2,
+        "10": 6.3,
+        "16": 9.4,
+        "26": 14.8
+      }
+    }
+  ]
+}
