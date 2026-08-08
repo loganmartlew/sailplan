@@ -1,0 +1,116 @@
+{
+  "name": "nasty",
+  "seed": 99,
+  "_comment": [
+    "Every failure mode from research/12's table, on a timeline, over a short",
+    "lap so the whole thing runs in ~25 minutes. This is the script tickets",
+    "05 and 11 argue from: run it once and the answers to 'what does the app",
+    "do when X' stop being opinions.",
+    "",
+    "Two things this file CANNOT do, because they are below the socket:",
+    "  - a true black hole (peer vanished, writes unacknowledged, minutes of",
+    "    silence before TCP notices) — use hotspot.sh blackhole",
+    "  - an address change on DHCP lease renewal — use hotspot.sh",
+    "The 'silence' op below is the APP-level version: TCP is perfectly",
+    "healthy, the data just stopped. Both matter, and telling them apart is",
+    "ticket 11's problem."
+  ],
+  "course": {
+    "twd": 225,
+    "tws": 12,
+    "twdOscillationDeg": 8,
+    "twdOscillationPeriodSec": 300,
+    "twsOscillationKn": 1.5,
+    "twsOscillationPeriodSec": 420,
+    "variationDeg": 21.5,
+    "trimDwellSec": 30,
+    "repeat": true,
+    "legs": [
+      { "durationSec": 180, "headingDeg": 180, "sail": "J1" },
+      { "durationSec": 180, "headingDeg": 270, "sail": "J1" },
+      { "durationSec": 240, "headingDeg": 115, "sail": "A6" },
+      { "durationSec": 240, "headingDeg": 335, "sail": "A6" },
+      { "durationSec": 180, "headingDeg": 180, "sail": "J1" }
+    ]
+  },
+  "faults": [
+    {
+      "at": 60,
+      "do": "split",
+      "forSec": 60,
+      "_why": "One sentence, two TCP writes. The most valuable single test here: a parser that assumes one read == one sentence passes everything else and fails on the water."
+    },
+    {
+      "at": 150,
+      "do": "concat",
+      "forSec": 60,
+      "_why": "The mirror image — two sentences arriving in one packet."
+    },
+    {
+      "at": 240,
+      "do": "corrupt",
+      "rate": 0.08,
+      "forSec": 90,
+      "_why": "Wrong checksum. Must be dropped, not parsed."
+    },
+    {
+      "at": 360,
+      "do": "truncate",
+      "rate": 0.05,
+      "forSec": 90,
+      "_why": "Cut off mid-sentence with no terminator. The next '$' must not be read as a continuation."
+    },
+    {
+      "at": 480,
+      "do": "garbage",
+      "rate": 0.05,
+      "forSec": 60,
+      "_why": "Binary junk mid-stream. Plotters emit this on power-up."
+    },
+    {
+      "at": 570,
+      "do": "stale",
+      "sentences": ["VHW"],
+      "forSec": 90,
+      "_why": "Ticket 05 q4: boat speed stops while wind keeps flowing. No off-the-shelf tool can do this. A sample built from a stale VHW and a fresh MWV is a lie."
+    },
+    {
+      "at": 700,
+      "do": "empty",
+      "sentences": ["MWV"],
+      "forSec": 45,
+      "_why": "Status V — the instrument saying 'I have no data'. Must not become 0 kn from dead ahead."
+    },
+    {
+      "at": 780,
+      "do": "rate",
+      "sentences": ["MWD"],
+      "divisor": 5,
+      "forSec": 90,
+      "_why": "1 Hz drops to 0.2 Hz. Does 'complete enough set' logic stall?"
+    },
+    {
+      "at": 900,
+      "do": "silence",
+      "forSec": 45,
+      "_why": "App-level staleness: socket open and healthy, no bytes. Ticket 05 q4 and 11 q5."
+    },
+    {
+      "at": 1020,
+      "do": "dropSocket",
+      "_why": "Graceful FIN. The easy case — the app gets a close event and should reconnect."
+    },
+    {
+      "at": 1140,
+      "do": "reboot",
+      "afterSec": 30,
+      "_why": "Ticket 11 q4: plotter reboot. Every client dropped, port closed, back 30s later. From the phone this starts out identical to 'the phone left the boat'."
+    },
+    {
+      "at": 1320,
+      "do": "dropSocket",
+      "reset": true,
+      "_why": "RST rather than FIN — the plotter losing power mid-sentence."
+    }
+  ]
+}

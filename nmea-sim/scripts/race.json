@@ -1,0 +1,37 @@
+{
+  "name": "race",
+  "seed": 1234,
+  "_comment": [
+    "A clean windward-leeward race: beat under the J1, tack, bear away and run",
+    "the kite wardrobe with a gybe in it, then round up and beat again. No",
+    "faults — this is the stream to point the ingestion pipeline at when you",
+    "want to know whether it recovers the polar in polars/fleet.js.",
+    "TWD is 225. Every leg's heading is chosen so the TWA lands inside its",
+    "sail's band, and the lap covers BOTH tacks — a sign error in the app's",
+    "TWA/tack derivation cannot hide in a one-tack course.",
+    "Leg TWAs: 45S, 45P, 110P, 110S, 120S, 150S, 172S, 132P, 45S."
+  ],
+  "course": {
+    "twd": 225,
+    "tws": 12,
+    "twdOscillationDeg": 8,
+    "twdOscillationPeriodSec": 300,
+    "twsOscillationKn": 1.5,
+    "twsOscillationPeriodSec": 420,
+    "variationDeg": 21.5,
+    "trimDwellSec": 30,
+    "repeat": true,
+    "legs": [
+      { "durationSec": 420, "headingDeg": 180, "sail": "J1" },
+      { "durationSec": 420, "headingDeg": 270, "sail": "J1" },
+      { "durationSec": 300, "headingDeg": 335, "sail": "A6" },
+      { "durationSec": 300, "headingDeg": 115, "sail": "A6" },
+      { "durationSec": 300, "headingDeg": 105, "sail": "A5" },
+      { "durationSec": 300, "headingDeg": 75, "sail": "A2" },
+      { "durationSec": 240, "headingDeg": 53, "sail": "S1" },
+      { "durationSec": 300, "headingDeg": 357, "sail": "A3" },
+      { "durationSec": 420, "headingDeg": 180, "sail": "J1" }
+    ]
+  },
+  "faults": []
+}

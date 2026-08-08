@@ -1,0 +1,10 @@
+# Generated logs are reproducible from a seed in a second or two — regenerate
+# rather than commit. `node nmea-sim.js generate --script scripts/race.json`
+#
+# The one exception is checked in below: gofree-merrimac.log, a real Navico
+# GoFree capture from Signal K's samples. It is the only real B&G-family wind
+# data available before ticket `04` gets on the water, so it is not
+# regenerable and it stays.
+*.log
+*.manifest.json
+!gofree-merrimac.log
