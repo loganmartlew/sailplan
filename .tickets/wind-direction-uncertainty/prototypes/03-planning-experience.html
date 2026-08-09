@@ -1,0 +1,679 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>PROTOTYPE — TWD uncertainty planning experience</title>
+<style>
+  :root{
+    --bg: hsl(234 50% 3%);
+    --card: hsl(234 7% 10%);
+    --border: hsl(240 3.7% 15.9%);
+    --fg: hsl(0 0% 98%);
+    --muted: hsl(240 5% 50%);
+    --primary: hsl(196 100% 47%);
+    --amber: #f59e0b;
+    --port: #f87171;
+    --stbd: #4ade80;
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0; background:#050509; color:var(--fg);
+    font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+    padding: 24px 12px 120px;
+  }
+  .banner{
+    max-width: 860px; margin: 0 auto 20px; padding: 10px 14px;
+    border:1px dashed var(--amber); border-radius:10px; color:var(--amber);
+    font-size:12px; line-height:1.5;
+  }
+  .stage{ display:flex; gap:24px; justify-content:center; align-items:flex-start; flex-wrap:wrap; }
+  .phone{
+    width: 380px; background:var(--bg); border:1px solid var(--border);
+    border-radius:26px; padding:14px 12px 22px; box-shadow:0 20px 60px rgba(0,0,0,.6);
+  }
+  .phone h2{ font-size:22px; margin:6px 4px 14px; font-weight:700; }
+  .screen-label{
+    font-size:10px; letter-spacing:.12em; text-transform:uppercase;
+    color:var(--muted); margin:0 4px 6px;
+  }
+  .card{
+    background:var(--card); border:1px solid var(--border); border-radius:14px;
+    padding:14px; margin-bottom:14px;
+  }
+  .row{ display:flex; align-items:center; justify-content:space-between; gap:10px; }
+  .col{ display:flex; flex-direction:column; }
+  label.lbl{ font-size:13px; color:var(--fg); opacity:.9; }
+  .muted{ color:var(--muted); }
+  .sm{ font-size:12px; }
+  .xs{ font-size:11px; }
+  .big{ font-size:44px; font-weight:800; color:var(--primary); line-height:1; }
+  .mid{ font-size:26px; font-weight:700; }
+  .badge{
+    display:inline-flex; align-items:center; gap:5px; padding:3px 9px; border-radius:999px;
+    font-size:12px; font-weight:600; border:1px solid transparent; white-space:nowrap;
+  }
+  .badge.tack-starboard{ background:rgba(74,222,128,.18); color:var(--stbd); }
+  .badge.tack-port{ background:rgba(248,113,113,.18); color:var(--port); }
+  .badge.ghost{ background:transparent; border-color:var(--border); color:var(--muted); }
+  .sail{ color:#000; }
+  .stepper{ display:flex; align-items:center; gap:8px; }
+  .stepper button, .seg button, .switch{
+    background:transparent; color:var(--fg); border:1px solid var(--border);
+    border-radius:10px; padding:8px 12px; font-size:14px; cursor:pointer;
+  }
+  .stepper .val{
+    flex:1; text-align:center; border:1px solid var(--border); border-radius:10px;
+    padding:8px 12px; font-size:16px; font-weight:600;
+  }
+  .seg{ display:flex; gap:6px; }
+  .seg button{ flex:1; padding:8px 0; font-size:13px; }
+  .seg button[aria-pressed="true"]{ background:var(--primary); border-color:var(--primary); color:#00121a; font-weight:700; }
+  .switch[aria-pressed="true"]{ background:var(--primary); border-color:var(--primary); color:#00121a; font-weight:700; }
+  .legdots{ display:flex; flex-direction:column; align-items:center; padding-top:3px; }
+  .dot{ width:9px; height:9px; border-radius:50%; background:var(--primary); }
+  .line{ width:2px; flex:1; min-height:22px; background:rgba(0,180,235,.3); margin:4px 0; }
+  .sep{ height:1px; background:var(--border); margin:12px 0; }
+  .band{ position:relative; height:26px; margin-top:10px; }
+  .track{ position:absolute; inset:9px 0 auto 0; height:8px; border-radius:4px; background:rgba(255,255,255,.07); }
+  .seg-fill{ position:absolute; top:9px; height:8px; }
+  .tick{ position:absolute; top:2px; width:2px; height:22px; background:var(--fg); }
+  .axis{ display:flex; justify-content:space-between; font-size:10px; color:var(--muted); margin-top:2px; }
+  .chip{ display:inline-block; width:9px; height:9px; border-radius:2px; margin-right:5px; }
+  .scencol{ flex:1; text-align:center; padding:6px 2px; border-radius:10px; }
+  .scencol.side{ background:rgba(255,255,255,.03); }
+  .scencol.centre{ background:rgba(0,180,235,.08); border:1px solid rgba(0,180,235,.25); }
+  .switcher{
+    position:fixed; left:50%; transform:translateX(-50%); bottom:18px; z-index:50;
+    display:flex; align-items:center; gap:4px; background:#fff; color:#000;
+    border-radius:999px; padding:6px 8px; box-shadow:0 8px 30px rgba(0,0,0,.5);
+    font-size:13px; font-weight:600;
+  }
+  .switcher button{ border:0; background:transparent; font-size:18px; cursor:pointer; padding:2px 10px; line-height:1; }
+  .switcher .name{ padding:0 6px; white-space:nowrap; }
+  .note{ font-size:11px; color:var(--muted); margin:0 4px 10px; line-height:1.5; }
+</style>
+</head>
+<body>
+
+<div class="banner">
+  <strong>PROTOTYPE — throwaway.</strong> Structurally different takes (A/B/C, plus the D hybrid) on the
+  opt-in TWD-uncertainty planning experience (wayfinder ticket 03). All numbers are
+  stubbed; nothing here is wired to the suggestion engine. Cycle variants with the
+  bar at the bottom or the ← / → keys. Each variant renders the same four surfaces:
+  wind input, single-leg plan, course legs, and one leg's detail view.
+</div>
+
+<div id="root" class="stage"></div>
+
+<div class="switcher" id="switcher">
+  <button id="prev" aria-label="Previous variant">‹</button>
+  <span class="name" id="variant-name"></span>
+  <button id="next" aria-label="Next variant">›</button>
+</div>
+
+<script>
+// ---------------------------------------------------------------- stub data
+const CENTRAL_TWD = 220;
+
+const SAILS = {
+  jib:   { name: 'Jib',     color: '#38bdf8' },
+  code0: { name: 'Code 0',  color: '#fbbf24' },
+  genoa: { name: 'Genoa',   color: '#4ade80' },
+  kite:  { name: 'A2 Kite', color: '#c084fc' },
+};
+
+// side is a side of the possible TWD range, not TWA.
+const LEGS = [
+  { key:'l1', from:'Start', fromDir:null, to:'Windward', toDir:'port',
+    bearing:175, twa:45, tack:'starboard', primary:SAILS.jib, fallback:false,
+    alternates:[] },
+  { key:'l2', from:'Windward', fromDir:'port', to:'Reach', toDir:'starboard',
+    bearing:120, twa:100, tack:'starboard', primary:SAILS.code0, fallback:false,
+    alternates:[ {side:'lower', sail:SAILS.jib, trigger:'limit', reason:'Code 0 below its 85° minimum TWA'} ] },
+  { key:'l3', from:'Reach', fromDir:'starboard', to:'Leeward', toDir:'port',
+    bearing:40, twa:145, tack:'port', primary:SAILS.genoa, fallback:false,
+    alternates:[ {side:'lower', sail:SAILS.code0, trigger:'speed', reason:'12% faster than Genoa'},
+                 {side:'higher', sail:SAILS.kite, trigger:'speed', reason:'18% faster than Genoa'} ] },
+  { key:'l4', from:'Leeward', fromDir:'port', to:'Finish', toDir:null,
+    bearing:40, twa:172, tack:null, primary:SAILS.kite, fallback:true,
+    alternates:[ {side:'higher', sail:SAILS.genoa, trigger:'limit', reason:'A2 past its 170° maximum TWA'} ] },
+];
+
+const SINGLE_LEG = { from:'Committee Boat', to:'Windward', bearing:175, twa:45, tack:'starboard' };
+
+// issue 02 — folded possible-TWA interval, clamped at 0° and 180°
+const possible = (twa, s) => ({ low: Math.max(0, twa - s), high: Math.min(180, twa + s) });
+// issue 01 — a side needs max(5°, 20% of 2s); below ~10° of spread nothing qualifies
+const alts = (leg, s) => (s >= 10 ? leg.alternates : []);
+const norm = d => ((d % 360) + 360) % 360;
+const twdSide = (side, s) => side === 'lower'
+  ? { from: norm(CENTRAL_TWD - s), to: norm(CENTRAL_TWD - Math.round(s * 0.5)) }
+  : { from: norm(CENTRAL_TWD + Math.round(s * 0.5)), to: norm(CENTRAL_TWD + s) };
+const twaSide = (leg, side, s) => {
+  const p = possible(leg.twa, s);
+  return side === 'lower'
+    ? { from: p.low, to: Math.max(p.low, leg.twa - Math.round(s * 0.5)) }
+    : { from: Math.min(p.high, leg.twa + Math.round(s * 0.5)), to: p.high };
+};
+const deg = n => `${Math.round(n)}°`;
+
+// ------------------------------------------------------------------- state
+const state = { on: true, spread: 20 };
+
+// ------------------------------------------------------------- tiny helpers
+const h = (html) => html;
+const sailBadge = (sail, extra = '') =>
+  `<span class="badge sail" style="background:${sail.color}" ${extra}>${sail.name}</span>`;
+const tackBadge = tack => tack ? `<span class="badge tack-${tack}">${tack.toUpperCase()}</span>` : '';
+const markName = (name, dir) => `${name}${dir === 'starboard' ? ' <span style="color:var(--stbd)">S</span>' : dir === 'port' ? ' <span style="color:var(--port)">P</span>' : ''}`;
+const legDots = `<div class="legdots"><div class="dot"></div><div class="line"></div><div class="dot"></div></div>`;
+const screen = (label, body) => `<div class="phone"><div class="screen-label">${label}</div>${body}</div>`;
+
+// ============================================================== VARIANT A
+// "Quiet annotation" — today's layout untouched; uncertainty rides along as a
+// subordinate second line and a trailing chain of shift-dependent sails.
+const A = {
+  name: 'A — Quiet annotation',
+  render() {
+    const s = state.spread, on = state.on;
+    const twdLine = on
+      ? `<div class="sm muted" style="margin-top:8px">Possible wind ${deg(norm(CENTRAL_TWD - s))} – ${deg(norm(CENTRAL_TWD + s))}</div>`
+      : '';
+
+    const wind = `
+      <div class="card">
+        <div class="col" style="gap:8px">
+          <label class="lbl">True Wind Direction</label>
+          <div class="stepper"><button>−5°</button><div class="val">${CENTRAL_TWD}°</div><button>+5°</button></div>
+        </div>
+        <div class="sep"></div>
+        <div class="row">
+          <label class="lbl">Allow for wind shift</label>
+          <button class="switch" aria-pressed="${on}" onclick="toggleOn()">${on ? 'On' : 'Off'}</button>
+        </div>
+        ${on ? `
+        <div class="col" style="gap:8px;margin-top:12px">
+          <label class="lbl muted sm">Shift either way</label>
+          <div class="stepper"><button onclick="bump(-5)">−5°</button><div class="val">± ${s}°</div><button onclick="bump(5)">+5°</button></div>
+        </div>` : ''}
+        ${twdLine}
+      </div>`;
+
+    const p = possible(SINGLE_LEG.twa, s);
+    const single = `
+      <div class="card">
+        <div class="row"><strong>Directions</strong><span class="xs muted">${SINGLE_LEG.from} → ${SINGLE_LEG.to}</span></div>
+        <div class="sep"></div>
+        <div class="row"><label class="lbl">Bearing</label><div class="mid">${deg(SINGLE_LEG.bearing)}</div></div>
+        <div class="sep"></div>
+        <div class="row" style="align-items:flex-start">
+          <label class="lbl">TWA</label>
+          <div class="col" style="align-items:flex-end;gap:6px">
+            <div class="big">${deg(SINGLE_LEG.twa)}</div>
+            ${on ? `<div class="sm muted">${deg(p.low)} – ${deg(p.high)} possible</div>` : ''}
+            ${tackBadge(SINGLE_LEG.tack)}
+          </div>
+        </div>
+      </div>`;
+
+    const legCard = leg => {
+      const pp = possible(leg.twa, s);
+      const a = on ? alts(leg, s) : [];
+      const lower = a.find(x => x.side === 'lower'), higher = a.find(x => x.side === 'higher');
+      return `
+      <div class="card">
+        <div class="row" style="align-items:flex-start">
+          <div style="display:flex;gap:10px;flex:1">
+            ${legDots}
+            <div class="col" style="gap:8px"><span>${markName(leg.from, leg.fromDir)}</span><span>${markName(leg.to, leg.toDir)}</span></div>
+          </div>
+          <span class="xs muted">Bearing ${deg(leg.bearing)}</span>
+        </div>
+        <div style="margin-top:12px">
+          <label class="lbl muted sm">TWA</label>
+          <div style="display:flex;align-items:baseline;gap:10px;margin-top:4px">
+            <div class="big">${deg(leg.twa)}</div>
+            ${tackBadge(leg.tack)}
+          </div>
+          ${on ? `<div class="sm muted" style="margin-top:4px">${deg(pp.low)} – ${deg(pp.high)} possible</div>` : ''}
+        </div>
+        <div class="sep"></div>
+        <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+          <span class="muted">⛵</span>
+          ${leg.fallback ? `<span class="badge ghost">Best available</span>` : ''}
+          ${sailBadge(leg.primary)}
+          ${lower ? `<span class="xs muted">↺ left</span>${sailBadge(lower.sail)}` : ''}
+          ${higher ? `<span class="xs muted">↻ right</span>${sailBadge(higher.sail)}` : ''}
+        </div>
+      </div>`;
+    };
+
+    const detailLeg = LEGS[2], dp = possible(detailLeg.twa, s), da = on ? alts(detailLeg, s) : [];
+    const detail = `
+      <div class="card">
+        <div class="row"><strong>Leg details</strong><span class="xs muted">${detailLeg.from} → ${detailLeg.to}</span></div>
+        <div class="sep"></div>
+        <div style="display:flex;align-items:baseline;gap:10px">
+          <div class="big">${deg(detailLeg.twa)}</div>${tackBadge(detailLeg.tack)}
+        </div>
+        ${on ? `<div class="sm muted" style="margin-top:4px">${deg(dp.low)} – ${deg(dp.high)} possible</div>` : ''}
+        <div class="sep"></div>
+        <div class="col" style="gap:10px">
+          <div class="row"><div>${sailBadge(detailLeg.primary)} <span class="xs muted">at ${deg(detailLeg.twa)}</span></div><span class="xs muted">expected</span></div>
+          ${da.map(x => {
+            const t = twdSide(x.side, s), w = twaSide(detailLeg, x.side, s);
+            return `<div class="col" style="gap:3px">
+              <div>${sailBadge(x.sail)} <span class="xs muted">if wind ${deg(t.from)} – ${deg(t.to)} (TWA ${deg(w.from)} – ${deg(w.to)})</span></div>
+              <span class="xs muted" style="padding-left:2px">${x.reason}</span>
+            </div>`;
+          }).join('')}
+          ${da.length === 0 ? `<span class="xs muted">Same sail across the whole possible range.</span>` : ''}
+        </div>
+      </div>`;
+
+    return screen('Plan · wind input', wind + single)
+         + screen('Course plan', LEGS.map(legCard).join(''))
+         + screen('Leg details', detail);
+  }
+};
+
+// ============================================================== VARIANT B
+// "Range band" — one graphic carries both the possible TWA interval and where
+// each sail wins. No separate on/off switch: "Off" is a preset.
+const B = {
+  name: 'B — Range band',
+  render() {
+    const s = state.spread, on = state.on;
+    const presets = [0, 10, 20, 30, 40];
+
+    const wind = `
+      <div class="card">
+        <div class="col" style="gap:8px">
+          <label class="lbl">True Wind Direction</label>
+          <div class="stepper"><button>−5°</button><div class="val">${CENTRAL_TWD}°</div><button>+5°</button></div>
+        </div>
+        <div style="margin-top:14px">
+          <label class="lbl">Wind could shift</label>
+          <div class="seg" style="margin-top:8px">
+            ${presets.map(v => `<button aria-pressed="${(on ? s : 0) === v}" onclick="setPreset(${v})">${v === 0 ? 'Off' : '±' + v + '°'}</button>`).join('')}
+          </div>
+        </div>
+        ${on && s > 0 ? `
+        <div class="band" style="margin-top:16px">
+          <div class="track"></div>
+          <div class="seg-fill" style="left:${((CENTRAL_TWD - s) / 360) * 100}%;width:${((2 * s) / 360) * 100}%;background:rgba(0,180,235,.45);border-radius:4px"></div>
+          <div class="tick" style="left:${(CENTRAL_TWD / 360) * 100}%"></div>
+        </div>
+        <div class="axis"><span>0°</span><span>180°</span><span>360°</span></div>
+        <div class="sm muted" style="margin-top:6px">${deg(norm(CENTRAL_TWD - s))} – ${deg(norm(CENTRAL_TWD + s))} true wind direction</div>` : ''}
+      </div>`;
+
+    const twaBand = (leg, showSails) => {
+      const p = possible(leg.twa, s);
+      const pct = v => (v / 180) * 100;
+      const a = on ? alts(leg, s) : [];
+      const fills = [
+        `<div class="seg-fill" style="left:${pct(p.low)}%;width:${pct(p.high - p.low)}%;background:rgba(0,180,235,.35);border-radius:4px"></div>`,
+        ...(showSails ? a.map(x => {
+          const w = twaSide(leg, x.side, s);
+          return `<div class="seg-fill" style="left:${pct(w.from)}%;width:${pct(Math.max(2, w.to - w.from))}%;background:${x.sail.color};opacity:.85"></div>`;
+        }) : []),
+      ].join('');
+      return `
+        <div class="band">
+          <div class="track"></div>${fills}
+          <div class="tick" style="left:${pct(leg.twa)}%"></div>
+        </div>
+        <div class="axis"><span>0°</span><span>90°</span><span>180°</span></div>`;
+    };
+
+    const single = (() => {
+      const p = possible(SINGLE_LEG.twa, s);
+      return `
+      <div class="card">
+        <div class="row"><strong>Directions</strong><span class="xs muted">${SINGLE_LEG.from} → ${SINGLE_LEG.to}</span></div>
+        <div class="sep"></div>
+        <div class="row" style="align-items:flex-end">
+          <div class="col"><label class="lbl muted sm">TWA</label><div class="big">${deg(SINGLE_LEG.twa)}</div></div>
+          <div class="col" style="align-items:flex-end;gap:6px">${tackBadge(SINGLE_LEG.tack)}<span class="xs muted">Bearing ${deg(SINGLE_LEG.bearing)}</span></div>
+        </div>
+        ${on && s > 0 ? twaBand({ ...SINGLE_LEG, alternates: [] }, false) + `<div class="sm muted">${deg(p.low)} – ${deg(p.high)}</div>` : ''}
+      </div>`;
+    })();
+
+    const legCard = leg => {
+      const a = on ? alts(leg, s) : [];
+      return `
+      <div class="card">
+        <div class="row" style="align-items:flex-start">
+          <div style="display:flex;gap:10px;flex:1">
+            ${legDots}
+            <div class="col" style="gap:8px"><span>${markName(leg.from, leg.fromDir)}</span><span>${markName(leg.to, leg.toDir)}</span></div>
+          </div>
+          <span class="xs muted">Bearing ${deg(leg.bearing)}</span>
+        </div>
+        <div class="row" style="align-items:flex-end;margin-top:10px">
+          <div class="big">${deg(leg.twa)}</div>
+          <div style="display:flex;gap:6px;align-items:center">${tackBadge(leg.tack)}${leg.fallback ? `<span class="badge ghost">Best available</span>` : ''}${sailBadge(leg.primary)}</div>
+        </div>
+        ${on && s > 0 ? twaBand(leg, true) : ''}
+        ${on && s > 0 && a.length ? `<div class="xs muted" style="margin-top:6px">
+            ${a.map(x => `<span style="margin-right:12px"><span class="chip" style="background:${x.sail.color}"></span>${x.sail.name} ${deg(twaSide(leg, x.side, s).from)}–${deg(twaSide(leg, x.side, s).to)}</span>`).join('')}
+          </div>` : ''}
+      </div>`;
+    };
+
+    const detailLeg = LEGS[2], da = on ? alts(detailLeg, s) : [];
+    const detail = `
+      <div class="card">
+        <div class="row"><strong>Leg details</strong><span class="xs muted">${detailLeg.from} → ${detailLeg.to}</span></div>
+        <div class="sep"></div>
+        <div class="row" style="align-items:flex-end"><div class="big">${deg(detailLeg.twa)}</div>${tackBadge(detailLeg.tack)}</div>
+        ${on && s > 0 ? twaBand(detailLeg, true) : ''}
+        <div class="sep"></div>
+        <div class="col" style="gap:12px">
+          <div class="row"><div><span class="chip" style="background:${detailLeg.primary.color}"></span>${detailLeg.primary.name}</div><span class="xs muted">expected · ${deg(detailLeg.twa)}</span></div>
+          ${da.map(x => {
+            const w = twaSide(detailLeg, x.side, s), t = twdSide(x.side, s);
+            return `<div class="row" style="align-items:flex-start">
+              <div class="col"><div><span class="chip" style="background:${x.sail.color}"></span>${x.sail.name}</div><span class="xs muted">${x.reason}</span></div>
+              <span class="xs muted" style="text-align:right">TWA ${deg(w.from)}–${deg(w.to)}<br>wind ${deg(t.from)}–${deg(t.to)}</span>
+            </div>`;
+          }).join('')}
+        </div>
+      </div>`;
+
+    return screen('Plan · wind input', wind + single)
+         + screen('Course plan', LEGS.map(legCard).join(''))
+         + screen('Leg details', detail);
+  }
+};
+
+// ============================================================== VARIANT C
+// "Shift scenarios" — the leg is three cases side by side; the alternate sail
+// is structural rather than an annotation.
+const C = {
+  name: 'C — Shift scenarios',
+  render() {
+    const s = state.spread, on = state.on;
+
+    const wind = `
+      <div class="card">
+        <div class="col" style="gap:8px">
+          <label class="lbl">True Wind Direction</label>
+          <div class="stepper"><button>−5°</button><div class="val">${CENTRAL_TWD}°</div><button>+5°</button></div>
+        </div>
+        <div class="sep"></div>
+        <div class="row">
+          <div class="col"><label class="lbl">Plan for wind shifts</label><span class="xs muted">Shows left / right shift cases</span></div>
+          <button class="switch" aria-pressed="${on}" onclick="toggleOn()">${on ? 'On' : 'Off'}</button>
+        </div>
+        ${on ? `
+        <div style="margin-top:12px">
+          <div class="stepper"><button onclick="bump(-5)">−5°</button><div class="val">± ${s}°</div><button onclick="bump(5)">+5°</button></div>
+          <div class="row" style="margin-top:10px">
+            <span class="sm muted">${deg(norm(CENTRAL_TWD - s))}</span>
+            <span class="sm" style="color:var(--primary);font-weight:700">${deg(CENTRAL_TWD)}</span>
+            <span class="sm muted">${deg(norm(CENTRAL_TWD + s))}</span>
+          </div>
+          <div class="row"><span class="xs muted">left shift</span><span class="xs muted">expected</span><span class="xs muted">right shift</span></div>
+        </div>` : ''}
+      </div>`;
+
+    const scenarios = (leg, withSails) => {
+      const lo = twaSide(leg, 'lower', s), hi = twaSide(leg, 'higher', s);
+      const a = withSails ? alts(leg, s) : [];
+      const lower = a.find(x => x.side === 'lower'), higher = a.find(x => x.side === 'higher');
+      const col = (label, angle, sail, same) => `
+        <div class="scencol ${label === 'Expected' ? 'centre' : 'side'}">
+          <div class="xs muted">${label}</div>
+          <div style="${label === 'Expected' ? 'font-size:34px;font-weight:800;color:var(--primary)' : 'font-size:20px;font-weight:700;color:var(--muted)'};margin:4px 0">${angle}</div>
+          ${withSails ? (sail ? sailBadge(sail) : `<span class="xs muted">${same ? 'same sail' : ''}</span>`) : ''}
+        </div>`;
+      return `<div style="display:flex;gap:6px;margin-top:10px">
+        ${col('Left shift', deg(lo.from), lower ? lower.sail : null, true)}
+        ${col('Expected', deg(leg.twa), leg.primary || null, false)}
+        ${col('Right shift', deg(hi.to), higher ? higher.sail : null, true)}
+      </div>`;
+    };
+
+    const single = `
+      <div class="card">
+        <div class="row"><strong>Directions</strong><span class="xs muted">${SINGLE_LEG.from} → ${SINGLE_LEG.to}</span></div>
+        <div class="sep"></div>
+        <div class="row"><label class="lbl">Bearing</label><div class="mid">${deg(SINGLE_LEG.bearing)}</div></div>
+        <div class="sep"></div>
+        ${on
+          ? `<label class="lbl muted sm">TWA</label>` + scenarios({ ...SINGLE_LEG, primary: null, alternates: [] }, false) +
+            `<div class="row" style="margin-top:10px"><span class="xs muted">Tack (expected)</span>${tackBadge(SINGLE_LEG.tack)}</div>`
+          : `<div class="row" style="align-items:flex-end"><label class="lbl">TWA</label><div class="col" style="align-items:flex-end;gap:6px"><div class="big">${deg(SINGLE_LEG.twa)}</div>${tackBadge(SINGLE_LEG.tack)}</div></div>`}
+      </div>`;
+
+    const legCard = leg => `
+      <div class="card">
+        <div class="row" style="align-items:flex-start">
+          <div style="display:flex;gap:10px;flex:1">
+            ${legDots}
+            <div class="col" style="gap:8px"><span>${markName(leg.from, leg.fromDir)}</span><span>${markName(leg.to, leg.toDir)}</span></div>
+          </div>
+          <div class="col" style="align-items:flex-end;gap:6px"><span class="xs muted">Bearing ${deg(leg.bearing)}</span>${tackBadge(leg.tack)}</div>
+        </div>
+        ${on
+          ? scenarios(leg, true) + (leg.fallback ? `<div class="xs" style="color:var(--amber);margin-top:8px">⚠ Best available — all sails outside preferred range</div>` : '')
+          : `<div class="row" style="align-items:flex-end;margin-top:10px"><div class="big">${deg(leg.twa)}</div>${sailBadge(leg.primary)}</div>`}
+      </div>`;
+
+    const detailLeg = LEGS[2], da = on ? alts(detailLeg, s) : [];
+    const caseRow = (label, twdRange, twaRange, sail, reason) => `
+      <div class="card" style="margin:0 0 10px;background:rgba(255,255,255,.03)">
+        <div class="row"><strong class="sm">${label}</strong><span class="xs muted">wind ${twdRange}</span></div>
+        <div class="row" style="margin-top:8px;align-items:flex-end">
+          <div class="col"><span class="xs muted">TWA</span><div class="mid">${twaRange}</div></div>
+          ${sail ? sailBadge(sail) : ''}
+        </div>
+        ${reason ? `<div class="xs muted" style="margin-top:6px">${reason}</div>` : ''}
+      </div>`;
+    const lo = twaSide(detailLeg, 'lower', s), hi = twaSide(detailLeg, 'higher', s);
+    const loAlt = da.find(x => x.side === 'lower'), hiAlt = da.find(x => x.side === 'higher');
+    const detail = `
+      <div>
+        <div class="row" style="margin:0 4px 10px"><strong>Leg details</strong><span class="xs muted">${detailLeg.from} → ${detailLeg.to}</span></div>
+        ${on ? caseRow('Left shift', `${deg(twdSide('lower', s).from)} – ${deg(twdSide('lower', s).to)}`, `${deg(lo.from)} – ${deg(lo.to)}`, loAlt ? loAlt.sail : detailLeg.primary, loAlt ? loAlt.reason : 'No change from the expected sail') : ''}
+        ${caseRow('Expected', deg(CENTRAL_TWD), deg(detailLeg.twa), detailLeg.primary, 'Highest-ranked sail at the most likely wind')}
+        ${on ? caseRow('Right shift', `${deg(twdSide('higher', s).from)} – ${deg(twdSide('higher', s).to)}`, `${deg(hi.from)} – ${deg(hi.to)}`, hiAlt ? hiAlt.sail : detailLeg.primary, hiAlt ? hiAlt.reason : 'No change from the expected sail') : ''}
+      </div>`;
+
+    return screen('Plan · wind input', wind + single)
+         + screen('Course plan', LEGS.map(legCard).join(''))
+         + screen('Leg details', detail);
+  }
+};
+
+// ============================================================== VARIANT D
+// Hybrid: A's quiet course list (with alternates inline), B's band as the
+// detail header, C's scenario cards below it. Opt-in toggle, per the map's
+// decided "controls hidden when disabled, spread retained per boat profile".
+// B's band applied to the compass rather than to TWA. Splits into two fills
+// when the arc crosses 0°/360° — the wrap carries no meaning (issue 02), so it
+// must not look like a fold.
+function compassBand(s) {
+  const pct = v => (v / 360) * 100;
+  const low = CENTRAL_TWD - s, high = CENTRAL_TWD + s;
+  const spans = low < 0 ? [[0, high], [360 + low, 360]]
+    : high > 360 ? [[low, 360], [0, high - 360]]
+    : [[low, high]];
+  const fills = spans.map(([a, b]) =>
+    `<div class="seg-fill" style="left:${pct(a)}%;width:${pct(b - a)}%;background:rgba(0,180,235,.45);border-radius:4px"></div>`).join('');
+  return `
+    <div class="band">
+      <div class="track"></div>${fills}
+      <div class="tick" style="left:${pct(norm(CENTRAL_TWD))}%"></div>
+    </div>
+    <div class="axis"><span>N</span><span>E</span><span>S</span><span>W</span><span>N</span></div>`;
+}
+
+const D = {
+  name: 'D — Hybrid (A list · B band · C cases)',
+  render() {
+    const s = state.spread, on = state.on;
+
+    const wind = `
+      <div class="card">
+        <div class="col" style="gap:8px">
+          <label class="lbl">True Wind Direction</label>
+          <div class="stepper"><button>−5°</button><div class="val">${CENTRAL_TWD}°</div><button>+5°</button></div>
+        </div>
+        <div class="sep"></div>
+        <div class="row">
+          <label class="lbl">Allow for wind shift</label>
+          <button class="switch" aria-pressed="${on}" onclick="toggleOn()">${on ? 'On' : 'Off'}</button>
+        </div>
+        ${on ? `
+        <div class="col" style="gap:8px;margin-top:12px">
+          <div class="stepper"><button onclick="bump(-5)">−5°</button><div class="val">± ${s}°</div><button onclick="bump(5)">+5°</button></div>
+          ${compassBand(s)}
+          <div class="sm muted">Possible wind ${deg(norm(CENTRAL_TWD - s))} – ${deg(norm(CENTRAL_TWD + s))}</div>
+        </div>`
+        : `<div class="xs muted" style="margin-top:8px">Off — last used ± ${s}° is remembered for this boat.</div>`}
+      </div>`;
+
+    const p = possible(SINGLE_LEG.twa, s);
+    const single = `
+      <div class="card">
+        <div class="row"><strong>Directions</strong><span class="xs muted">${SINGLE_LEG.from} → ${SINGLE_LEG.to}</span></div>
+        <div class="sep"></div>
+        <div class="row"><label class="lbl">Bearing</label><div class="mid">${deg(SINGLE_LEG.bearing)}</div></div>
+        <div class="sep"></div>
+        <div class="row" style="align-items:flex-start">
+          <label class="lbl">TWA</label>
+          <div class="col" style="align-items:flex-end;gap:6px">
+            <div class="big">${deg(SINGLE_LEG.twa)}</div>
+            ${on ? `<div class="sm muted">${deg(p.low)} – ${deg(p.high)} possible</div>` : ''}
+            ${tackBadge(SINGLE_LEG.tack)}
+          </div>
+        </div>
+      </div>`;
+
+    const legCard = leg => {
+      const pp = possible(leg.twa, s);
+      const a = on ? alts(leg, s) : [];
+      const lower = a.find(x => x.side === 'lower'), higher = a.find(x => x.side === 'higher');
+      return `
+      <div class="card">
+        <div class="row" style="align-items:flex-start">
+          <div style="display:flex;gap:10px;flex:1">
+            ${legDots}
+            <div class="col" style="gap:8px"><span>${markName(leg.from, leg.fromDir)}</span><span>${markName(leg.to, leg.toDir)}</span></div>
+          </div>
+          <span class="xs muted">Bearing ${deg(leg.bearing)}</span>
+        </div>
+        <div style="margin-top:12px">
+          <label class="lbl muted sm">TWA</label>
+          <div style="display:flex;align-items:baseline;gap:10px;margin-top:4px">
+            <div class="big">${deg(leg.twa)}</div>
+            ${tackBadge(leg.tack)}
+          </div>
+          ${on ? `<div class="sm muted" style="margin-top:4px">${deg(pp.low)} – ${deg(pp.high)} possible</div>` : ''}
+        </div>
+        <div class="sep"></div>
+        <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+          <span class="muted">⛵</span>
+          ${leg.fallback ? `<span class="badge ghost">Best available</span>` : ''}
+          ${sailBadge(leg.primary)}
+          ${lower ? `<span class="xs muted">←</span>${sailBadge(lower.sail)}` : ''}
+          ${higher ? `<span class="xs muted">→</span>${sailBadge(higher.sail)}` : ''}
+        </div>
+      </div>`;
+    };
+
+    // B's band, kept for the one surface with room to study it.
+    const detailLeg = LEGS[2], da = on ? alts(detailLeg, s) : [];
+    const dp = possible(detailLeg.twa, s), pct = v => (v / 180) * 100;
+    const band = `
+      <div class="band">
+        <div class="track"></div>
+        <div class="seg-fill" style="left:${pct(dp.low)}%;width:${pct(dp.high - dp.low)}%;background:rgba(0,180,235,.35);border-radius:4px"></div>
+        ${da.map(x => {
+          const w = twaSide(detailLeg, x.side, s);
+          return `<div class="seg-fill" style="left:${pct(w.from)}%;width:${pct(Math.max(2, w.to - w.from))}%;background:${x.sail.color};opacity:.85"></div>`;
+        }).join('')}
+        <div class="tick" style="left:${pct(detailLeg.twa)}%"></div>
+      </div>
+      <div class="axis"><span>0°</span><span>90°</span><span>180°</span></div>`;
+
+    const lo = twaSide(detailLeg, 'lower', s), hi = twaSide(detailLeg, 'higher', s);
+    const loAlt = da.find(x => x.side === 'lower'), hiAlt = da.find(x => x.side === 'higher');
+    const caseRow = (label, twdRange, twaRange, sail, reason, centre) => `
+      <div class="card" style="margin:0 0 10px;background:${centre ? 'rgba(0,180,235,.08)' : 'rgba(255,255,255,.03)'};border-color:${centre ? 'rgba(0,180,235,.25)' : 'var(--border)'}">
+        <div class="row"><strong class="sm">${label}</strong><span class="xs muted">wind ${twdRange}</span></div>
+        <div class="row" style="margin-top:8px;align-items:flex-end">
+          <div class="col"><span class="xs muted">TWA</span><div class="mid" style="${centre ? 'color:var(--primary)' : ''}">${twaRange}</div></div>
+          ${sail ? sailBadge(sail) : ''}
+        </div>
+        ${reason ? `<div class="xs muted" style="margin-top:6px">${reason}</div>` : ''}
+      </div>`;
+
+    const detail = `
+      <div>
+        <div class="card">
+          <div class="row"><strong>Leg details</strong><span class="xs muted">${detailLeg.from} → ${detailLeg.to}</span></div>
+          <div class="sep"></div>
+          <div class="row" style="align-items:flex-end">
+            <div class="big">${deg(detailLeg.twa)}</div>
+            <div style="display:flex;gap:6px;align-items:center">${tackBadge(detailLeg.tack)}<span class="xs muted">Bearing ${deg(detailLeg.bearing)}</span></div>
+          </div>
+          ${on ? band + `<div class="sm muted">${deg(dp.low)} – ${deg(dp.high)} possible</div>` : ''}
+        </div>
+        ${on ? caseRow('Left shift', `${deg(twdSide('lower', s).from)} – ${deg(twdSide('lower', s).to)}`, `${deg(lo.from)} – ${deg(lo.to)}`, loAlt ? loAlt.sail : detailLeg.primary, loAlt ? loAlt.reason : 'No change from the expected sail', false) : ''}
+        ${caseRow('Expected', deg(CENTRAL_TWD), deg(detailLeg.twa), detailLeg.primary, 'Highest-ranked sail at the most likely wind', true)}
+        ${on ? caseRow('Right shift', `${deg(twdSide('higher', s).from)} – ${deg(twdSide('higher', s).to)}`, `${deg(hi.from)} – ${deg(hi.to)}`, hiAlt ? hiAlt.sail : detailLeg.primary, hiAlt ? hiAlt.reason : 'No change from the expected sail', false) : ''}
+      </div>`;
+
+    return screen('Plan · wind input', wind + single)
+         + screen('Course plan', LEGS.map(legCard).join(''))
+         + screen('Leg details', detail);
+  }
+};
+
+// ------------------------------------------------------------- the switcher
+const VARIANTS = { A, B, C, D };
+const KEYS = Object.keys(VARIANTS);
+
+function currentKey() {
+  const k = (new URLSearchParams(location.search).get('variant') || 'A').toUpperCase();
+  return KEYS.includes(k) ? k : 'A';
+}
+function setKey(k) {
+  const u = new URL(location.href);
+  u.searchParams.set('variant', k);
+  history.replaceState(null, '', u);
+  render();
+}
+function cycle(step) {
+  const i = KEYS.indexOf(currentKey());
+  setKey(KEYS[(i + step + KEYS.length) % KEYS.length]);
+}
+function toggleOn() { state.on = !state.on; render(); }
+function bump(d) { state.spread = Math.min(40, Math.max(0, state.spread + d)); render(); }
+function setPreset(v) { state.on = v > 0; if (v > 0) state.spread = v; render(); }
+
+function render() {
+  const v = VARIANTS[currentKey()];
+  document.getElementById('root').innerHTML = v.render();
+  document.getElementById('variant-name').textContent =
+    `${v.name}  ·  ${state.on ? '±' + state.spread + '°' : 'uncertainty off'}`;
+}
+
+document.getElementById('prev').onclick = () => cycle(-1);
+document.getElementById('next').onclick = () => cycle(1);
+window.addEventListener('keydown', e => {
+  const t = e.target;
+  if (t && (t.tagName === 'INPUT' || t.tagName === 'TEXTAREA' || t.isContentEditable)) return;
+  if (e.key === 'ArrowLeft') cycle(-1);
+  if (e.key === 'ArrowRight') cycle(1);
+});
+render();
+</script>
+</body>
+</html>
