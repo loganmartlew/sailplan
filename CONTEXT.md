@@ -117,6 +117,9 @@ switches the whole sail inventory the app reasons about.
 
 | Term | Meaning |
 | ---- | ------- |
+| **NMEA source** | A plotter or gateway offering an NMEA 0183 TCP stream. A source discovered through GoFree has a name/model and a currently announced endpoint; it has no guaranteed durable identifier. |
+| **Plotter setup** | The per-boat-profile method for locating its NMEA source: either automatic discovery of a selected source or a manually pinned host and port. Being configured does **not** mean the source is currently reachable. |
+| **NMEA connection** | The live runtime relationship in which SailPlan is receiving valid NMEA data from the configured source. It may be connected, retrying, or absent independently of whether plotter setup exists. |
 | **Raw log** | The verbatim NMEA sentence stream captured alongside a recording. It is durable-but-disposable evidence for debugging, reprocessing, and export—not the recording itself. Removing it leaves the parsed recording and its polar contribution intact; removing the recording withdraws the whole contribution. |
 
 ## Putting it together

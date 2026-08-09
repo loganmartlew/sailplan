@@ -218,6 +218,19 @@ re-litigating any of the decisions below. Building it is a separate effort.
   Prototypes: branch `prototype/10-review-screen`, files in
   [`prototypes/`](prototypes/).
 
+- [11 — Connection UX: finding the plotter and staying on it](issues/11-connection-ux.md)
+  — **discovery first with an explicit manual mode.** Plotter setup lives on
+  each boat profile and may be saved untested; automatic mode remembers a
+  selected GoFree name/model and treats the latest announced endpoint as
+  authoritative, while manual mode pins host/port. SailPlan never manages WiFi
+  or mentions mobile data. Starting or resuming waits for valid NMEA data before
+  opening the recording. On loss it retries immediately, then 1/2/5/10 s and
+  every 15 s, visibly and with bounded vibration; after five minutes it
+  auto-ends at the last valid sample and stops the service. That recording is
+  resumable only from its notification/original course context until dismissed,
+  superseded or confirmed; resume reopens the same recording and preserves the
+  outage as a gap. Ambiguous discovery never switches sources in the background.
+
 ### Founding decisions
 
 Settled while charting, before any ticket existed. Recorded here because they
@@ -448,3 +461,15 @@ Open tickets are found by scanning `issues/`; this list is not maintained.
     rule needs to surface as a confidence cue, not just gate the blend.
   - Everything left is either the boat (`04`, and `16` behind it), the device
     spike (`13`), or small and unblocked (`18`, `20`).
+- After `11`: frontier is `04`(boat), `08`, `13`, `18`, `19`, `20`; `16`
+  remains blocked by `04`.
+  - **`19` remains the next design decision.** `11` closes the whole connection
+    surface without putting the boat on the critical path.
+  - `08` now owns the persisted shapes for automatic-vs-manual plotter setup
+    and the active / deliberately-ended / auto-ended-resumable / confirmed
+    recording lifecycle. A saved setup is configuration, never runtime
+    reachability.
+  - `13` must validate WiFi binding, screen-off reconnect, notification and
+    vibration escalation, and five-minute service shutdown. Automatic-mode
+    desktop tests need the simulator or a companion to emit GoFree discovery
+    announcements; this is implementation work, not another decision ticket.
