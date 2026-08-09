@@ -27,14 +27,15 @@ adds alternate course-leg sail suggestions.
 
 ## Decisions so far
 
+- [Define when uncertain wind warrants an alternate sail](issues/01-define-material-alternate-sail-policy.md) — Keep the central-TWD leader primary and add at most one evidence-backed, persistent alternate on each side of the possible TWD range.
+- [Define TWA and tack semantics across uncertain TWD](issues/02-define-derived-leg-range-semantics.md) — Show the exact folded possible-TWA interval for `0°–40°` half-spreads while tack remains central-only and zone crossings stay internal.
+
 ## Not yet specified
 
-- Exact input control, default spread, allowed spread, validation, and compact
-  presentation while uncertainty is enabled.
+- Exact input control, default spread, and compact presentation while
+  uncertainty is enabled.
 - Exact course-leg card and suggestion-breakdown treatment for the central
-  TWA, possible TWA range, possible tack change, and shift-dependent sails.
-- How many alternate sails may be surfaced and how changeover conditions are
-  explained without implying a probability distribution.
+  TWA and tack, possible TWA range, and shift-dependent sails.
 - Detailed test matrix, fixtures, and accuracy thresholds needed to trust the
   range-aware result.
 - Final specification structure and handoff boundaries once the product and

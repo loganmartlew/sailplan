@@ -15,7 +15,15 @@ code.
 
 **TWD uncertainty** is a symmetric range around a central, most-likely TWD,
 expressed as plus-or-minus degrees. It means the wind may be anywhere in that
-range; it does not imply the timing or phase of an oscillating shift.
+range; it does not imply the timing or phase of an oscillating shift. The
+supported uncertainty is a half-spread from `0°` through `40°`, so the widest
+range is the central TWD `±40°`.
+
+The **central TWA** is the TWA derived from that central TWD. The **possible TWA
+interval** is the inclusive minimum-to-maximum TWA produced by every TWD in the
+uncertainty range. It is the folded image of the circular TWD range, so an
+interior head-to-wind or dead-downwind direction contributes `0°` or `180°`
+even when neither endpoint of the TWD range does.
 
 TWD and TWS are the user's **inputs** on the Plan tab (stored transiently in the
 [plan store](sailplan-app/features/plan/store/planStore.ts)). TWA is **computed** from TWD
@@ -71,6 +79,15 @@ sail suggestion ([`getWindZone`](sailplan-app/features/sailSuggestion/model/wind
 
 Different sails are fast in different conditions; the whole point of the app is
 picking the right one for the leg's TWA/TWS.
+
+For planning with TWD uncertainty, the **primary sail** is the highest-ranked
+sail at the central, most-likely TWD. A **range-dependent alternate** is a
+different sail surfaced specifically because it becomes materially preferable
+or remains within its configured TWA limits somewhere away from that central
+direction. Ordinary runners-up at the central TWD are not uncertainty
+alternates. SailPlan can surface at most one **lower-TWD alternate** for the
+part of the possible range below the central TWD and one **higher-TWD
+alternate** for the part above it. These names refer to TWD, not TWA.
 
 ## Polars
 
