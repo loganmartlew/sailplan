@@ -1,7 +1,7 @@
 # 18 — Should re-importing the same CSV be prevented?
 
 Type: grilling
-Status: open
+Status: resolved
 Blocked by: —
 Map: [map.md](../map.md)
 
@@ -54,4 +54,78 @@ waiting on.
 
 ## Answer
 
-<!-- filled on resolution -->
+### Decision
+
+Prevent duplicate **observations**, including partial overlap with earlier CSV
+imports. Do not treat every colliding polar point as a duplicate: two distinct
+measurements may legitimately have the same TWS, TWA and speed, and manual or
+captured measurements remain independent evidence even when their values match
+an imported observation.
+
+Every successful import becomes a first-class **polar import batch**. Each
+inserted polar point belongs to the batch that inserted it, so that batch's
+contribution can be removed without deleting a sail's other polar data.
+
+### Duplicate identity
+
+Detection has two levels:
+
+1. A **canonical batch fingerprint** detects a wholly repeated effective
+   import. It is computed from the parsed, validated and sail-matched rows, not
+   the raw file bytes. Canonicalisation makes CSV row order, whitespace, header
+   casing, sail-name casing and equivalent numeric formatting irrelevant.
+2. A **per-observation fingerprint** detects partial overlap. For rows with a
+   valid timestamp, identity is the normalized timestamp, mapped sail, TWS,
+   TWA and boat speed. Notes are excluded because they do not change the polar
+   contribution. The fingerprint is retained with the imported contribution
+   and its batch provenance.
+
+Including the timestamp is load-bearing. Two rows with identical numeric
+values but different timestamps are separate observations, not duplicates;
+collapsing them would discard the repeat evidence protected by [What should
+interpolation do when stored points collide?](15-duplicate-point-collision.md).
+
+Rows without a valid timestamp remain importable, but cannot safely be checked
+for partial overlap. They participate in the canonical whole-batch fingerprint
+and the import result reports how many could not be checked individually.
+
+Duplicate comparisons are scoped to observations belonging to previous polar
+import batches for the same boat profile. They do **not** compare against
+manual polar points, capture-derived points, or pre-migration rows. Existing
+rows are grandfathered because the timestamp and provenance needed to
+reconstruct their observation identity have already been discarded.
+
+### Import behaviour
+
+- A clean import proceeds normally.
+- If an import contains both new and previously imported observations, show a
+  confirmation before writing: **N new rows will be imported; M previously
+  imported rows will be ignored**. The actions are Cancel and Import N rows.
+- If every eligible observation is already imported, block the import with an
+  informational message and create no batch.
+- A partially overlapping batch owns only the rows it actually inserts. If the
+  earlier batch that owned the skipped rows is later removed, those rows
+  disappear; shared ownership is deliberately not modelled in v1.
+- Removing a polar import batch removes only its inserted rows.
+- A corrected re-export is never reconciled or treated as a replacement
+  automatically. The sailor removes the earlier batch and then imports the
+  corrected file.
+
+### Scope and consequences
+
+This replaces the ticket's original "hash each CSV and warn" proposal. A raw
+file hash cannot recognize formatting-only changes and a single batch hash
+cannot identify partial overlap; canonical batch and observation fingerprints
+are both required.
+
+First-class import batches are accepted despite the additional scope because
+they make imported polar contributions reversible in the same product sense as
+captured contributions. This does not require both to share one physical table;
+[Schema and domain model](08-schema-and-domain-model.md) owns the concrete
+Drizzle shape and the wider provenance model.
+
+The read-side grid collision fix decided by [What should interpolation do when
+stored points collide?](15-duplicate-point-collision.md) remains necessary.
+That ticket recorded a decision, not an implementation: duplicate rows still
+break confidence in the current shipped code, and even after the fix,
+multiplicity can affect the median when different speeds collide at one node.

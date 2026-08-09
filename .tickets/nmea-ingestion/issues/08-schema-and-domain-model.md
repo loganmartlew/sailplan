@@ -18,6 +18,10 @@ name the concepts so the codebase and `CONTEXT.md` agree.
      4: this is a bare point in time, **not** an interval and **not** a state
      that holds until the next one. Nothing here should be able to represent an
      end time, or the misattribution `09` forbids becomes expressible.
+   - a **polar import batch** — first-class provenance for one successful CSV
+     import, removable together with the rows it inserted. `18` requires a
+     canonical batch fingerprint, per-observation fingerprints for timestamped
+     rows, and a link from each inserted polar point to its batch.
    - a **source/provenance** column on `sailPolar`, per founding decision 5
    - **plotter setup on `boatProfile`** — `11` settled two methods: automatic
      discovery stores the selected source's name/model and caches its latest
@@ -32,18 +36,19 @@ name the concepts so the codebase and `CONTEXT.md` agree.
    that persists. Weigh that.
    `CONTEXT.md` is the domain glossary and will need the new terms — the names
    chosen here are the ones the whole feature inherits.
-3. **The provenance column's job.** Is it an annotation (`'manual' | 'import' |
-   'capture'`) or a real foreign key to `captureSession`? A FK makes "undo this
-   session" trivial but constrains deletion order. **`03` settled the first
-   half:** provenance is load-bearing for *separation*, not annotation — each
-   source is interpolated on its own grid — so it must at minimum distinguish
-   imported from captured reliably. **`18` sharpens the second half:** if
-   imports also become first-class batch records, provenance is one uniform
-   concept (every row points at the batch that created it, import or capture)
-   rather than two. Resolve `18` first if you can — it is small and unblocked,
-   and deciding it after this ticket means a second migration.
-4. **Existing rows.** Every current `sailPolar` row predates provenance. What's
-   the backfill value, and is the column nullable or defaulted?
+3. **The provenance column's job.** `03` settled that provenance is
+   load-bearing for *separation*, not annotation — each source is interpolated
+   on its own grid — so it must distinguish imported from captured reliably.
+   `18` has now settled that imports are first-class **polar import batches**
+   and every newly imported point links to the batch that inserted it; capture
+   contributions must likewise remain removable by recording. Decide the
+   concrete relational shape: one uniform source abstraction or separate
+   import-batch / capture-session references with an explicit source kind.
+4. **Existing rows.** Every current `sailPolar` row predates provenance. `18`
+   has settled that these rows are grandfathered and excluded from duplicate
+   import checks because their observation identity cannot be reconstructed.
+   What is their provenance backfill value, and is the column nullable or
+   defaulted?
 5. **Scoping and integrity.** Sails belong to a boat profile; so does a
    session. What stops a session's assertions referencing a sail from a
    different profile? What happens to a session when its boat profile or a

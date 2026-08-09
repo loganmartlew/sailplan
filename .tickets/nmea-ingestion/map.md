@@ -237,6 +237,17 @@ re-litigating any of the decisions below. Building it is a separate effort.
   speed changes find boundaries rather than identify sails. **Next/Finish**
   confirms the visible blocks, and only confirmed spans enter the steady-state
   filter; uncertain samples remain recorded but not used.
+- [Should re-importing the same CSV be prevented?](issues/18-duplicate-import-prevention.md)
+  — yes, at both whole-batch and partial-observation level: canonical
+  fingerprints ignore formatting differences, timestamped observations already
+  contributed by earlier import batches are skipped with explicit UX, and each
+  successful import is a removable **polar import batch**. Legacy, manual and
+  captured rows are deliberately outside duplicate matching.
+
+- [Tune the steady-state filter's outlier-rejection threshold](issues/20-tune-outlier-threshold.md)
+  — measured **4× raw MAD**, replacing the tentative 3×: it catches essentially
+  all gross speed spikes at both 30 and 200 samples while rejecting materially
+  fewer non-glitch observations; use a 0.1 kn scale floor for quantised bins.
 
 ### Founding decisions
 
