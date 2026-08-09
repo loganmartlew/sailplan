@@ -19,9 +19,19 @@ the specific ways Android makes that annoying.
    **kplex's `gofree.c` implements exactly this discovery**, so there's a
    working reference to read rather than deriving it from the spec. Decide:
    typed address, discovery, or discovery with manual override.
-2. **Remembering it.** Is the endpoint a setting (MMKV, like other prefs), a
-   per-boat-profile value, or per-session? A boat's plotter address may not be
-   stable across DHCP leases.
+2. **Remembering it. — DECIDED BY `09`, confirm the UX only.** The endpoint is a
+   **per-boat-profile value**, not a global setting and not per-session. Logan,
+   resolving `09`: *"connection details (IP, port, device-name, NMEA version)
+   should be stored against boat profile, so you can't start capture unless it's
+   configured."*
+
+   Two things this ticket still owns: **where that config is edited** (boat
+   profile screen, presumably) and **the gating UX** — `09` puts the start
+   control on the course plan, and with no endpoint on the active profile it is
+   replaced by a "set up plotter" prompt. Also reconcile with question 1: if
+   discovery works, a stored endpoint may be a cache rather than the source of
+   truth, and DHCP churn is exactly the case that argues for discovery. Column
+   shape goes to `08`.
 3. **The no-internet WiFi trap — largely answered, confirm and decide the UX.**
    `02` and `12` reached the same conclusion independently: pass
    **`interface: 'wifi'`** when connecting with `react-native-tcp-socket`. `12`

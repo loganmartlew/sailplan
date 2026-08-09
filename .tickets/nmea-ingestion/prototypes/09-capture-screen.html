@@ -1,0 +1,574 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>PROTOTYPE — 09 capture screen</title>
+<!--
+  THROWAWAY PROTOTYPE for .tickets/nmea-ingestion/issues/09-capture-screen.md
+  Three variants of the in-race capture surface, switchable via ?variant=A|B|C
+  and the floating bar at the bottom. Not app code. Not NativeWind. Do not port
+  any of this HTML/CSS — only the decision it settles.
+
+  The harness bar across the top forces the states you cannot get by waiting:
+  connection drops, a silently dead feed, night, the notification shade, and the
+  lock screen.
+-->
+<style>
+  :root{
+    --bg:#0b0f14; --panel:#141b23; --panel2:#1c2530; --line:#2a3644;
+    --fg:#e8eef5; --dim:#8fa3b8; --ok:#22c55e; --warn:#f59e0b; --bad:#ef4444;
+    --accent:#38bdf8;
+  }
+  html[data-mode="day"]{
+    --bg:#eef2f6; --panel:#ffffff; --panel2:#f2f5f9; --line:#c9d4e0;
+    --fg:#0b1220; --dim:#5a6b7d; --accent:#0369a1;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:#05080b;color:var(--fg);
+    font:15px/1.4 -apple-system,Segoe UI,Roboto,sans-serif;
+    display:flex;flex-direction:column;align-items:center;min-height:100vh}
+
+  /* ---------- harness ---------- */
+  .harness{width:100%;background:#11161d;color:#cbd5e1;border-bottom:1px solid #1f2937;
+    padding:8px 12px;display:flex;gap:14px;align-items:center;flex-wrap:wrap;
+    font:12px/1 ui-monospace,SFMono-Regular,Menlo,monospace;position:sticky;top:0;z-index:50}
+  .harness b{color:#64748b;font-weight:600;letter-spacing:.06em;text-transform:uppercase}
+  .harness button{background:#1e293b;color:#cbd5e1;border:1px solid #334155;border-radius:6px;
+    padding:6px 10px;cursor:pointer;font:inherit}
+  .harness button.on{background:var(--accent);color:#04121c;border-color:transparent;font-weight:700}
+  .harness .grp{display:flex;gap:6px;align-items:center}
+
+  /* ---------- phone ---------- */
+  .stage{flex:1;display:flex;align-items:flex-start;justify-content:center;
+    gap:32px;padding:28px 16px 110px;flex-wrap:wrap}
+  .phone{width:380px;height:800px;border-radius:34px;background:var(--bg);
+    border:10px solid #0f1319;box-shadow:0 24px 60px rgba(0,0,0,.6);
+    position:relative;overflow:hidden;display:flex;flex-direction:column}
+  .statusbar{height:26px;flex:0 0 26px;display:flex;justify-content:space-between;align-items:center;
+    padding:0 16px;font-size:11px;color:var(--dim);background:var(--bg)}
+  .screen{flex:1;overflow:hidden;position:relative;display:flex;flex-direction:column}
+  .caption{width:380px;color:#94a3b8;font-size:13px;line-height:1.5}
+  .caption h3{color:#e2e8f0;font-size:14px;margin:0 0 6px;text-transform:uppercase;letter-spacing:.07em}
+  .caption ul{padding-left:18px;margin:8px 0}
+  .caption li{margin:5px 0}
+  .caption .q{color:#38bdf8}
+
+  /* ---------- shared bits ---------- */
+  .conn{display:flex;align-items:center;gap:8px;font-size:13px;font-weight:600}
+  .dot{width:10px;height:10px;border-radius:50%;background:var(--ok);flex:0 0 auto}
+  .dot.connecting{background:var(--warn);animation:pulse 1s infinite}
+  .dot.retrying{background:var(--warn);animation:pulse .5s infinite}
+  .dot.dead{background:var(--bad)}
+  @keyframes pulse{50%{opacity:.25}}
+  .alarm{background:var(--bad);color:#fff;padding:10px 14px;font-weight:700;
+    display:flex;justify-content:space-between;align-items:center;font-size:14px}
+  .toast{position:absolute;left:12px;right:12px;bottom:12px;background:var(--panel2);
+    border:1px solid var(--line);border-radius:12px;padding:12px 14px;display:flex;
+    justify-content:space-between;align-items:center;box-shadow:0 8px 24px rgba(0,0,0,.5);z-index:20}
+  .toast button{background:none;border:none;color:var(--accent);font:inherit;font-weight:700;
+    padding:6px 4px;cursor:pointer}
+  .muted{color:var(--dim)}
+  .mono{font-family:ui-monospace,SFMono-Regular,Menlo,monospace}
+  .stale{opacity:.35;text-decoration:line-through}
+
+  /* ---------- notification mock ---------- */
+  .shade{position:absolute;inset:0;background:rgba(3,6,10,.86);backdrop-filter:blur(2px);
+    padding:34px 12px;z-index:40;display:flex;flex-direction:column;gap:10px}
+  .lockface{text-align:center;color:#e2e8f0;margin-bottom:6px}
+  .lockface .t{font-size:52px;font-weight:200;letter-spacing:-2px}
+  .lockface .d{font-size:13px;color:#94a3b8}
+  .notif{background:#20272f;border-radius:20px;padding:12px 14px;color:#e5edf5}
+  html[data-mode="day"] .notif{background:#f6f8fb;color:#0b1220}
+  .notif .app{font-size:11px;color:#93a4b6;display:flex;gap:6px;align-items:center;margin-bottom:6px}
+  .notif .title{font-weight:700;font-size:15px}
+  .notif .body{font-size:13px;color:#a9bacb;margin-top:2px}
+  .notif .acts{display:flex;gap:4px;margin-top:10px;border-top:1px solid rgba(255,255,255,.08);padding-top:6px}
+  .notif .acts button{flex:1;background:none;border:none;color:#7dd3fc;font:inherit;font-weight:700;
+    padding:10px 4px;cursor:pointer;border-radius:8px;font-size:13px}
+  .notif .acts button:active{background:rgba(125,211,252,.15)}
+  .overflowNote{font-size:11px;color:#f59e0b;margin-top:8px}
+
+  /* ---------- floating switcher ---------- */
+  .switcher{position:fixed;bottom:18px;left:50%;transform:translateX(-50%);
+    background:#f8fafc;color:#0f172a;border-radius:999px;padding:8px 10px;display:flex;
+    gap:10px;align-items:center;box-shadow:0 10px 30px rgba(0,0,0,.5);z-index:100;
+    font:13px/1 -apple-system,Segoe UI,Roboto,sans-serif;font-weight:700}
+  .switcher button{background:#e2e8f0;border:none;border-radius:999px;width:30px;height:30px;
+    cursor:pointer;font-size:15px;font-weight:700}
+  .switcher .lbl{min-width:210px;text-align:center}
+</style>
+</head>
+<body>
+
+<div class="harness">
+  <b>feed</b>
+  <div class="grp" id="connBtns"></div>
+  <b>session</b>
+  <div class="grp">
+    <button id="btnReset">reset to idle</button>
+    <button id="btnBurn">+10 min</button>
+  </div>
+  <b>view</b>
+  <div class="grp">
+    <button data-view="app" class="on">in app</button>
+    <button data-view="shade">shade (unlocked)</button>
+    <button data-view="lock">lock screen</button>
+  </div>
+  <b>light</b>
+  <div class="grp">
+    <button data-mode="night" class="on">night</button>
+    <button data-mode="day">day / sun</button>
+  </div>
+</div>
+
+<div class="stage">
+  <div>
+    <div class="phone">
+      <div class="statusbar"><span id="clock" class="mono">14:32</span><span>▲ ▮▮▮ 84%</span></div>
+      <div class="screen" id="screen"></div>
+    </div>
+  </div>
+  <div class="caption" id="caption"></div>
+</div>
+
+<div class="switcher">
+  <button id="prev">‹</button>
+  <span class="lbl" id="vlabel"></span>
+  <button id="next">›</button>
+</div>
+
+<script>
+/* ============================================================
+   fake world
+   ============================================================ */
+const SAILS = [
+  { id:'j1',  name:'#1 Genoa',  color:'#3b82f6' },
+  { id:'j3',  name:'#3 Jib',    color:'#22c55e' },
+  { id:'c0',  name:'Code 0',    color:'#f59e0b' },
+  { id:'a2',  name:'A2 Kite',   color:'#d946ef' },
+  { id:'sj',  name:'Storm Jib', color:'#ef4444' },
+];
+
+const S = {
+  variant: 'A',
+  view: 'app',
+  session: 'idle',          // idle | recording
+  elapsed: 0,               // seconds
+  samples: 0,
+  sailId: null,
+  sailSince: 0,
+  conn: 'connected',        // connected | connecting | retrying | dead
+  tws: 12.4, twa: 41, tack: 'stbd', sog: 6.2,
+  lastDataAge: 0,           // seconds since a sample landed
+  toast: null,              // {text, undo}
+  ackedDead: false,
+  sheet: false,             // variant B bottom sheet
+};
+
+const sail = () => SAILS.find(s => s.id === S.sailId) || null;
+const hhmmss = t => [t/3600, t/60%60, t%60].map(n => String(Math.floor(n)).padStart(2,'0')).join(':');
+const mmss   = t => [t/60, t%60].map(n => String(Math.floor(n)).padStart(2,'0')).join(':');
+
+function assertSail(id, source){
+  const prev = S.sailId, prevSince = S.sailSince;
+  S.sailId = id; S.sailSince = S.elapsed;
+  S.toast = {
+    text: `${SAILS.find(s=>s.id===id).name} up${source ? ' · from ' + source : ''}`,
+    undo: () => { S.sailId = prev; S.sailSince = prevSince; S.toast = null; render(); },
+    at: Date.now()
+  };
+  render();
+}
+
+/* tick — the only thing that moves on its own */
+setInterval(() => {
+  if (S.session === 'recording') S.elapsed++;
+  if (S.conn === 'connected'){
+    S.samples++; S.lastDataAge = 0;
+    S.tws = Math.max(3, S.tws + (Math.random()-.5)*0.6);
+    S.twa = Math.max(25, Math.min(175, S.twa + (Math.random()-.5)*3));
+    S.sog = Math.max(0, S.sog + (Math.random()-.5)*0.25);
+  } else {
+    S.lastDataAge++;
+  }
+  if (S.toast && Date.now() - S.toast.at > 9000) S.toast = null;
+  render();
+}, 1000);
+
+/* ============================================================
+   variant A — SAIL BOARD
+   the whole screen is the one thing you do underway
+   ============================================================ */
+function variantA(){
+  if (S.session === 'idle') return idleScreen('Start recording', 'A');
+
+  const cur = sail();
+  return `
+    ${connBanner()}
+    <div style="padding:8px 12px 4px;display:flex;justify-content:space-between;align-items:center">
+      ${connPill()}
+      <div class="mono muted" style="font-size:12px">${hhmmss(S.elapsed)} · ${S.samples.toLocaleString()} pts</div>
+    </div>
+
+    <div style="padding:2px 12px 10px;display:flex;gap:14px;align-items:baseline" class="mono">
+      <div><span style="font-size:26px;font-weight:700">${S.tws.toFixed(1)}</span><span class="muted" style="font-size:12px"> kn TWS</span></div>
+      <div><span style="font-size:26px;font-weight:700">${Math.round(S.twa)}°</span><span class="muted" style="font-size:12px"> ${S.tack}</span></div>
+      <div class="muted" style="font-size:12px;margin-left:auto">${S.sog.toFixed(1)} kn</div>
+    </div>
+
+    <div style="flex:1;display:grid;grid-template-columns:1fr 1fr;gap:10px;padding:0 12px">
+      ${SAILS.map(s => {
+        const on = cur && cur.id === s.id;
+        return `<button data-sail="${s.id}" style="
+          border-radius:18px;border:3px solid ${s.color};cursor:pointer;
+          background:${on ? s.color : 'transparent'};
+          color:${on ? '#08111a' : 'var(--fg)'};
+          font-size:20px;font-weight:800;display:flex;flex-direction:column;
+          align-items:center;justify-content:center;gap:4px;min-height:96px">
+          ${s.name}
+          ${on ? `<span style="font-size:11px;font-weight:700;opacity:.8">UP · ${mmss(S.elapsed - S.sailSince)}</span>` : ''}
+        </button>`;
+      }).join('')}
+      <button data-sail="none" style="border-radius:18px;border:3px dashed var(--line);
+        background:transparent;color:var(--dim);font-size:16px;font-weight:700;cursor:pointer;min-height:96px">
+        Bare poles
+      </button>
+    </div>
+
+    <div style="padding:12px">
+      <button data-act="stop" style="width:100%;padding:16px;border-radius:16px;
+        background:transparent;border:2px solid var(--line);color:var(--dim);
+        font-size:15px;font-weight:700;cursor:pointer">Hold to stop</button>
+    </div>
+    ${toastEl()}
+  `;
+}
+
+/* ============================================================
+   variant B — INSTRUMENT FIRST
+   looks like a plotter page; proving the feed is alive is the job
+   ============================================================ */
+function variantB(){
+  if (S.session === 'idle') return idleScreen('Connect & record', 'B');
+
+  const cur = sail();
+  const staleCls = S.conn === 'connected' ? '' : 'stale';
+  return `
+    ${connBanner()}
+    <div style="padding:10px 16px 0;display:flex;justify-content:space-between;align-items:center">
+      ${connPill()}
+      <div class="mono muted" style="font-size:12px">${hhmmss(S.elapsed)}</div>
+    </div>
+
+    <div style="flex:1;display:flex;flex-direction:column;justify-content:center;gap:2px;padding:0 16px">
+      <div class="muted" style="font-size:12px;letter-spacing:.14em">TRUE WIND SPEED</div>
+      <div class="mono ${staleCls}" style="font-size:78px;line-height:.95;font-weight:700">${S.tws.toFixed(1)}<span style="font-size:24px" class="muted"> kn</span></div>
+      <div class="muted" style="font-size:12px;letter-spacing:.14em;margin-top:16px">TRUE WIND ANGLE</div>
+      <div class="mono ${staleCls}" style="font-size:78px;line-height:.95;font-weight:700">${Math.round(S.twa)}°<span style="font-size:24px" class="muted"> ${S.tack}</span></div>
+
+      <div style="margin-top:22px;display:flex;gap:6px;align-items:flex-end;height:38px">
+        ${sparkline()}
+      </div>
+      <div class="mono muted" style="font-size:12px;margin-top:8px">
+        ${S.samples.toLocaleString()} samples · ${S.conn==='connected' ? 'last 0s ago' : `last ${S.lastDataAge}s ago`}
+      </div>
+    </div>
+
+    <div style="padding:12px 16px 16px;display:flex;gap:10px">
+      <button data-act="sheet" style="flex:1;padding:20px;border-radius:18px;cursor:pointer;
+        border:3px solid ${cur ? cur.color : 'var(--line)'};
+        background:${cur ? cur.color : 'transparent'};
+        color:${cur ? '#08111a' : 'var(--dim)'};font-size:19px;font-weight:800;text-align:left">
+        <div style="font-size:11px;font-weight:700;opacity:.75;letter-spacing:.1em">SAIL UP</div>
+        ${cur ? cur.name : 'Tap to declare'}
+      </button>
+      <button data-act="stop" style="width:82px;border-radius:18px;border:2px solid var(--line);
+        background:transparent;color:var(--dim);font-weight:700;cursor:pointer">Stop</button>
+    </div>
+
+    ${S.sheet ? sheet() : ''}
+    ${toastEl()}
+  `;
+}
+
+function sheet(){
+  return `
+  <div data-act="closeSheet" style="position:absolute;inset:0;background:rgba(0,0,0,.6);z-index:15"></div>
+  <div style="position:absolute;left:0;right:0;bottom:0;background:var(--panel);z-index:16;
+    border-radius:22px 22px 0 0;padding:14px 14px 22px">
+    <div style="width:40px;height:4px;background:var(--line);border-radius:9px;margin:0 auto 14px"></div>
+    <div style="font-weight:700;margin:0 0 12px 4px">Which sail is up?</div>
+    ${SAILS.map(s => `<button data-sail="${s.id}" style="width:100%;display:flex;align-items:center;
+      gap:12px;padding:16px;margin-bottom:8px;border-radius:14px;border:1px solid var(--line);
+      background:var(--panel2);color:var(--fg);font-size:18px;font-weight:700;cursor:pointer">
+      <span style="width:18px;height:18px;border-radius:5px;background:${s.color}"></span>${s.name}</button>`).join('')}
+  </div>`;
+}
+
+function sparkline(){
+  let bars = '';
+  for (let i=0;i<26;i++){
+    const alive = S.conn === 'connected' || i < 26 - Math.min(26, S.lastDataAge);
+    const h = 8 + Math.abs(Math.sin(i*1.7 + S.samples*0.06))*28;
+    bars += `<div style="flex:1;height:${alive?h:2}px;border-radius:2px;
+      background:${alive ? 'var(--accent)' : 'var(--bad)'};opacity:${alive?.85:.5}"></div>`;
+  }
+  return bars;
+}
+
+/* ============================================================
+   variant C — THE NOTIFICATION IS THE UI
+   in-app screen is deliberately thin; the pocket surface is primary
+   ============================================================ */
+function variantC(){
+  if (S.session === 'idle') return idleScreen('Start & pocket', 'C');
+
+  const cur = sail();
+  return `
+    ${connBanner()}
+    <div style="flex:1;display:flex;flex-direction:column;padding:18px 16px;gap:16px">
+      <div style="display:flex;justify-content:space-between;align-items:center">
+        ${connPill()}
+        <div class="mono muted" style="font-size:12px">${hhmmss(S.elapsed)} · ${S.samples.toLocaleString()} pts</div>
+      </div>
+
+      <div style="background:var(--panel);border:1px solid var(--line);border-radius:18px;padding:16px">
+        <div class="muted" style="font-size:11px;letter-spacing:.12em;margin-bottom:8px">RECORDING · POCKET SURFACE</div>
+        <div style="font-size:15px;line-height:1.5">
+          Everything you need underway is on the <b>notification</b>. Lock the phone
+          and put it away — swipe down on the lock screen to change sail.
+        </div>
+      </div>
+
+      <div>
+        <div class="muted" style="font-size:11px;letter-spacing:.12em;margin-bottom:8px">SHORTCUT SAILS ON THE NOTIFICATION</div>
+        <div style="display:flex;gap:8px;flex-wrap:wrap">
+          ${SAILS.slice(0,2).map(s=>`<span style="border:2px solid ${s.color};border-radius:999px;
+            padding:8px 14px;font-weight:700;font-size:14px">${s.name}</span>`).join('')}
+          <span style="border:2px dashed var(--line);border-radius:999px;padding:8px 14px;
+            font-weight:700;font-size:14px;color:var(--dim)">Open app →</span>
+        </div>
+        <div class="overflowNote">Android shows at most 3 actions. 5 sails do not fit — 2 shortcuts + an escape hatch is the shape this variant is testing.</div>
+      </div>
+
+      <div style="margin-top:auto;display:flex;flex-direction:column;gap:10px">
+        <button data-act="sheet" style="padding:18px;border-radius:16px;cursor:pointer;
+          border:3px solid ${cur ? cur.color : 'var(--line)'};
+          background:${cur ? cur.color : 'transparent'};color:${cur ? '#08111a' : 'var(--fg)'};
+          font-size:18px;font-weight:800">${cur ? cur.name + ' up' : 'Declare a sail'}</button>
+        <button data-act="stop" style="padding:14px;border-radius:16px;border:2px solid var(--line);
+          background:transparent;color:var(--dim);font-weight:700;cursor:pointer">Hold to stop</button>
+      </div>
+    </div>
+    ${S.sheet ? sheet() : ''}
+    ${toastEl()}
+  `;
+}
+
+/* ============================================================
+   shared chrome
+   ============================================================ */
+function idleScreen(cta, v){
+  return `
+    <div style="flex:1;display:flex;flex-direction:column;justify-content:center;gap:18px;padding:24px">
+      <div style="font-size:26px;font-weight:800">New capture</div>
+      <div class="muted" style="font-size:14px;line-height:1.5">
+        ${v==='C'
+          ? 'Starts the foreground service, connects to the plotter, and drops a notification you drive from your pocket.'
+          : 'Connects to the plotter at 192.168.0.1:10110 and records until you stop.'}
+      </div>
+      <div style="background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:14px;font-size:13px">
+        <div class="muted" style="margin-bottom:6px">Name — optional, add it at review</div>
+        <div class="mono">Sat 9 Aug · 14:32</div>
+      </div>
+      <button data-act="start" style="padding:22px;border-radius:20px;border:none;cursor:pointer;
+        background:var(--accent);color:#04121c;font-size:20px;font-weight:800">${cta}</button>
+    </div>`;
+}
+
+function connPill(){
+  const label = {connected:'Connected', connecting:'Connecting…', retrying:'Reconnecting…', dead:'NO DATA'}[S.conn];
+  const col   = {connected:'var(--ok)', connecting:'var(--warn)', retrying:'var(--warn)', dead:'var(--bad)'}[S.conn];
+  return `<div class="conn" style="color:${col}"><span class="dot ${S.conn}"></span>${label}</div>`;
+}
+
+function connBanner(){
+  if (S.conn === 'dead' && !S.ackedDead){
+    return `<div class="alarm">
+      <span>⚠ No data for ${S.lastDataAge}s — not recording</span>
+      <button data-act="ackDead" style="background:rgba(0,0,0,.25);color:#fff;border:none;
+        border-radius:8px;padding:8px 12px;font-weight:700;cursor:pointer">Fix</button>
+    </div>`;
+  }
+  if (S.conn === 'retrying'){
+    return `<div class="alarm" style="background:var(--warn);color:#1a1204">
+      <span>Dropped — retrying (${S.lastDataAge}s)</span><span class="mono">gap logged</span></div>`;
+  }
+  return '';
+}
+
+function toastEl(){
+  if (!S.toast) return '';
+  return `<div class="toast"><span>${S.toast.text}</span><button data-act="undo">UNDO</button></div>`;
+}
+
+/* ---------- notification / lock screen mocks ---------- */
+function notifCard(){
+  const cur = sail();
+  const dead = S.conn === 'dead';
+  const shortcuts = SAILS.filter(s => !cur || s.id !== cur.id).slice(0,2);
+  return `
+  <div class="notif" style="${dead ? 'outline:2px solid var(--bad)' : ''}">
+    <div class="app">⛵ SailPlan · recording · now</div>
+    <div class="title">${dead ? '⚠ No data — check the plotter' : (cur ? cur.name + ' up · ' + hhmmss(S.elapsed) : 'No sail declared · ' + hhmmss(S.elapsed))}</div>
+    <div class="body">${dead
+      ? `Last sample ${S.lastDataAge}s ago. Nothing is being recorded.`
+      : `${S.tws.toFixed(1)} kn TWS · ${Math.round(S.twa)}° ${S.tack} · ${S.samples.toLocaleString()} pts`}</div>
+    <div class="acts">
+      ${shortcuts.map(s => `<button data-sail="${s.id}" data-src="notification">${s.name}</button>`).join('')}
+      <button data-act="openApp">Open</button>
+    </div>
+  </div>
+  <div class="overflowNote">Verified: Android's standard template shows <b>up to three</b> action buttons. A broadcast-receiver action that only writes to the DB is legal under Android 12's trampoline rule. <b>Unverified — needs ticket 13:</b> whether these fire from the lock screen without unlocking.</div>`;
+}
+
+function shadeView(lock){
+  return `<div class="shade">
+    ${lock ? `<div class="lockface"><div class="t mono">${document.getElementById('clock')?.textContent||'14:32'}</div>
+      <div class="d">Sat 9 August</div></div>` : ''}
+    ${notifCard()}
+    ${lock ? `<div style="margin-top:auto;text-align:center;color:#64748b;font-size:12px">
+      screen is off in your pocket — this is what a glance costs you</div>` : ''}
+  </div>`;
+}
+
+/* ============================================================
+   render + wiring
+   ============================================================ */
+const VARIANTS = {
+  A: { name:'Sail board', fn:variantA, note:`
+    <h3>A — Sail board</h3>
+    <p>The screen <em>is</em> the sail picker. Five thumb-sized targets in the boat's own
+    sail colours; live numbers demoted to one strip. One tap, no menu, no aiming.</p>
+    <ul>
+      <li><span class="q">Q1</span> Direct — every sail is one tap, always visible.</li>
+      <li><span class="q">Q2</span> Undo toast, 9 s. Tap-through to a different sail is also a correction.</li>
+      <li><span class="q">Q5</span> Weakest here — data is a thin strip you must actually read.</li>
+      <li>Scales badly past ~6 sails; a big wardrobe forces scrolling on a heeling boat.</li>
+    </ul>`},
+  B: { name:'Instrument first', fn:variantB, note:`
+    <h3>B — Instrument first</h3>
+    <p>Reads like a plotter page. Huge TWS/TWA plus a sparkline, so one glance from
+    two metres away proves data is landing. Sail declaration is one wide bar → sheet.</p>
+    <ul>
+      <li><span class="q">Q5</span> Strongest — numbers move, sparkline dies red the moment the feed does.</li>
+      <li><span class="q">Q1</span> Two taps, and the second one is a list on a moving boat.</li>
+      <li>Try it with the feed set to <b>dead</b>: strike-through + red bars is the anti-silent-failure story.</li>
+    </ul>`},
+  C: { name:'Notification is the UI', fn:variantC, note:`
+    <h3>C — The notification is the UI</h3>
+    <p>Ticket Q6 taken to its conclusion: the foreground-service notification is
+    mandatory and always visible, so make it the surface and keep the app screen thin.
+    Open the <b>lock screen</b> view in the harness — that is the real design here.</p>
+    <ul>
+      <li><span class="q">Q6</span> Three actions is the hard ceiling: 2 sails + Open. Five sails do not fit.</li>
+      <li><span class="q">Q7</span> Best answer — a glance costs nothing, no unlock, no app.</li>
+      <li>Risk: which 2 sails? Most-recent? Wardrobe order? An unanswered sub-question.</li>
+      <li>Blocked on device truth: do lock-screen actions fire without unlocking? → ticket 13.</li>
+    </ul>`},
+};
+
+function render(){
+  const screen = document.getElementById('screen');
+  if (S.view !== 'app' && S.session === 'recording'){
+    screen.innerHTML = shadeView(S.view === 'lock');
+  } else {
+    screen.innerHTML = VARIANTS[S.variant].fn();
+    if (S.view !== 'app'){
+      screen.innerHTML += `<div class="shade"><div class="notif"><div class="app">⛵ SailPlan</div>
+        <div class="title">Not recording</div><div class="body">Start a session to see the pocket surface.</div></div></div>`;
+    }
+  }
+  document.getElementById('vlabel').textContent = `${S.variant} — ${VARIANTS[S.variant].name}`;
+  document.getElementById('caption').innerHTML = VARIANTS[S.variant].note + `
+    <h3 style="margin-top:18px">State</h3>
+    <pre class="mono" style="background:#0f1620;border:1px solid #1e293b;border-radius:10px;
+      padding:10px;font-size:11px;color:#94a3b8;overflow:auto">${JSON.stringify({
+        session:S.session, elapsed:hhmmss(S.elapsed), samples:S.samples,
+        sail: sail()?.name ?? null, conn:S.conn, lastDataAge:S.lastDataAge,
+        tws:+S.tws.toFixed(1), twa:Math.round(S.twa), view:S.view
+      }, null, 1)}</pre>`;
+}
+
+/* one delegated handler for the whole phone */
+document.getElementById('screen').addEventListener('click', e => {
+  const el = e.target.closest('[data-sail],[data-act]');
+  if (!el) return;
+  if (el.dataset.sail){
+    if (el.dataset.sail === 'none'){ S.sailId = null; S.toast = null; }
+    else assertSail(el.dataset.sail, el.dataset.src);
+    S.sheet = false; render(); return;
+  }
+  switch (el.dataset.act){
+    case 'start':      S.session='recording'; S.elapsed=0; S.samples=0; break;
+    case 'stop':       S.session='idle'; S.sailId=null; S.toast=null; break;
+    case 'sheet':      S.sheet=true; break;
+    case 'closeSheet': S.sheet=false; break;
+    case 'undo':       S.toast.undo(); return;
+    case 'ackDead':    S.ackedDead=true; break;
+    case 'openApp':    S.view='app'; syncHarness(); break;
+  }
+  render();
+});
+
+/* harness */
+const CONNS = ['connected','connecting','retrying','dead'];
+document.getElementById('connBtns').innerHTML =
+  CONNS.map(c => `<button data-conn="${c}" class="${c==='connected'?'on':''}">${c}</button>`).join('');
+
+document.querySelector('.harness').addEventListener('click', e => {
+  const b = e.target.closest('button'); if (!b) return;
+  if (b.dataset.conn){ S.conn = b.dataset.conn; S.lastDataAge = 0; S.ackedDead = false; }
+  if (b.dataset.view) S.view = b.dataset.view;
+  if (b.dataset.mode) document.documentElement.dataset.mode = b.dataset.mode;
+  if (b.id === 'btnReset'){ S.session='idle'; S.sailId=null; S.elapsed=0; S.samples=0; S.toast=null; }
+  if (b.id === 'btnBurn'){ S.elapsed += 600; S.samples += 600; }
+  syncHarness(); render();
+});
+
+function syncHarness(){
+  document.querySelectorAll('.harness button').forEach(b => {
+    if (b.dataset.conn) b.classList.toggle('on', b.dataset.conn === S.conn);
+    if (b.dataset.view) b.classList.toggle('on', b.dataset.view === S.view);
+    if (b.dataset.mode) b.classList.toggle('on', b.dataset.mode === document.documentElement.dataset.mode);
+  });
+}
+
+/* variant switching — URL param, arrows, keyboard */
+function setVariant(v){
+  S.variant = v; S.sheet = false;
+  const u = new URL(location); u.searchParams.set('variant', v);
+  history.replaceState(null, '', u); render();
+}
+const keys = Object.keys(VARIANTS);
+document.getElementById('prev').onclick = () => setVariant(keys[(keys.indexOf(S.variant)+keys.length-1)%keys.length]);
+document.getElementById('next').onclick = () => setVariant(keys[(keys.indexOf(S.variant)+1)%keys.length]);
+addEventListener('keydown', e => {
+  if (/^(INPUT|TEXTAREA)$/.test(e.target.tagName) || e.target.isContentEditable) return;
+  if (e.key === 'ArrowLeft')  document.getElementById('prev').click();
+  if (e.key === 'ArrowRight') document.getElementById('next').click();
+});
+
+setInterval(() => {
+  const d = new Date();
+  document.getElementById('clock').textContent =
+    `${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`;
+}, 1000);
+
+S.variant = new URL(location).searchParams.get('variant') || 'A';
+document.documentElement.dataset.mode = 'night';
+render();
+</script>
+</body>
+</html>

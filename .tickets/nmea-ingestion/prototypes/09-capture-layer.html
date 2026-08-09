@@ -1,0 +1,522 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>PROTOTYPE — 09 capture layer (v2)</title>
+<!--
+  THROWAWAY PROTOTYPE v2 for .tickets/nmea-ingestion/issues/09-capture-screen.md
+
+  v1 (09-capture-screen.html) was wrong: it assumed a dedicated capture screen.
+  Logan's constraint kills that — the course plan must stay usable while
+  recording. So capture is not a screen, it is a LAYER over the app you are
+  already using. Every variant here renders over a mock of the real course-plan
+  results screen so the layer is judged against real density, not a vacuum.
+
+  Second change: a sail is STAMPED, not started/stopped. One tap says "the #3
+  was up at 14:32". Nothing is toggled off. Promotion later infers the rest.
+
+  ?variant=A|B|C — arrows or the bar at the bottom. Not app code.
+-->
+<style>
+  :root{
+    --bg:#0b0f14; --card:#151d26; --card2:#1c2530; --line:#2a3644;
+    --fg:#e8eef5; --dim:#8fa3b8; --ok:#22c55e; --warn:#f59e0b; --bad:#ef4444;
+    --accent:#38bdf8;
+  }
+  html[data-mode="day"]{
+    --bg:#eef2f6; --card:#ffffff; --card2:#f2f5f9; --line:#c9d4e0;
+    --fg:#0b1220; --dim:#55677a; --accent:#0369a1;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:#05080b;color:var(--fg);
+    font:15px/1.4 -apple-system,Segoe UI,Roboto,sans-serif;
+    display:flex;flex-direction:column;align-items:center;min-height:100vh}
+
+  .harness{width:100%;background:#11161d;color:#cbd5e1;border-bottom:1px solid #1f2937;
+    padding:8px 12px;display:flex;gap:14px;align-items:center;flex-wrap:wrap;
+    font:12px/1 ui-monospace,SFMono-Regular,Menlo,monospace;position:sticky;top:0;z-index:60}
+  .harness b{color:#64748b;font-weight:600;letter-spacing:.06em;text-transform:uppercase}
+  .harness button{background:#1e293b;color:#cbd5e1;border:1px solid #334155;border-radius:6px;
+    padding:6px 10px;cursor:pointer;font:inherit}
+  .harness button.on{background:var(--accent);color:#04121c;border-color:transparent;font-weight:700}
+  .harness .grp{display:flex;gap:6px}
+
+  .stage{flex:1;display:flex;align-items:flex-start;justify-content:center;
+    gap:30px;padding:26px 16px 110px;flex-wrap:wrap}
+  .phone{width:380px;height:800px;border-radius:34px;background:var(--bg);
+    border:10px solid #0f1319;box-shadow:0 24px 60px rgba(0,0,0,.6);
+    position:relative;overflow:hidden;display:flex;flex-direction:column}
+  .statusbar{height:26px;flex:0 0 26px;display:flex;justify-content:space-between;align-items:center;
+    padding:0 16px;font-size:11px;color:var(--dim)}
+  .app{flex:1;position:relative;display:flex;flex-direction:column;overflow:hidden}
+
+  /* ---- mocked course plan screen (the thing that must stay usable) ---- */
+  .content{flex:1;overflow-y:auto;padding:4px 14px 12px}
+  .h2{font-size:22px;font-weight:800;margin:8px 0 4px}
+  .windcard,.leg{background:var(--card);border:1px solid var(--line);border-radius:16px;
+    padding:12px 14px;margin-bottom:10px}
+  .leg .top{display:flex;justify-content:space-between;align-items:center;gap:8px}
+  .leg .marks{font-weight:700;font-size:16px;display:flex;align-items:center;gap:6px}
+  .leg .row{display:flex;gap:14px;margin-top:8px;font-size:13px;color:var(--dim);align-items:center}
+  .leg .row b{color:var(--fg);font-size:15px}
+  .badge{border-radius:999px;padding:4px 10px;font-size:12px;font-weight:800;color:#08111a}
+  .tabbar{flex:0 0 58px;border-top:1px solid var(--line);display:flex;background:var(--card2)}
+  .tabbar div{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;
+    gap:3px;font-size:10px;color:var(--dim)}
+  .tabbar div.act{color:var(--accent)}
+  .tabbar .ic{font-size:17px}
+
+  /* ---- shared capture bits ---- */
+  .mono{font-family:ui-monospace,SFMono-Regular,Menlo,monospace}
+  .dot{width:9px;height:9px;border-radius:50%;background:var(--ok);flex:0 0 auto}
+  .dot.retrying{background:var(--warn);animation:p .5s infinite}
+  .dot.dead{background:var(--bad)}
+  @keyframes p{50%{opacity:.2}}
+  .toast{position:absolute;left:12px;right:12px;bottom:70px;background:var(--card2);
+    border:1px solid var(--line);border-radius:12px;padding:11px 14px;display:flex;
+    justify-content:space-between;align-items:center;box-shadow:0 8px 24px rgba(0,0,0,.55);z-index:40}
+  .toast button{background:none;border:none;color:var(--accent);font:inherit;font-weight:800;cursor:pointer}
+  .deadbar{background:var(--bad);color:#fff;padding:8px 14px;font-weight:800;font-size:13px;
+    display:flex;justify-content:space-between;align-items:center}
+
+  /* ---- the 8-sail stamp sheet, shared by all variants ---- */
+  .scrim{position:absolute;inset:0;background:rgba(0,0,0,.66);z-index:44}
+  .sheet{position:absolute;left:0;right:0;bottom:0;background:var(--card);z-index:45;
+    border-radius:22px 22px 0 0;padding:12px 12px 18px;box-shadow:0 -10px 40px rgba(0,0,0,.5)}
+  .sheet .grab{width:40px;height:4px;background:var(--line);border-radius:9px;margin:0 auto 12px}
+  .sheet h4{margin:0 0 3px 4px;font-size:17px}
+  .sheet .sub{margin:0 0 12px 4px;font-size:12px;color:var(--dim)}
+  .grid8{display:grid;grid-template-columns:1fr 1fr;gap:9px;
+    max-height:340px;overflow-y:auto;padding-right:2px}
+  .grid8 button{min-height:66px;border-radius:15px;cursor:pointer;font-size:19px;font-weight:800;
+    background:transparent;color:var(--fg);display:flex;align-items:center;justify-content:center}
+
+  .switcher{position:fixed;bottom:18px;left:50%;transform:translateX(-50%);
+    background:#f8fafc;color:#0f172a;border-radius:999px;padding:8px 10px;display:flex;
+    gap:10px;align-items:center;box-shadow:0 10px 30px rgba(0,0,0,.5);z-index:100;
+    font:13px/1 -apple-system,Segoe UI,Roboto,sans-serif;font-weight:700}
+  .switcher button{background:#e2e8f0;border:none;border-radius:999px;width:30px;height:30px;
+    cursor:pointer;font-size:15px;font-weight:700}
+  .switcher .lbl{min-width:240px;text-align:center}
+
+  .caption{width:400px;color:#94a3b8;font-size:13px;line-height:1.55}
+  .caption h3{color:#e2e8f0;font-size:14px;margin:0 0 6px;text-transform:uppercase;letter-spacing:.07em}
+  .caption ul{padding-left:18px;margin:8px 0}
+  .caption li{margin:5px 0}
+  .caption .q{color:#38bdf8;font-weight:700}
+  .caption .warn{color:#fbbf24;font-weight:700}
+  .cost{display:flex;gap:8px;margin:10px 0;flex-wrap:wrap}
+  .cost span{background:#0f1620;border:1px solid #1e293b;border-radius:8px;padding:5px 9px;font-size:11px}
+</style>
+</head>
+<body>
+
+<div class="harness">
+  <b>feed</b><div class="grp" id="connBtns"></div>
+  <b>session</b>
+  <div class="grp">
+    <button id="btnRec" class="on">recording</button>
+    <button id="btnIdle">not recording</button>
+    <button id="btnBurn">+15 min since stamp</button>
+    <button id="btnCfg" class="on">plotter configured</button>
+  </div>
+  <b>light</b>
+  <div class="grp">
+    <button data-mode="night" class="on">night</button>
+    <button data-mode="day">day / sun</button>
+  </div>
+</div>
+
+<div class="stage">
+  <div class="phone">
+    <div class="statusbar"><span id="clock" class="mono">14:32</span><span>▲ ▮▮▮ 84%</span></div>
+    <div class="app" id="app"></div>
+  </div>
+  <div class="caption" id="caption"></div>
+</div>
+
+<div class="switcher">
+  <button id="prev">‹</button><span class="lbl" id="vlabel"></span><button id="next">›</button>
+</div>
+
+<script>
+/* ============================================================ */
+const SAILS = [
+  { id:'m',  name:'Main',    color:'#94a3b8' },
+  { id:'j1', name:'#1',      color:'#3b82f6' },
+  { id:'j2', name:'#2',      color:'#06b6d4' },
+  { id:'j3', name:'#3',      color:'#22c55e' },
+  { id:'j4', name:'#4',      color:'#84cc16' },
+  { id:'c0', name:'Code 0',  color:'#f59e0b' },
+  { id:'a2', name:'A2',      color:'#d946ef' },
+  { id:'sj', name:'Storm',   color:'#ef4444' },
+  // deliberately past 8 — the sheet must scroll, not re-layout
+  { id:'a15',name:'A1.5',    color:'#a855f7' },
+  { id:'jt', name:'J-Top',   color:'#14b8a6' },
+  { id:'j2l',name:'#2 Lt',   color:'#0ea5e9' },
+];
+
+const S = {
+  variant:'A', recording:true, sheet:false, fanOpen:false, configured:true,
+  elapsed:1382, samples:1382, conn:'connected', lastDataAge:0,
+  tws:12.4, twa:41, tack:'stbd',
+  stamps:[{ sailId:'j3', at:1160 }],   // {sailId, at} — points in time, never ranges
+  toast:null,
+};
+const sailById = id => SAILS.find(s=>s.id===id);
+const lastStamp = () => S.stamps[S.stamps.length-1] || null;
+const sinceStamp = () => lastStamp() ? S.elapsed - lastStamp().at : null;
+const hhmm = t => `${String(Math.floor(t/3600)).padStart(2,'0')}:${String(Math.floor(t/60%60)).padStart(2,'0')}`;
+const agoTxt = s => s==null ? 'never' : s<60 ? `${s}s ago` : `${Math.floor(s/60)} min ago`;
+
+function stamp(id){
+  S.stamps.push({ sailId:id, at:S.elapsed });
+  S.toast = { text:`Stamped ${sailById(id).name} · ${hhmm(50000+S.elapsed)}`, at:Date.now() };
+  S.sheet = false; S.fanOpen = false; render();
+}
+function undoStamp(){ S.stamps.pop(); S.toast=null; render(); }
+
+setInterval(()=>{
+  if (S.recording){
+    S.elapsed++;
+    if (S.conn==='connected'){
+      S.samples++; S.lastDataAge=0;
+      S.tws=Math.max(3,S.tws+(Math.random()-.5)*.55);
+      S.twa=Math.max(25,Math.min(175,S.twa+(Math.random()-.5)*2.6));
+    } else S.lastDataAge++;
+  }
+  if (S.toast && Date.now()-S.toast.at>9000) S.toast=null;
+  render();
+},1000);
+
+/* ============================================================
+   the app underneath — mocked course plan results
+   ============================================================ */
+const LEGS = [
+  { from:'Start', to:'Orakei',   brg:47,  twa:38,  tack:'Stbd', sail:'j3', kn:6.1 },
+  { from:'Orakei', to:'Bean Rock', brg:112, twa:96, tack:'Port', sail:'c0', kn:7.4 },
+  { from:'Bean Rock', to:'Kohi',  brg:203, twa:167, tack:'—',   sail:'a2', kn:8.2 },
+  { from:'Kohi', to:'Finish',     brg:318, twa:64,  tack:'Stbd', sail:'j1', kn:6.8 },
+];
+
+function planScreen(){
+  return `
+  <div class="content" id="content">
+    <div class="h2">Wednesday Series</div>
+    <div class="windcard">
+      <div style="font-size:11px;color:var(--dim);letter-spacing:.1em;margin-bottom:6px">TRUE WIND</div>
+      <div style="display:flex;gap:20px;align-items:baseline">
+        <div><span class="mono" style="font-size:24px;font-weight:800">235°</span>
+          <span style="font-size:11px;color:var(--dim)"> TWD</span></div>
+        <div><span class="mono" style="font-size:24px;font-weight:800">12</span>
+          <span style="font-size:11px;color:var(--dim)"> kn TWS</span></div>
+      </div>
+    </div>
+    ${S.recording ? '' : startCard()}
+    ${LEGS.map(l=>{
+      const s=sailById(l.sail);
+      return `<div class="leg">
+        <div class="top">
+          <div class="marks">${l.from} <span style="color:var(--dim)">→</span> ${l.to}</div>
+          <span class="badge" style="background:${s.color}">${s.name}</span>
+        </div>
+        <div class="row">
+          <span>Brg <b class="mono">${l.brg}°</b></span>
+          <span>TWA <b class="mono">${l.twa}°</b></span>
+          <span>${l.tack}</span>
+          <span style="margin-left:auto"><b class="mono">${l.kn}</b> kn</span>
+        </div>
+      </div>`;
+    }).join('')}
+    <div style="height:${S.variant==='A'?'70':'20'}px"></div>
+  </div>`;
+}
+
+/* Start lives on the course plan — a session always has a course, and it cannot
+   begin until the boat profile carries a plotter endpoint. */
+function startCard(){
+  if (!S.configured) return `
+    <div class="windcard" style="border-style:dashed">
+      <div style="font-size:13px;color:var(--dim);line-height:1.5">
+        <b style="color:var(--warn)">No plotter configured</b><br>
+        Add the plotter's address to <b>Wednesday Warrior</b> before you can record.
+      </div>
+      <div style="margin-top:10px;padding:12px;border-radius:12px;border:1px solid var(--line);
+        text-align:center;font-weight:800;color:var(--accent);font-size:14px">
+        Set up plotter →
+      </div>
+    </div>`;
+  return `
+    <div data-act="start" style="margin-bottom:10px;padding:16px;border-radius:16px;cursor:pointer;
+      background:var(--accent);color:#04121c;font-size:17px;font-weight:800;text-align:center">
+      ⏺ Record this course
+    </div>`;
+}
+
+function tabbar(){
+  const tabs=[['⛵','Plan',1],['📍','Marks',0],['🧭','Courses',0],['🪢','Sails',0],['⚙️','Settings',0]];
+  return `<div class="tabbar">${tabs.map(([i,n,a])=>
+    `<div class="${a?'act':''}"><span class="ic">${i}</span>${n}</div>`).join('')}</div>`;
+}
+
+/* ============================================================
+   VARIANT A — persistent instrument strip above the tab bar
+   ============================================================ */
+function layerA(){
+  if (!S.recording) return '';
+  const ls = lastStamp(), s = ls ? sailById(ls.sailId) : null;
+  const stale = S.conn!=='connected';
+  const nag = sinceStamp()!=null && sinceStamp()>900;
+  return `
+  ${deadBar()}
+  <div data-act="sheet" style="flex:0 0 auto;background:var(--card2);border-top:1px solid var(--line);
+    padding:8px 12px;display:flex;align-items:center;gap:12px;cursor:pointer">
+    <span class="dot ${S.conn}"></span>
+    <div class="mono" style="display:flex;gap:12px;align-items:baseline;${stale?'opacity:.4':''}">
+      <span><b style="font-size:21px">${S.tws.toFixed(1)}</b><span style="font-size:10px;color:var(--dim)">kn</span></span>
+      <span><b style="font-size:21px">${Math.round(S.twa)}°</b><span style="font-size:10px;color:var(--dim)">${S.tack}</span></span>
+    </div>
+    <div style="margin-left:auto;display:flex;align-items:center;gap:8px">
+      <div style="text-align:right;line-height:1.2">
+        <div style="font-size:8px;color:var(--dim);letter-spacing:.12em;font-weight:700">LAST STAMP</div>
+        <div style="font-size:14px;font-weight:800;color:${s?s.color:'var(--dim)'}">${s?s.name:'none yet'}</div>
+        <div style="font-size:10px;color:${nag?'var(--warn)':'var(--dim)'}">${agoTxt(sinceStamp())}</div>
+      </div>
+      <div style="width:44px;height:44px;border-radius:14px;background:var(--accent);color:#04121c;
+        display:flex;align-items:center;justify-content:center;font-size:22px;font-weight:900">✚</div>
+    </div>
+  </div>`;
+}
+
+/* ============================================================
+   VARIANT B — nothing persistent; a fan of 8 from a small FAB
+   ============================================================ */
+function layerB(){
+  if (!S.recording) return '';
+  const ls = lastStamp(), s = ls ? sailById(ls.sailId) : null;
+  const fan = S.fanOpen ? `
+    <div data-act="closeFan" class="scrim" style="background:rgba(0,0,0,.5)"></div>
+    <div style="position:absolute;right:14px;bottom:132px;z-index:46;display:grid;
+      grid-template-columns:1fr 1fr;gap:8px;width:210px">
+      ${SAILS.map(x=>`<button data-sail="${x.id}" style="min-height:56px;border-radius:14px;
+        border:3px solid ${x.color};background:var(--card);color:var(--fg);
+        font-size:18px;font-weight:800;cursor:pointer">${x.name}</button>`).join('')}
+    </div>
+    <div style="position:absolute;right:14px;bottom:196px;z-index:46"></div>` : '';
+  return `
+  ${deadBar()}
+  ${fan}
+  <div data-act="fan" style="position:absolute;right:14px;bottom:74px;z-index:47;
+    width:64px;height:64px;border-radius:22px;cursor:pointer;
+    background:${s?s.color:'var(--accent)'};color:#04121c;
+    box-shadow:0 8px 24px rgba(0,0,0,.5);display:flex;flex-direction:column;
+    align-items:center;justify-content:center;line-height:1">
+    <span style="font-size:15px;font-weight:900">${s?s.name:'✚'}</span>
+    <span style="font-size:9px;font-weight:700;opacity:.75;margin-top:2px">${agoTxt(sinceStamp())}</span>
+    <span class="dot ${S.conn}" style="position:absolute;top:6px;right:6px;width:8px;height:8px;
+      box-shadow:0 0 0 2px rgba(0,0,0,.35)"></span>
+  </div>`;
+}
+
+/* ============================================================
+   VARIANT C — the wind card becomes live and grows a stamp row
+   OUT OF SCOPE per the map. Here to be argued with.
+   ============================================================ */
+function layerC(){
+  if (!S.recording) return '';
+  return `${deadBar()}`;
+}
+function planScreenC(){
+  const ls = lastStamp(), s = ls ? sailById(ls.sailId) : null;
+  const stale = S.conn!=='connected';
+  return `
+  <div class="content">
+    <div class="h2">Wednesday Series</div>
+    <div class="windcard" style="border-color:var(--accent);border-width:2px">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+        <div style="font-size:11px;color:var(--accent);letter-spacing:.1em;font-weight:800">
+          ● LIVE FROM PLOTTER</div>
+        <div class="mono" style="font-size:10px;color:var(--dim)">${S.samples.toLocaleString()} pts</div>
+      </div>
+      <div style="display:flex;gap:20px;align-items:baseline;${stale?'opacity:.4':''}">
+        <div><span class="mono" style="font-size:30px;font-weight:800">${(230+S.twa/9).toFixed(0)}°</span>
+          <span style="font-size:11px;color:var(--dim)"> TWD</span></div>
+        <div><span class="mono" style="font-size:30px;font-weight:800">${S.tws.toFixed(1)}</span>
+          <span style="font-size:11px;color:var(--dim)"> kn TWS</span></div>
+      </div>
+      <div data-act="sheet" style="margin-top:12px;border-top:1px solid var(--line);padding-top:10px;
+        display:flex;align-items:center;gap:10px;cursor:pointer">
+        <div style="flex:1">
+          <div style="font-size:10px;color:var(--dim);letter-spacing:.1em">SAIL UP RIGHT NOW</div>
+          <div style="font-size:17px;font-weight:800;color:${s?s.color:'var(--dim)'}">
+            ${s?s.name:'Not stamped'} <span style="font-size:11px;color:var(--dim);font-weight:600">
+            ${agoTxt(sinceStamp())}</span></div>
+        </div>
+        <div style="width:46px;height:46px;border-radius:14px;background:var(--accent);color:#04121c;
+          display:flex;align-items:center;justify-content:center;font-size:23px;font-weight:900">✚</div>
+      </div>
+    </div>
+    ${LEGS.map(l=>{
+      const sl=sailById(l.sail);
+      return `<div class="leg">
+        <div class="top">
+          <div class="marks">${l.from} <span style="color:var(--dim)">→</span> ${l.to}</div>
+          <span class="badge" style="background:${sl.color}">${sl.name}</span>
+        </div>
+        <div class="row"><span>Brg <b class="mono">${l.brg}°</b></span>
+          <span>TWA <b class="mono">${l.twa}°</b></span><span>${l.tack}</span>
+          <span style="margin-left:auto"><b class="mono">${l.kn}</b> kn</span></div>
+      </div>`;
+    }).join('')}
+    <div style="height:20px"></div>
+  </div>`;
+}
+
+/* ---------- shared ---------- */
+function deadBar(){
+  if (S.conn==='dead') return `<div class="deadbar">
+    <span>⚠ No data ${S.lastDataAge}s — not recording</span><span>Fix</span></div>`;
+  if (S.conn==='retrying') return `<div class="deadbar" style="background:var(--warn);color:#1a1204">
+    <span>Dropped — retrying ${S.lastDataAge}s</span><span class="mono">gap logged</span></div>`;
+  return '';
+}
+
+function stampSheet(){
+  if (!S.sheet) return '';
+  return `
+  <div data-act="closeSheet" class="scrim"></div>
+  <div class="sheet">
+    <div class="grab"></div>
+    <h4>Which sail is up?</h4>
+    <p class="sub">Stamps this moment only — nothing to turn off later.</p>
+    <div class="grid8">
+      ${SAILS.map(s=>`<button data-sail="${s.id}" style="border:3px solid ${s.color}">${s.name}</button>`).join('')}
+    </div>
+  </div>`;
+}
+
+function toastEl(){
+  if (!S.toast) return '';
+  return `<div class="toast"><span>${S.toast.text}</span><button data-act="undo">UNDO</button></div>`;
+}
+
+/* ============================================================ */
+const V = {
+  A:{ name:'Instrument strip', build:()=> planScreen()+layerA()+tabbar()+stampSheet()+toastEl(), note:`
+    <h3>A — Persistent instrument strip</h3>
+    <p>B's readout from v1, shrunk to a slim always-on strip that sits between the
+    content and the tab bar. The whole strip is the stamp button; it opens the
+    8-sail grid. Live on <em>every</em> screen, so you can stamp from Marks or a leg
+    detail without navigating.</p>
+    <div class="cost"><span>2 taps to stamp</span><span>~54px of every screen, forever</span>
+      <span>plan fully usable</span></div>
+    <ul>
+      <li><span class="q">Q5</span> Numbers are always in peripheral vision — the "is it working" question answers itself.</li>
+      <li>Carries a <b>last-stamp age</b> that turns amber past 15 min. Set <b>+15 min</b> in the harness to see the nudge — this is the only pressure the sparse-stamp model gets.</li>
+      <li>Cost is real: it eats the bottom of the leg list on a small phone, permanently.</li>
+    </ul>`},
+
+  B:{ name:'Stamp FAB + 8-fan', build:()=> planScreen()+layerB()+tabbar()+stampSheet()+toastEl(), note:`
+    <h3>B — Floating stamp button, fans to 8</h3>
+    <p>Nothing permanent but a 64px puck bottom-right, wearing the last sail's colour
+    and a connection dot. Tap → all 8 sails fan out over the plan. Costs the app no
+    layout at all.</p>
+    <div class="cost"><span>2 taps to stamp</span><span>0px permanent cost</span>
+      <span>covers ~1 leg card while open</span></div>
+    <ul>
+      <li>Reachable one-handed — bottom-right is the best real estate on the screen.</li>
+      <li><span class="warn">Loses what you liked about B(v1):</span> no live numbers. The dot says
+        "connected", not "data is landing". A frozen-but-connected feed looks identical.</li>
+      <li>The puck sits over the plan; on the leg list it will cover a card.</li>
+    </ul>`},
+
+  C:{ name:'Live wind card (out of scope)', build:()=> planScreenC()+layerC()+tabbar()+stampSheet()+toastEl(), note:`
+    <h3>C — The wind card goes live</h3>
+    <p>The Plan tab already has a TWD/TWS card you type into. While recording, it
+    fills itself from the plotter and grows a stamp row. Capture stops being chrome
+    and becomes part of the thing you are already doing.</p>
+    <div class="cost"><span>2 taps to stamp</span><span>0px added</span>
+      <span>Plan tab only — nothing on other screens</span></div>
+    <ul>
+      <li><span class="warn">This variant is ruled OUT OF SCOPE by the map</span> — "Live telemetry on
+        the Plan tab" is listed under Out of scope, and auto-filling TWD/TWS is exactly that.</li>
+      <li>It is here because your constraint pushes straight at that boundary: holding a
+        live feed and still typing the wind by hand is a hard thing to defend.</li>
+      <li>If you want this, the honest move is to <b>redraw the scope line</b> on the map,
+        not to smuggle it in under ticket 09.</li>
+      <li>Weakness even if allowed: leave the Plan tab and the capture surface vanishes.</li>
+    </ul>`},
+};
+
+function render(){
+  const app=document.getElementById('app');
+  // Not recording: the app is exactly itself. No strip, no puck, no residue.
+  app.innerHTML = S.recording ? V[S.variant].build() : planScreen()+tabbar();
+  document.getElementById('vlabel').textContent=`${S.variant} — ${V[S.variant].name}`;
+  document.getElementById('caption').innerHTML = V[S.variant].note + `
+    <h3 style="margin-top:16px">Stamps this session</h3>
+    <pre class="mono" style="background:#0f1620;border:1px solid #1e293b;border-radius:10px;
+      padding:10px;font-size:11px;color:#94a3b8;overflow:auto">${
+      S.stamps.length ? S.stamps.map(x=>`${hhmm(50000+x.at)}  ${sailById(x.sailId).name}`).join('\n')
+      : '(none — promotion has nothing to attribute)'}
+
+conn: ${S.conn}   samples: ${S.samples.toLocaleString()}
+last stamp: ${agoTxt(sinceStamp())}</pre>`;
+}
+
+document.getElementById('app').addEventListener('click',e=>{
+  const el=e.target.closest('[data-sail],[data-act]'); if(!el) return;
+  if (el.dataset.sail){ stamp(el.dataset.sail); return; }
+  switch(el.dataset.act){
+    case 'start': S.recording=true; S.elapsed=0; S.samples=0; S.stamps=[]; break;
+    case 'sheet': S.sheet=true; break;
+    case 'closeSheet': S.sheet=false; break;
+    case 'fan': S.fanOpen=!S.fanOpen; break;
+    case 'closeFan': S.fanOpen=false; break;
+    case 'undo': undoStamp(); return;
+  }
+  render();
+});
+
+const CONNS=['connected','retrying','dead'];
+document.getElementById('connBtns').innerHTML=
+  CONNS.map(c=>`<button data-conn="${c}" class="${c==='connected'?'on':''}">${c}</button>`).join('');
+
+document.querySelector('.harness').addEventListener('click',e=>{
+  const b=e.target.closest('button'); if(!b) return;
+  if (b.dataset.conn){ S.conn=b.dataset.conn; S.lastDataAge=0; }
+  if (b.dataset.mode) document.documentElement.dataset.mode=b.dataset.mode;
+  if (b.id==='btnRec') S.recording=true;
+  if (b.id==='btnIdle') S.recording=false;
+  if (b.id==='btnBurn'){ S.elapsed+=900; S.samples+=900; }
+  if (b.id==='btnCfg'){ S.configured=!S.configured; b.classList.toggle('on',S.configured); }
+  document.querySelectorAll('.harness button').forEach(x=>{
+    if (x.dataset.conn) x.classList.toggle('on',x.dataset.conn===S.conn);
+    if (x.dataset.mode) x.classList.toggle('on',x.dataset.mode===document.documentElement.dataset.mode);
+    if (x.id==='btnRec') x.classList.toggle('on',S.recording);
+    if (x.id==='btnIdle') x.classList.toggle('on',!S.recording);
+  });
+  render();
+});
+
+function setVariant(v){ S.variant=v; S.sheet=false; S.fanOpen=false;
+  const u=new URL(location); u.searchParams.set('variant',v); history.replaceState(null,'',u); render(); }
+const keys=Object.keys(V);
+document.getElementById('prev').onclick=()=>setVariant(keys[(keys.indexOf(S.variant)+keys.length-1)%keys.length]);
+document.getElementById('next').onclick=()=>setVariant(keys[(keys.indexOf(S.variant)+1)%keys.length]);
+addEventListener('keydown',e=>{
+  if(/^(INPUT|TEXTAREA)$/.test(e.target.tagName)||e.target.isContentEditable) return;
+  if(e.key==='ArrowLeft') document.getElementById('prev').click();
+  if(e.key==='ArrowRight') document.getElementById('next').click();
+});
+setInterval(()=>{const d=new Date();
+  document.getElementById('clock').textContent=
+    `${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`;},1000);
+
+S.variant=new URL(location).searchParams.get('variant')||'A';
+document.documentElement.dataset.mode='night';
+render();
+</script>
+</body>
+</html>

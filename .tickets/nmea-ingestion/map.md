@@ -149,6 +149,26 @@ re-litigating any of the decisions below. Building it is a separate effort.
   implicit knob duplicating the blend weight, which is the exact pathology `03`
   threw out. Existing duplicate rows self-heal; no migration. New: `18`.
 
+- [09 — The capture screen: the in-race surface](issues/09-capture-screen.md)
+  — **the ticket's premise was wrong, and that is the finding: there is no
+  capture screen.** The course plan must stay usable while recording, so capture
+  is a **layer** — a slim always-on strip above the tab bar carrying a connection
+  dot, live TWS/TWA, and the last stamp; tap it for a scrolling sail sheet.
+  Nothing renders when not recording, and every scrollable screen owes it bottom
+  inset. **Amends founding decision 4:** a sail is **stamped**, a bare point in
+  time, never a state that holds until the next one — *forgetting to stamp must
+  yield unattributed samples, never wrongly attributed ones*, which is the
+  inverse of FD4 and the constraint everything downstream inherits. **Amends
+  founding decision 8:** start lives on the course plan and needs a selected
+  course, so the course link is no longer optional at the only entry point.
+  Connection config moves to the **boat profile** and gates start (answers `11`
+  q2). The notification is **status-only + Stop** — Android caps actions at
+  three against a wardrobe of 8–11, and a wrong stamp is worse than no stamp;
+  sail actions were *mechanically* legal (trampoline rule permits a DB-writing
+  receiver) and rejected on design. Prototyping the out-of-scope live wind card
+  confirmed **the scope line stands**. New: `19`. Prototypes:
+  branch `prototype/09-capture-layer`.
+
 ### Founding decisions
 
 Settled while charting, before any ticket existed. Recorded here because they
@@ -171,6 +191,17 @@ have no ticket of their own; everything after this point gets one.
    now"), *not* a change-event. An assertion holds until the next one. Fully
    editable after the fact. Inferring the true boundaries around an assertion
    is fog, not a commitment.
+
+   ⚠️ **Amended by `09` — "holds until the next one" is reversed.** A sail is
+   **stamped**: a bare point in time, tapped opportunistically and often
+   forgotten, that **does not propagate forward**. Forgetting to stamp after a
+   swap must leave samples *unattributed*, never *wrongly attributed* — silent
+   misattribution poisons a polar, an unattributed stretch merely wastes it.
+   That inverts the safety property FD4 assumed. It also drags the "boundary
+   inference" fog out of the fog: with sparse stamps the inference **is** the
+   mechanism by which a session becomes polar points, not a later nicety. Owned
+   by `19`. Editability after the fact is unchanged and now matters more (`10`
+   q3).
 5. **Provenance** — `sailPolar` gains a source column pointing back at the
    capture session, so promotion is reversible and measured points are
    distinguishable from imported ones.
@@ -202,6 +233,14 @@ have no ticket of their own; everything after this point gets one.
    notes, and an **optional** course link (optional so a casual sail can still
    be recorded). Conditions are derived from the captured data. No competitors,
    no results.
+
+   ⚠️ **Under pressure from `09`.** Recording starts from the **course plan**
+   and needs a selected course, so at the only entry point that exists the
+   course link is **mandatory**. Either casual course-less recording is dropped
+   or a second entry point is needed — see
+   [Not yet specified](#not-yet-specified). `09` also adds a hard precondition
+   the session shape did not have: **the boat profile must carry a plotter
+   endpoint** or recording cannot begin at all.
 9. **Development is simulator-first** — the feature must be buildable and
    testable on a desk. See the boat-access constraint in
    [Notes](#notes) and ticket `12`.
@@ -247,9 +286,13 @@ have no ticket of their own; everything after this point gets one.
   yield polar points also reveal the angles a sail was actually usable at. An
   algorithm could propose limit rows or flag existing ones as wrong. Wanted
   eventually; deliberately not sized yet.
-- **Boundary inference for sail assertions** — deriving when a sail actually
-  went up/came down from step-changes in the data, rather than trusting the
-  assertion timestamp.
+- **Whether a course-less session can be recorded at all.** `09` puts the only
+  start control on the course plan, behind a selected course, which contradicts
+  founding decision 8's deliberate optionality. Fog rather than a ticket because
+  it may resolve itself: if the casual case turns out not to matter to Logan,
+  FD8 simply changes. If it does matter, it needs a second entry point and that
+  is a design question. Revisit once `10` decides where sessions are listed —
+  that screen is the obvious second home for a Start control.
 - **Battery and thermal behaviour** over a 3-hour recording.
 - **Session export / sharing** — the app already has CSV import/export for
   polars; whether sessions get the same treatment.
@@ -309,3 +352,18 @@ Open tickets are found by scanning `issues/`; this list is not maintained.
     constraint above, nothing waits on it — and after `14`, less than ever.
     It now also gates `16`.
   - `06`, `09` and `11` remain takeable with no dependencies on hardware.
+- After `09`: frontier is `04`, `06`, `07`, `08`, `11`, `13`, `16`(boat), `18`,
+  plus `10` (claimed, prototype built and awaiting a phone). New: `19`, blocked
+  by `05` and `07`.
+  - **`11` is the one to take next.** `09` handed it a decided answer to its
+    question 2 (endpoint lives on the boat profile) and a new gating rule, and it
+    is the last unblocked design ticket standing between the surface decisions
+    and a writable spec.
+  - `19` is where founding decision 4's amendment gets its mechanism. It is
+    blocked by `07`, which owns the other rule that cuts a session into
+    stretches — resolve `07` first and check whether the two compose or one
+    subsumes the other.
+  - `08` gains two shapes from `09`: a **stamp** table that must not be able to
+    express an interval, and plotter connection columns on `boatProfile`.
+  - `10`'s question 3 is now load-bearing rather than a convenience: under
+    sparse stamping, review-time correction is how a forgotten swap gets fixed.
