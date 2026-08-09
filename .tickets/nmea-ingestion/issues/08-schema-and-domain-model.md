@@ -14,11 +14,20 @@ name the concepts so the codebase and `CONTEXT.md` agree.
    - `captureSession` — boat profile (required), name, start/end, notes,
      optional course link, raw-log file reference, status
    - a **sample** table — the fields settled in `05`
-   - a **sail assertion** table — timestamp + sail, per founding decision 4
+   - a **sail stamp** table — timestamp + sail. `09` amended founding decision
+     4: this is a bare point in time, **not** an interval and **not** a state
+     that holds until the next one. Nothing here should be able to represent an
+     end time, or the misattribution `09` forbids becomes expressible.
    - a **source/provenance** column on `sailPolar`, per founding decision 5
+   - **plotter connection config on `boatProfile`** — host, port, device name,
+     NMEA version (`09`, via `11` q2). Nullable; its absence is what gates the
+     start control.
    Confirm, correct, or collapse these.
 2. **Naming.** What are these called in the ubiquitous language? "Capture
-   session" versus "recording" versus "log"; "assertion" versus "sail mark".
+   session" versus "recording" versus "log"; "assertion" versus "sail mark"
+   versus **"stamp"** — `09` used *stamp* throughout with Logan and it carries
+   the point-in-time meaning better than *assertion*, which reads as a claim
+   that persists. Weigh that.
    `CONTEXT.md` is the domain glossary and will need the new terms — the names
    chosen here are the ones the whole feature inherits.
 3. **The provenance column's job.** Is it an annotation (`'manual' | 'import' |

@@ -1,7 +1,7 @@
 # 07 — What counts as a steady-state stretch, and what speed do we take from it?
 
 Type: grilling
-Status: open
+Status: resolved
 Blocked by: 05, 14
 Map: [map.md](../map.md)
 
@@ -81,4 +81,76 @@ all produce speeds that don't belong in a polar.
 
 ## Answer
 
-<!-- filled on resolution -->
+Settled by grilling. Two ideas underlie all eight sub-answers: the steadiness
+filter does the *sailing-quality* work (deciding which moments represent real
+performance) so the bin statistic only has to handle *measurement noise*
+(median), and every stage that needs robustness reaches for the same
+robust-statistics family (median, MAD) rather than inventing a second implicit
+trust knob — the exact pathology `03` and `15` already ruled out elsewhere on
+this map.
+
+1. **Steadiness test.** Heading within ±5° of the window's mean, boat speed
+   within ±5%, TWS within ±1 kn, all held for **≥15 consecutive seconds**,
+   tested on a **3 s rolling median** of raw samples — enough to absorb the
+   0.1°/0.1 kn wire quantisation `14` measured without smearing a real
+   manoeuvre transition (15 s ≫ 3 s).
+2. **Manoeuvre exclusion** is a consequence of the steadiness test, not a
+   separate detector. A tack or gybe is a large, fast heading change — it
+   breaks the ±5° band on its own, so the window never reaches 15 s during or
+   immediately after one. No second thing to keep in sync with the bands if
+   they're retuned.
+3. **Binning** matches the clustered grid exactly: 1 kn TWS clusters, 4° TWA
+   bins, points emitted at **bin centres**. Captured data is only ever served
+   through `buildClusteredPolarGrid` (per `03`'s never-pool decision), so
+   promoting at that grid's own resolution means a proposed point lands where
+   the interpolator will actually look for it, and emitting at bin centres —
+   rather than raw scatter — is what avoids `03`'s single-column collapse when
+   a race's TWS range has no >1 kn gaps.
+4. **The statistic is the median**, taken *after* the steadiness filter has
+   already excluded badly-sailed stretches. `12`/`14`'s percentile-overstatement
+   finding (p90 +3.1%, p75 nearly unbiased at +0.9%, measured over a whole
+   *unfiltered* lap) doesn't override this: once the filter has done the
+   sailing-quality work, what's left in a bin is closer to symmetric
+   measurement noise, which is exactly what median is for — and it's what
+   `buildClusteredPolarGrid` already uses, so promotion and query share one
+   statistic philosophy rather than two.
+5. **Minimum evidence**: a bin needs **≥30 qualifying samples** (roughly two
+   independent ≥15 s stretches, not just one long one) before it earns a
+   proposed point. Requiring more than one stretch means the median reflects
+   the boat settling into a condition repeatably, not one stretch's particular
+   trim or wave state. Bins that don't reach 30 simply aren't proposed.
+6. **Outlier ceiling**: per-bin **MAD-based rejection** — reject samples more
+   than **3× the median absolute deviation** from the bin's median before
+   taking the final median. Self-calibrating per boat/bin, no boat-specific
+   max-speed config to invent. **The 3× constant is a tentative default, not a
+   validated one** — Logan flagged he can't yet quantify the risk of it being
+   wrong. Follow-up: `20`, which tunes it against `14`'s ground-truth
+   simulator rather than blocking this ticket on that measurement.
+7. **Both tacks are merged to `|TWA|` at promotion.** `sailPolar` already
+   stores TWA as an unsigned 0–180° magnitude (confirmed by reading
+   `schema.ts` and `polars/fleet.js`) — the schema assumes port/starboard
+   symmetry. Captured samples keep signed TWA (`05`'s decision, needed for
+   coalesce/staleness logic) right up to the point of promotion, where they
+   fold to the existing convention so promoted points need no schema change.
+   Port/starboard asymmetry as a calibration signal — this ticket's own text
+   called it "the cheapest available signal for the calibration fog" — is
+   **not solved here**; preserving it would need a `tack` column touching
+   interpolation, charts, and CSV import/export, well beyond promotion's
+   blast radius. Left in **Not yet specified** on the map, folded into the
+   existing calibration fog.
+8. **Manual selection** still runs the steadiness test, but as a **warning,
+   not a hard block** — the user can override it having seen the warning. Once
+   a stretch is selected (auto or manual), it goes through the same binning,
+   median, and MAD-outlier-rejection as the auto-propose path — there's no
+   reason to compute a selected stretch's representative speed differently
+   from a filter-found one.
+
+New: `20` — validate the 3× MAD constant against `14`'s simulator (candidate
+values 2×/3×/4×, scored by how well each recovers the known polar over a
+scripted-sail lap with injected GPS-glitch-style outliers). Not blocking;
+`07`'s other seven answers stand regardless of its outcome.
+
+Unblocks `08` (schema — inherits promoted-point shape: bin centres, `n`,
+median, MAD-filtered), `09`/`10` (UX can now show what a proposal is and why
+it warns on manual override), and `19` (already blocked on `07` for exactly
+this: how the steadiness filter and the stamp-attribution rule compose).

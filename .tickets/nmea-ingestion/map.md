@@ -169,6 +169,25 @@ re-litigating any of the decisions below. Building it is a separate effort.
   confirmed **the scope line stands**. New: `19`. Prototypes:
   branch `prototype/09-capture-layer`.
 
+- [07 — What counts as a steady-state stretch, and what speed do we take from
+  it?](issues/07-steady-state-filter.md) — **the filter does the
+  sailing-quality work, the statistic only handles noise.** Steadiness test:
+  heading ±5° / boat speed ±5% / TWS ±1 kn held ≥15 s on a 3 s rolling median;
+  manoeuvre exclusion is a free consequence (a tack breaks the heading band on
+  its own), not a separate detector. Binning matches the clustered grid
+  exactly (1 kn TWS / 4° TWA, bin centres) so proposed points land where the
+  interpolator looks. Statistic is the **median**, not a percentile —
+  `12`/`14`'s overstatement finding applies to *unfiltered* data; once the
+  filter has excluded bad sailing, what's left is measurement noise, median's
+  job. Minimum evidence **≥30 samples/bin** (~2 independent stretches).
+  Outliers: per-bin **3× MAD** rejection, tentative pending `20`. Tacks
+  **merge to `|TWA|`** at promotion — matches `sailPolar`'s existing unsigned
+  schema, no migration; asymmetry as a calibration signal stays fog. Manual
+  selection still runs the steadiness test but as a **warning, not a block**,
+  then shares the same binning/median/MAD path as auto-propose. New: `20`
+  (tune the MAD constant against `14`'s simulator — not blocking). Unblocks
+  `08`, `09`, `10`, and `19`.
+
 ### Founding decisions
 
 Settled while charting, before any ticket existed. Recorded here because they
@@ -220,15 +239,14 @@ have no ticket of their own; everything after this point gets one.
    fully manual stretch selection as the fallback when the proposals look
    wrong.
 
-   ⚠️ **The "high percentile, not mean" part of this decision is now in
-   question, and there is now a measurement.** `12` computed that a
-   90th-percentile derivation overstates the polar by ~8.3% against the
-   project's own noise model, because a percentile over a noisy bin measures
-   *instrument noise*, not sailing skill. `14` then measured it end to end and
-   found the overstatement is **~+3.1% once trim is autocorrelated the way a
-   real boat's is**, with **p75 nearly unbiased (+0.9%)** and mean/p50 running
-   *negative*. `07` owns the choice and now makes it from a table, not from
-   taste. The two-path structure is unaffected.
+   ✅ **Settled by `07`.** Not a percentile — **median**, taken after a
+   steadiness filter (heading ±5° / boat speed ±5% / TWS ±1 kn held ≥15 s) has
+   already excluded badly-sailed stretches, so the statistic only has to
+   handle residual measurement noise rather than also doing the sailing-quality
+   work a percentile was trying (and, per `12`/`14`, failing) to do. The
+   two-path structure (auto-propose + manual fallback) is unaffected; manual
+   selection shares the same statistic, just with the steadiness test
+   downgraded to a warning.
 8. **Session shape** — belongs to a boat profile; carries name, start/end,
    notes, and an **optional** course link (optional so a casual sail can still
    be recorded). Conditions are derived from the captured data. No competitors,
@@ -274,7 +292,11 @@ have no ticket of their own; everything after this point gets one.
   a later decision to correct doesn't require re-recording every session.
   Related: `17` also could not establish **whether B&G folds leeway into
   transmitted TWA** or keeps it heading-relative — worth up to ~4°, another
-  full bin.
+  full bin. **`07` adds one more thread:** port/starboard asymmetry at
+  promotion is the cheapest available signal for this fog, but `07` merges
+  tacks to `|TWA|` to match `sailPolar`'s existing unsigned schema, so
+  surfacing that signal (as an analysis step, not a stored asymmetry) is left
+  here rather than solved by promotion.
 - **Which wind frame the Plan tab speaks.** Forecast wind is *meteorological* —
   ground-referenced — but polars are built from instrument true wind, which for
   performance purposes should be water-referenced. So the TWD a user types on
@@ -367,3 +389,15 @@ Open tickets are found by scanning `issues/`; this list is not maintained.
     express an interval, and plotter connection columns on `boatProfile`.
   - `10`'s question 3 is now load-bearing rather than a convenience: under
     sparse stamping, review-time correction is how a forgotten swap gets fixed.
+- After `07`: frontier is `04`, `06`, `08`, `11`, `13`, `16`(boat), `18`, `19`,
+  `20`, plus `10` (claimed, prototype built and awaiting a phone).
+  - `19` is now fully unblocked (`05` and `07` both resolved) — it owns
+    exactly the question `07`'s answer flagged but didn't settle: whether the
+    steadiness filter and the stamp-attribution rule compose or one subsumes
+    the other.
+  - `20` is new from `07` and cheap — tunes the steady-state filter's 3× MAD
+    outlier constant against `14`'s simulator. Not blocking; nothing else on
+    the map waits on it.
+  - `08` now also inherits `07`'s promoted-point shape (bin centre, `n`,
+    MAD-filtered median) alongside `05`'s sample-row shape and `09`'s stamp
+    table.
