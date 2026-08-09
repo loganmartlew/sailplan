@@ -33,6 +33,14 @@ Settle the policy:
    directories; the cache directory can be reclaimed by Android without
    warning, which is either a feature or a data-loss bug depending on intent.
 
+> **`05` added a constraint.** Every sample row carries a **`rawOffset`** — a
+> byte offset into the raw log — so review can jump from a suspicious sample
+> straight to the sentences that produced it. Deleting or truncating the log
+> therefore **dangles every offset in that session**. Retention isn't only about
+> disk any more: it decides whether a session stays auditable. Whatever this
+> ticket chooses must say what a dangling offset does (nulled on delete, or
+> tolerated and handled at read time).
+
 ## Answer
 
 <!-- filled on resolution -->

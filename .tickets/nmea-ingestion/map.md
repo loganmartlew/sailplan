@@ -103,6 +103,52 @@ re-litigating any of the decisions below. Building it is a separate effort.
   — a bug reachable today via CSV import — now `15`. Prototype:
   branch `prototype/03-mixed-provenance`.
 
+- [05 — What is a sample row, and how often do we write one?](issues/05-sample-fields-and-rate.md)
+  — **the row shape is settled.** Emission is **anchor-triggered** on `MWV,T`
+  *or* `VHW` with a 250 ms coalesce window — which means **no native Kotlin
+  tick is needed**, removing a whole native component from v1. Rows carry ~18
+  columns (~1.6 MB/race, so storage is a non-argument), all angles **true-north**
+  and all speeds **knots**, `twa` signed ±180° to preserve tack, **no derived
+  columns** (they freeze a formula version into the data). Staleness is
+  **TTL-null** at `max(1 s, 3 × period)` — measured, not guessed: the real
+  GoFree capture never misses more than **one consecutive second** on any
+  sentence, which also confirms `01`'s rate table empirically for the first
+  time. Gaps are absent rows plus a session-level connection log and a hard 5 s
+  discontinuity rule. Validation is v1, row-level for anchors and field-level
+  otherwise. **`07` is now unblocked.**
+- [17 — How is true wind actually derived, properly?](issues/17-true-wind-derivation.md)
+  — **trust `MWV,T`; derive only as a session-level cross-check, never blended.**
+  Raised inside `05` and it **inverted that ticket's working assumption**:
+  deriving is not configuration-free — it needs leeway `k`, mast height and an
+  upwash table. The two dominant corrections are the two we cannot reproduce —
+  **upwash at 3–5° TWA per tack (a full bin)** and B&G's TWA-dependent TWS
+  table (**−10 % shipped default**), both gated on an H5000 CPU. On an H5000
+  boat `MWV,R` is itself back-calculated from corrected true wind, so it is not
+  an independent measurement. Gives `03` a **physical** reason for never pooling
+  (captured = masthead-height instrument-corrected scale, imported = 10 m
+  free-stream: 5–9 % TWS and 3–5° TWA apart). Full findings:
+  [research/17](research/17-true-wind-derivation.md).
+
+- [15 — What should interpolation do when stored points collide?](issues/15-duplicate-point-collision.md)
+  — **worse than ticketed: the real damage is confidence collapsing to zero,
+  which disables polar-based suggestion entirely.** Duplicates inject
+  zero-width gaps into the TWA axis, so `medianAxisGap` → 0 and confidence → 0
+  — on **byte-identical rows**, with the speed still correct — and
+  `blend.lowConfidence: 0.25` then makes ranking ignore the polar table and use
+  TWA limits alone. Trigger: importing the same CSV twice. Also found that the
+  four bilinear corners can come from *different* duplicate sets (lo takes the
+  last duplicate, hi the first), so the surface belongs to no stored table.
+  **Decision: a grid-builder invariant — a `PolarGrid` never holds two rows at
+  one (TWS, TWA) node** — which kills all three defects upstream, plus exact
+  equality only (never a tolerance — that is the clustered grid's job), median
+  as the collapse statistic, and the row carries its contributing count `n`
+  from **both** builders. **`n` is carried but deliberately not spent:**
+  reinforcement was considered and dropped, because on the clustered path `n`
+  is bin population and bimodal by provenance, so "`n` raises confidence"
+  decodes to "captured beats imported" — `16`'s question, and a *second*
+  implicit knob duplicating the blend weight, which is the exact pathology `03`
+  threw out. Existing duplicate rows self-heal; no migration. New: `18`.
+
 ### Founding decisions
 
 Settled while charting, before any ticket existed. Recorded here because they
@@ -116,6 +162,11 @@ have no ticket of their own; everything after this point gets one.
 3. **Sampling** — capture near the device's native rate and average at
    *analysis* time, so the averaging window can be chosen per use rather than
    baked into the recording. Exact rate pending `01`.
+
+   ✅ **Settled by `05`.** 1 Hz, emitted **event-driven** on the arrival of
+   `MWV,T` or `VHW` with a 250 ms coalesce window — not on a clock. The
+   coalesce window is what stops two anchors turning a 1 Hz recording into
+   2.4 Hz of near-duplicates weighted by sentence timing rather than by time.
 4. **Sail attribution** — a timestamped **assertion** ("sail X is up right
    now"), *not* a change-event. An assertion holds until the next one. Fully
    editable after the fact. Inferring the true boundaries around an assertion
@@ -175,7 +226,23 @@ have no ticket of their own; everything after this point gets one.
   calibration drift is not an outlier; it is a coherent offset the median moves
   along with. Deliberately left as fog (Logan, this session) rather than
   ticketed, but it means the useful thing about session provenance is being
-  able to take a session back *out*.
+  able to take a session back *out*. **`17` has now sized it:** the single
+  largest unmodelled term is **upwash, at 3–5° of TWA per tack — a full 4° bin**
+  — and it is *not* something the app can fix; it is fixed by a calibration the
+  boat's owner has to sail for, on hardware (an H5000 CPU) that may not be
+  aboard. Heel (+1.8° TWA, +2.7 % TWS at 20°) and wind gradient (+2.4 % to
+  +9.1 % TWS) are the next terms; `05` now stores `heel`/`trim` on every row so
+  a later decision to correct doesn't require re-recording every session.
+  Related: `17` also could not establish **whether B&G folds leeway into
+  transmitted TWA** or keeps it heading-relative — worth up to ~4°, another
+  full bin.
+- **Which wind frame the Plan tab speaks.** Forecast wind is *meteorological* —
+  ground-referenced — but polars are built from instrument true wind, which for
+  performance purposes should be water-referenced. So the TWD a user types on
+  the Plan tab and the TWD their polars were derived from may be in different
+  frames, differing by the tidal current vector. Surfaced while resolving `05`;
+  deliberately left as fog because it only bites in a tideway and the size of
+  the bite is unknown until `04` classifies a real session.
 - **Generating `sailTwaLimit` rows from captured data.** The same tracks that
   yield polar points also reveal the angles a sail was actually usable at. An
   algorithm could propose limit rows or flag existing ones as wrong. Wanted
@@ -198,6 +265,11 @@ Ruled beyond this destination. Returns only as a fresh effort.
   against the current TWA/TWS. Explicitly the next thing wanted after this
   map, and it depends on this map producing good polars first.
 - **Race scoring** — competitors, finish times, results.
+- **Fixing the polar CSV import's silent knots assumption.** Found while `05`
+  established the canonical storage unit: CSV import is the only writer that
+  doesn't convert. Real but unrelated to this destination, and not blocking
+  `07` — logged as repo tech debt at
+  [`.tickets/tech-debt/issues/01-csv-import-assumes-knots.md`](../tech-debt/issues/01-csv-import-assumes-knots.md).
 
 ## Tickets
 
@@ -207,15 +279,32 @@ Open tickets are found by scanning `issues/`; this list is not maintained.
 - After the research round (`01`, `02`, `12` resolved): frontier was `03`,
   `04`, `05`, `06`, `09`, `11`, `14`.
 - After `14`: frontier was `03`, `04`, `05`, `06`, `09`, `11`, `13`.
-- After `03`: frontier is `04`, `05`, `06`, `09`, `11`, `13`, `15`.
-  - **`05` is the highest-leverage** — it is the last thing between `07` and a
-    decision, and `07` now has measured evidence waiting for it.
+- After `03`: frontier was `04`, `05`, `06`, `09`, `11`, `13`, `15`.
+- After `05` (and `17`, raised and resolved inside it): frontier is `04`, `06`,
+  `07`, `08`, `09`, `10`, `11`, `13`. Resolving `05` unblocked **three** tickets
+  — `07`, `08` and `10`. (`15` was resolved concurrently in another session.)
+  - **`07` is the one to take next** — `05` was the last thing between it and a
+    decision, and it has had measured evidence waiting since `14`.
+  - `06` now inherits a constraint: sample rows carry a `rawOffset` into the raw
+    log, so a retention policy that deletes the log dangles them.
+  - `08` takes `05`'s field list as the sample table's shape, plus the
+    session-level columns `05` §6 and §5 introduce (wind classification, reject
+    counters, stale counters, connection events).
   - `13` is where the `hotspot.sh` rig gets its first end-to-end run with a
     real phone.
-  - `15` is new from `03` and cheap — it is a shipped bug plus a call to make,
-    with the evidence already gathered.
   - `16` is new from `03` but **blocked by `04`**: the blend weight can only be
-    chosen against real captured data.
+    chosen against real captured data. `15` has now handed it a second job —
+    deciding whether the node count `n` is allowed to influence confidence at
+    all, which is the same captured-vs-imported trust question as the weight.
+- After `15`: frontier gains `18`.
+  - `18` is new from `15` and cheap — duplicate-import prevention. **Take it
+    before `08`**: its question 3 decides whether imports become first-class
+    batch records, which is `08`'s provenance-column shape. Deciding it
+    afterwards means a second migration.
+  - `15` also leaves a **code fix outside this map** — the grid-builder
+    invariant, the IDW `EPSILON` one-liner, and tests. A shipped bug that
+    should not wait on the spec being finished; raise it as an ordinary
+    `.tickets/` implementation issue.
   - `04` is technically unblocked but needs the boat; per the access
     constraint above, nothing waits on it — and after `14`, less than ever.
     It now also gates `16`.

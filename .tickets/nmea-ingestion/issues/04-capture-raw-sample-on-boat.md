@@ -73,6 +73,36 @@ Produce a precise checklist covering:
    timestamps is worth substantially less** and this trip is expensive — get it
    right the first time.
 
+### `17` added 8 more, and one of them is the highest-leverage item on the trip
+
+From [`research/17-true-wind-derivation.md`](../research/17-true-wind-derivation.md) §7:
+
+1. **What computes true wind on this boat?** *Settings → Network → Sources* →
+   the wind source. If it's an **H5000 CPU**, `MWV,T` is corrected and deriving
+   ourselves is off the table permanently. If it's a Triton2 or the MFD, it's
+   naive trig and the cross-check should agree closely — itself a validation of
+   our parser.
+2. **Are "Use SOG as boat speed" and "Use COG as heading" enabled?**
+   Photograph both. They are the difference between a usable polar and one with
+   tide baked in, and they live in *different* menus (boat speed vs compass).
+3. **If an H5000 is present: are the TWA and TWS correction tables populated or
+   still at defaults?** A table of zeros means the corrections nominally exist
+   but do nothing. Specifically: is the −10 % TWS default there?
+4. **What are the damping values** for apparent wind, true wind, boat speed and
+   heading? Needed to interpret any cross-check disagreement and to size `07`'s
+   steady-state window.
+5. **Mast height above waterline.** One tape measure, one number — makes the
+   wind-gradient question answerable later without another trip.
+6. **Is `XDR` heel populated and sane** (zero at the dock, signed correctly to
+   starboard)? `01` listed `XDR` as a bonus; `17` makes it the input to two of
+   the three reproducible corrections, and `05` now stores it on every row.
+7. **⭐ Sail a tack-to-tack pair in steady breeze and record `MWV,T` TWD on each
+   tack.** The tack-to-tack split **is** the calibration state of the whole wind
+   system in one number: 3° well calibrated, 5–7° first-pass, 10° uncalibrated.
+   Five minutes, and it sizes every TWA error in `17` for *this* boat.
+8. **A run with known tide** — the practical discriminator for water- vs
+   ground-referenced (item 3 in the damage-ordered list above).
+
 Resolved when a raw sample file is committed somewhere in the repo (or
 attached and its location recorded here) and the answer below records:
 

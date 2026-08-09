@@ -10,7 +10,7 @@ code.
 | Term    | Full name             | Meaning                                                                                 |
 | ------- | ---------------------- | --------------------------------------------------------------------------------------- |
 | **TWD** | True Wind Direction   | Compass direction the wind is blowing **from**, in degrees (0–360°).                     |
-| **TWS** | True Wind Speed       | How hard the wind blows. Stored/entered in the user's `speedUnit` (default knots).       |
+| **TWS** | True Wind Speed       | How hard the wind blows. **Stored canonically in knots**; `speedUnit` is display/entry only. |
 | **TWA** | True Wind Angle       | Angle between the wind and the boat's heading (0–180°). `0°` = dead into wind, `180°` = dead downwind. Derived, never stored raw. |
 
 TWD and TWS are the user's **inputs** on the Plan tab (stored transiently in the
@@ -77,6 +77,12 @@ picking the right one for the leg's TWA/TWS.
 | **Polar diagram** | The classic radial plot of speed vs. wind angle. Rendered as `polar` or `scatter` chart (`polarChartType` setting). |
 | **Interpolation** | Estimating boat speed at a TWS/TWA that isn't an exact stored point — **bilinear** over the polar grid, falling back to **Inverse Distance Weighting (IDW)** over nearby points when the data isn't gridded. See [`features/sailPolar`](sailplan-app/features/sailPolar/README.md). |
 | **Confidence**  | How trustworthy an interpolated speed is (0–1), based on how close/dense/bracketing the nearby polar points are. Bucketed into high/moderate/low **tiers**. |
+
+**Units:** every speed in the database — `sailPolar.tws`, `sailPolar.speed`,
+`sail.minTws`/`maxTws`, `sailTwaLimit.tws` — is stored in **knots**. The
+`speedUnit` setting converts on entry and on display only; it never changes what
+is stored. See `convertSpeed`/`formatSpeed` in
+[`lib/format.ts`](sailplan-app/lib/format.ts).
 
 ## TWA limits
 
