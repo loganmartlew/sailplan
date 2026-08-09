@@ -13,6 +13,10 @@ code.
 | **TWS** | True Wind Speed       | How hard the wind blows. Stored/entered in the user's `speedUnit` (default knots).       |
 | **TWA** | True Wind Angle       | Angle between the wind and the boat's heading (0–180°). `0°` = dead into wind, `180°` = dead downwind. Derived, never stored raw. |
 
+**TWD uncertainty** is a symmetric range around a central, most-likely TWD,
+expressed as plus-or-minus degrees. It means the wind may be anywhere in that
+range; it does not imply the timing or phase of an oscillating shift.
+
 TWD and TWS are the user's **inputs** on the Plan tab (stored transiently in the
 [plan store](sailplan-app/features/plan/store/planStore.ts)). TWA is **computed** from TWD
 and the boat's bearing — see [`getTwa`](sailplan-app/features/coordinate/util/bearing.ts).
