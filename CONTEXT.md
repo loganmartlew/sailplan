@@ -113,6 +113,12 @@ and TWA limits all belong to a profile, and one profile is always active (see
 [architecture.md](sailplan-app/docs/architecture.md#provider--startup-chain)). Switching profiles
 switches the whole sail inventory the app reasons about.
 
+## NMEA capture
+
+| Term | Meaning |
+| ---- | ------- |
+| **Raw log** | The verbatim NMEA sentence stream captured alongside a recording. It is durable-but-disposable evidence for debugging, reprocessing, and export—not the recording itself. Removing it leaves the parsed recording and its polar contribution intact; removing the recording withdraws the whole contribution. |
+
 ## Putting it together
 
 The Plan flow chains these concepts:

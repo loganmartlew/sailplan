@@ -188,6 +188,13 @@ re-litigating any of the decisions below. Building it is a separate effort.
   (tune the MAD constant against `14`'s simulator — not blocking). Unblocks
   `08`, `09`, `10`, and `19`.
 
+- [06 — Raw log retention and cleanup](issues/06-raw-log-retention.md) — raw
+  logs are **always-on, durable-but-disposable evidence** in app document
+  storage: never deleted automatically, exportable as whole files, and managed
+  through visible per-recording and bulk cleanup. Deleting only a log preserves
+  its recording; deleting the recording hard-deletes its entire contribution.
+  Unremovable files remain discoverable as unlinked raw logs.
+
 ### Founding decisions
 
 Settled while charting, before any ticket existed. Recorded here because they
