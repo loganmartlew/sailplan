@@ -231,6 +231,13 @@ re-litigating any of the decisions below. Building it is a separate effort.
   superseded or confirmed; resume reopens the same recording and preserves the
   outage as a gap. Ambiguous discovery never switches sources in the background.
 
+- [What does a sparse sail stamp actually claim?](issues/19-stamp-attribution-rule.md)
+  — a stamp is a **point observation** that seeds draft, leg-based attribution;
+  local `|TWA|`/TWS similarity may carry it one adjacent leg, while sustained
+  speed changes find boundaries rather than identify sails. **Next/Finish**
+  confirms the visible blocks, and only confirmed spans enter the steady-state
+  filter; uncertain samples remain recorded but not used.
+
 ### Founding decisions
 
 Settled while charting, before any ticket existed. Recorded here because they
@@ -262,8 +269,8 @@ have no ticket of their own; everything after this point gets one.
    That inverts the safety property FD4 assumed. It also drags the "boundary
    inference" fog out of the fog: with sparse stamps the inference **is** the
    mechanism by which a session becomes polar points, not a later nicety. Owned
-   by `19`. Editability after the fact is unchanged and now matters more (`10`
-   q3).
+   by [What does a sparse sail stamp actually claim?](issues/19-stamp-attribution-rule.md).
+   Editability after the fact is unchanged and now matters more (`10` q3).
 5. **Provenance** — `sailPolar` gains a source column pointing back at the
    capture session, so promotion is reversible and measured points are
    distinguishable from imported ones.

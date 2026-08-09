@@ -121,6 +121,8 @@ switches the whole sail inventory the app reasons about.
 | **Plotter setup** | The per-boat-profile method for locating its NMEA source: either automatic discovery of a selected source or a manually pinned host and port. Being configured does **not** mean the source is currently reachable. |
 | **NMEA connection** | The live runtime relationship in which SailPlan is receiving valid NMEA data from the configured source. It may be connected, retrying, or absent independently of whether plotter setup exists. |
 | **Raw log** | The verbatim NMEA sentence stream captured alongside a recording. It is durable-but-disposable evidence for debugging, reprocessing, and export—not the recording itself. Removing it leaves the parsed recording and its polar contribution intact; removing the recording withdraws the whole contribution. |
+| **Sail stamp** | A timestamped observation that a particular sail was up at that instant. A stamp does not itself claim the surrounding samples or remain in force until another stamp; review may use it as evidence when proposing editable sail-attribution spans. |
+| **Sail-attribution span** | An interval of recording samples assigned to one sail, either proposed as a review draft or confirmed by the sailor. The app may infer draft spans from sail stamps and surrounding conditions, but only confirmed spans can contribute to polar promotion. |
 
 ## Putting it together
 
