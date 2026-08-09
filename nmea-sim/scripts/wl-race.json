@@ -1,0 +1,59 @@
+{
+  "name": "wl-race-closed",
+  "seed": 7788,
+  "_comment": [
+    "A windward-leeward that CLOSES, for ticket 10 round 4.",
+    "The first cut sailed headings for a duration, so the beat and the run did not",
+    "cancel and the course marched 4.3 km downrange \u2014 roundings never clustered, so",
+    "'which marks was this leg between' could not even be asked.",
+    "Here the run legs are the reciprocals of the beat legs (0/90 against 180/270)",
+    "and their duration is set so net displacement cancels: upwind VMG over 480 s",
+    "is about 1100 m, downwind VMG at TWA 135 covers that in about 286 s.",
+    "TWD 225. Beat TWA 45 on 180/270 (J1), run TWA 135 on 0/90 (A3).",
+    "GROUND TRUTH: lap = 766 s. Boundaries at 480, 766, 1246, 1532, ... alternating."
+  ],
+  "course": {
+    "twd": 225,
+    "tws": 12,
+    "twdOscillationDeg": 8,
+    "twdOscillationPeriodSec": 300,
+    "twsOscillationKn": 1.5,
+    "twsOscillationPeriodSec": 420,
+    "variationDeg": 21.5,
+    "trimDwellSec": 30,
+    "repeat": true,
+    "legs": [
+      {
+        "durationSec": 120,
+        "headingDeg": 180,
+        "sail": "J1"
+      },
+      {
+        "durationSec": 120,
+        "headingDeg": 270,
+        "sail": "J1"
+      },
+      {
+        "durationSec": 120,
+        "headingDeg": 180,
+        "sail": "J1"
+      },
+      {
+        "durationSec": 120,
+        "headingDeg": 270,
+        "sail": "J1"
+      },
+      {
+        "durationSec": 143,
+        "headingDeg": 0,
+        "sail": "A3"
+      },
+      {
+        "durationSec": 143,
+        "headingDeg": 90,
+        "sail": "A3"
+      }
+    ]
+  },
+  "faults": []
+}

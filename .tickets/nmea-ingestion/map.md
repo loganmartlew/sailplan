@@ -195,6 +195,29 @@ re-litigating any of the decisions below. Building it is a separate effort.
   its recording; deleting the recording hard-deletes its entire contribution.
   Unremovable files remain discoverable as unlinked raw logs.
 
+- [10 — The review and promotion screen](issues/10-review-and-promotion-screen.md)
+  — **review is one screen per course leg, and a leg is a row of spans.** Five
+  prototype rounds; the first four (a scrubbable tape, a proposal inbox, a polar
+  you edit, then one screen per *tack*) were rejected as complex or as asking
+  the wrong question. The unit is a **course leg, mark to mark** — 20 legs
+  holding this race's 34 tacks and gybes, because nobody wants a screen per tack
+  up a beat. **Legs are detectable with no course loaded**: segment on median
+  **|TWA|** over ±90 s, threshold 25°, **ignoring the sign** — a tack flips the
+  sign and keeps the magnitude, a rounding changes the magnitude. 14/14
+  roundings, 0 spurious, median error 33 s; the **end trim absorbs that error**
+  (mixed-sail legs 16/20 → 0/20), welding trim defaults to detection tolerance.
+  Mark *names* still need the linked course — inferring them from roundings
+  fails. Inside a leg, **every block carries a sail or nothing**, which collapses
+  head-trim, tail-trim, mid-leg cuts and sail changes into one act and gives
+  multiple sails per leg (the hook for **via points**). Promotion review is
+  **per sail per 10° TWA band** against your existing table. The map is
+  read-only and follows the pager. **`07` re-scores the yield: 45 points from a
+  two-hour race, median 2 per leg, 2 legs yielding nothing** — the screen must
+  read well at 1–4 points, not 11. Needed a new simulator script
+  (`nmea-sim/scripts/wl-race.json`) because the old race tacked once per beat.
+  Prototypes: branch `prototype/10-review-screen`, files in
+  [`prototypes/`](prototypes/).
+
 ### Founding decisions
 
 Settled while charting, before any ticket existed. Recorded here because they
@@ -408,3 +431,20 @@ Open tickets are found by scanning `issues/`; this list is not maintained.
   - `08` now also inherits `07`'s promoted-point shape (bin centre, `n`,
     MAD-filtered median) alongside `05`'s sample-row shape and `09`'s stamp
     table.
+- After `10`: frontier is `04`(boat), `08`, `13`, `16`(blocked by `04`), `18`,
+  `19`, `20`, plus `11` (claimed).
+  - **`19` is the one to take next.** `10` reshaped its question rather than
+    answering it: attribution is now "which **span** of which leg does a stamp
+    claim", with real edges at mark roundings instead of a decay in time, and
+    `10` measured that a stamp **must cross manoeuvres** (5 of 17 legs had no
+    stamp; every one was the leg after a tack; carry-forward scored 5/5). The
+    ticket carries a note block saying what to re-read.
+  - `08` gains a third shape from `10`: a **leg** is now a first-class thing the
+    review screen works in — detected on |TWA|, divided into spans that each
+    carry a sail or nothing. Whether legs and spans are *stored* or recomputed
+    on open is `08`'s call, and it decides whether a review can be resumed.
+  - `16` inherits `10`'s band-edge finding: the promotion review shows the
+    largest deltas exactly where the stored table is weakest, so the coverage
+    rule needs to surface as a confidence cue, not just gate the blend.
+  - Everything left is either the boat (`04`, and `16` behind it), the device
+    spike (`13`), or small and unblocked (`18`, `20`).

@@ -19,9 +19,11 @@ name the concepts so the codebase and `CONTEXT.md` agree.
      that holds until the next one. Nothing here should be able to represent an
      end time, or the misattribution `09` forbids becomes expressible.
    - a **source/provenance** column on `sailPolar`, per founding decision 5
-   - **plotter connection config on `boatProfile`** — host, port, device name,
-     NMEA version (`09`, via `11` q2). Nullable; its absence is what gates the
-     start control.
+   - **plotter setup on `boatProfile`** — `11` settled two methods: automatic
+     discovery stores the selected source's name/model and caches its latest
+     announced endpoint; manual mode pins host/port. Nullable; its absence is
+     what gates the start control. Optional testing metadata must not turn
+     reachability into a configuration requirement.
    Confirm, correct, or collapse these.
 2. **Naming.** What are these called in the ubiquitous language? "Capture
    session" versus "recording" versus "log"; "assertion" versus "sail mark"
@@ -73,6 +75,13 @@ vocabulary, not just columns.
 >
 > Naming these is this ticket's job: "sample", "session", and whatever the
 > connection log and classification end up called, belong in `CONTEXT.md`.
+>
+> **`11` adds lifecycle state this schema must be able to express:** active;
+> deliberately ended; auto-ended after five minutes without data but still
+> resumable; and confirmed/promoted. Resuming reopens the same recording and
+> preserves the outage as a connection-event gap. The resumable affordance
+> expires on dismissal, another recording starting, or confirmation/promotion;
+> decide here which parts are durable state versus derived/transient state.
 
 ## Answer
 
