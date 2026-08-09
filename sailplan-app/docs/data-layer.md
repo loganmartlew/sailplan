@@ -63,7 +63,35 @@ Workflow when you change `schema.ts`:
    `useMigrations(db, migrations)` and blocks the UI until they apply.
 
 Do **not** hand-edit generated migration files. `MigrationGate` also wires up
-`expo-drizzle-studio-plugin` for inspecting the DB in dev.
+`expo-drizzle-studio-plugin` for inspecting the DB in dev. Custom SQL that can't
+come from a schema diff (a data backfill, say) gets its own migration via
+`npx drizzle-kit generate --custom` — that is the sanctioned escape hatch, not
+editing a generated file.
+
+#### Adding a foreign key rebuilds the whole table
+
+SQLite cannot add a `FOREIGN KEY` constraint to an existing table, so
+drizzle-kit emits a **12-step table rebuild** instead of an `ALTER TABLE`:
+`PRAGMA foreign_keys=OFF`, `CREATE TABLE __new_x`, `INSERT INTO __new_x(…)
+SELECT … FROM x`, `DROP TABLE x`, `RENAME`. See
+[`drizzle/0006_busy_red_hulk.sql`](../drizzle/0006_busy_red_hulk.sql), which did
+this to `course` to add `courseGroupId`. A column with no `.references()` is a
+plain `ALTER TABLE … ADD` instead (see `0003`, `0008`).
+
+Rows **are** copied, so a rebuild is not data loss by default. The hazards are
+narrower, and both matter because `MigrationGate` blocks the UI until migrations
+apply — a migration that throws is an app that will not open on a real device:
+
+- **A new column plus a new foreign key in the same migration will fail.** The
+  generated `INSERT … SELECT` names the new column on *both* sides, selecting it
+  from the old table where it does not exist yet. Split it: add the plain column
+  in one migration, the `.references()` column in the next.
+- **The rebuild is a `DROP TABLE` with no transaction guarantee around the
+  sequence.** A failure between the drop and the rename leaves the table gone.
+
+So: prefer to add foreign keys while a table is small, **read the generated SQL**
+whenever a migration touches an existing table, and test it against a populated
+database rather than an empty one.
 
 ### Reading & writing
 

@@ -249,6 +249,29 @@ re-litigating any of the decisions below. Building it is a separate effort.
   all gross speed spikes at both 30 and 200 samples while rejecting materially
   fewer non-glitch observations; use a 0.1 kn scale floor for quantised bins.
 
+- [Schema and domain model](issues/08-schema-and-domain-model.md) — **evidence is
+  immutable, claims are mutable, and provenance is a predicate not a
+  relationship.** Nine tables plus four columns on `sailPolar`. Samples and
+  stamps are written once; **sailed legs and sail-attribution spans claim time
+  ranges over them** (`[startTime, endTime)`, no span id on any sample), so
+  dragging a divider in review never rewrites 400 rows and "not used" needs no
+  representation — a sample in no span is unattributed. `sailPolar` gains
+  `sourceKind` ∈ {`manual`, `import`, `capture`}, so `03`'s never-pool rule is
+  the single predicate `sourceKind = 'capture'`; `legacy` was proposed and
+  dropped by Logan (sole user, nothing imported, so the unknown isn't unknown).
+  Vocabulary: the artifact is a **capture session** (one start→stop, ideally one
+  race but not enforced), *recording* is demoted to the verb, and **`sailedLeg`**
+  is a new term because `10`'s |TWA|-detected legs are *observed* while
+  `CONTEXT.md`'s legs are *planned*. Lifecycle is three durable states with
+  resumability derived. Integrity follows the house convention — no cascades, no
+  `PRAGMA foreign_keys`, explicit fan-out in `api/`. **Migration is the
+  non-routine part: two, deliberately ordered**, because adding a foreign key
+  makes drizzle-kit rebuild `sailPolar` and a same-migration new column breaks
+  the copy statement, behind a `MigrationGate` that blocks app startup. General
+  rule written up in
+  [`docs/data-layer.md`](../../sailplan-app/docs/data-layer.md#adding-a-foreign-key-rebuilds-the-whole-table).
+  No new tickets; nothing graduates from the fog.
+
 ### Founding decisions
 
 Settled while charting, before any ticket existed. Recorded here because they
@@ -491,3 +514,16 @@ Open tickets are found by scanning `issues/`; this list is not maintained.
     vibration escalation, and five-minute service shutdown. Automatic-mode
     desktop tests need the simulator or a companion to emit GoFree discovery
     announcements; this is implementation work, not another decision ticket.
+- After `08`: frontier is `04`(boat), `13`, `18`, `20`; `16` remains blocked by
+  `04`. **`08` was the last unblocked design decision** — every persisted shape
+  the spec needs now exists.
+  - `18` and `20` are resolved; what is left on the map is the boat (`04`, and
+    `16` behind it) and the device spike (`13`). Neither produces a decision the
+    spec is waiting on — `04` is a confirmation step that may force revisions,
+    `13` is hardware validation.
+  - **The destination is within reach: the next act is writing
+    `.tickets/nmea-ingestion/spec.md`** from the twelve resolved tickets, not
+    taking another ticket.
+  - `16` still cannot be decided without real captured data, so the blend weight
+    stays open past the spec — the spec should say so explicitly rather than
+    inventing a placeholder weight.

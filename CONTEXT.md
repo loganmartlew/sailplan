@@ -11,7 +11,7 @@ code.
 | ------- | ---------------------- | --------------------------------------------------------------------------------------- |
 | **TWD** | True Wind Direction   | Compass direction the wind is blowing **from**, in degrees (0–360°).                     |
 | **TWS** | True Wind Speed       | How hard the wind blows. **Stored canonically in knots**; `speedUnit` is display/entry only. |
-| **TWA** | True Wind Angle       | Angle between the wind and the boat's heading (0–180°). `0°` = dead into wind, `180°` = dead downwind. Derived, never stored raw. |
+| **TWA** | True Wind Angle       | Angle between the wind and the boat's heading (0–180°). `0°` = dead into wind, `180°` = dead downwind. Derived, never stored raw — with one exception: captured instrument samples store it **signed ±180°** (positive = starboard) so the tack survives, and it folds back to 0–180° when promoted to a polar point. |
 
 TWD and TWS are the user's **inputs** on the Plan tab (stored transiently in the
 [plan store](sailplan-app/features/plan/store/planStore.ts)). TWA is **computed** from TWD
@@ -23,7 +23,7 @@ and the boat's bearing — see [`getTwa`](sailplan-app/features/coordinate/util/
 | ----------- | ------------------------------------------------------------------------------------------------ |
 | **Bearing** | Compass direction (0–360°) from one point to another, i.e. the heading to sail a leg. Computed by [`coordsToBearing`](sailplan-app/features/coordinate/util/bearing.ts) (great-circle formula). |
 | **Mark**    | A fixed geographic point (buoy/landmark) with a name, latitude, longitude. Table `mark`.         |
-| **Leg**     | The straight sail from one mark to the next. A course is a sequence of legs.                     |
+| **Leg**     | The straight sail from one mark to the next. A course is a sequence of legs. Planned and exact — contrast **sailed leg**, the observed equivalent detected from captured data. |
 | **Course**  | An ordered list of marks (`course` + `courseMark.order`). Sailing it means sailing each leg in order. Optionally grouped by `courseGroup`. |
 | **Course direction** | Optional per-mark hint (`courseMark.direction`), e.g. which side to round.               |
 
@@ -118,12 +118,17 @@ switches the whole sail inventory the app reasons about.
 
 | Term | Meaning |
 | ---- | ------- |
+| **Capture** | The feature as a whole: record instrument data from the boat's plotter, review it afterwards, promote the good parts into polar points. |
+| **Capture session** | The artifact capture produces: one **start→stop** of recording, belonging to a boat profile. Ideally one race, but nothing enforces that — a session may span two races, and review marks the parts between them as not used. A dropout does not end it: recovery within five minutes continues the same session and keeps the outage as a gap. It is the unit that is listed, named, exported, and deleted — deleting one withdraws its entire polar contribution. |
+| **Recording** | The *act* of capturing, and the live state while it happens ("Record this course", "Recording…"). Never a noun you can delete — the thing you delete is a capture session. |
+| **Capture sample** | One row of a capture session: a snapshot of every instrument value at an instant, in canonical units and true-north referenced, with `NULL` wherever a reading has stopped arriving. Deliberately **not** NMEA — the verbatim sentences are the raw log — and it holds no derived values, only what was measured. |
 | **NMEA source** | A plotter or gateway offering an NMEA 0183 TCP stream. A source discovered through GoFree has a name/model and a currently announced endpoint; it has no guaranteed durable identifier. |
 | **Plotter setup** | The per-boat-profile method for locating its NMEA source: either automatic discovery of a selected source or a manually pinned host and port. Being configured does **not** mean the source is currently reachable. |
 | **NMEA connection** | The live runtime relationship in which SailPlan is receiving valid NMEA data from the configured source. It may be connected, retrying, or absent independently of whether plotter setup exists. |
-| **Raw log** | The verbatim NMEA sentence stream captured alongside a recording. It is durable-but-disposable evidence for debugging, reprocessing, and export—not the recording itself. Removing it leaves the parsed recording and its polar contribution intact; removing the recording withdraws the whole contribution. |
-| **Sail stamp** | A timestamped observation that a particular sail was up at that instant. A stamp does not itself claim the surrounding samples or remain in force until another stamp; review may use it as evidence when proposing editable sail-attribution spans. |
-| **Sail-attribution span** | An interval of recording samples assigned to one sail, either proposed as a review draft or confirmed by the sailor. The app may infer draft spans from sail stamps and surrounding conditions, but only confirmed spans can contribute to polar promotion. |
+| **Raw log** | The verbatim NMEA sentence stream captured alongside a capture session. It is durable-but-disposable evidence for debugging, reprocessing, and export—not the session itself. Removing it leaves the parsed session and its polar contribution intact; removing the session withdraws the whole contribution. |
+| **Sailed leg** | A stretch of a capture session between two changes in point of sail, detected from the boat's own data. It aims at the same real-world thing as a **leg**, but a leg is *planned* (mark to mark, exact, named by its marks) while a sailed leg is *observed* — it exists with no course loaded, its boundaries are approximate, and it takes a mark's name only when the session has a course linked. The unit review pages through. |
+| **Sail stamp** | A timestamped observation that a particular sail was up at that instant. A stamp does not itself claim the surrounding samples or remain in force until another stamp; review may use it as evidence when proposing editable sail-attribution spans. Stamps are evidence: review edits spans, never stamps. |
+| **Sail-attribution span** | An interval within a sailed leg assigned to one sail — or to no sail, meaning *not used*. Either proposed as a review draft or confirmed by the sailor. The app may infer draft spans from sail stamps and surrounding conditions, but only confirmed spans can contribute to polar promotion. |
 
 ## Putting it together
 
