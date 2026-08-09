@@ -89,6 +89,17 @@ alternates. SailPlan can surface at most one **lower-TWD alternate** for the
 part of the possible range below the central TWD and one **higher-TWD
 alternate** for the part above it. These names refer to TWD, not TWA.
 
+A **left shift** is wind backing to a lower TWD; a **right shift** is wind
+veering to a higher TWD. In this app they name a *direction within the possible
+TWD range*, not a change over time — TWD uncertainty says the wind may be
+anywhere in the range, never that it will move through it.
+
+A **case card** presents one such direction on the leg details screen: the
+qualifying TWD and TWA sub-range of a range-dependent alternate, the sail, and
+why it wins there. The `Expected` case card names the central TWD only — a
+single direction, never a range, because the absence of a qualifying alternate
+does not establish that the primary sail wins across that stretch.
+
 ## Polars
 
 | Term            | Meaning                                                                                                    |

@@ -30,13 +30,14 @@ adds alternate course-leg sail suggestions.
 - [Define when uncertain wind warrants an alternate sail](issues/01-define-material-alternate-sail-policy.md) — Keep the central-TWD leader primary and add at most one evidence-backed, persistent alternate on each side of the possible TWD range.
 - [Define TWA and tack semantics across uncertain TWD](issues/02-define-derived-leg-range-semantics.md) — Show the exact folded possible-TWA interval for `0°–40°` half-spreads while tack remains central-only and zone crossings stay internal.
 - [Prototype the opt-in uncertainty planning experience](issues/03-prototype-opt-in-planning-experience.md) — Adopt hybrid variant D: an on/off control plus `± spread` stepper and compass band in the wind card, a muted possible-interval line on both leg surfaces, alternates inline on the course-leg sail row, and a TWA band plus per-shift case cards on leg details.
+- [Define the range-aware suggestion and navigation contract](issues/04-define-range-aware-technical-contract.md) — Walk a `1°` TWD grid over the untouched scalar engine via a TWA-pure `suggestSailsAcrossRange`, returning a result that embeds today's `SailSuggestionResult`, with `twdSpread: 0` as the degenerate uncertainty-off path.
+- [Define verification criteria for uncertain-wind guidance](issues/05-define-verification-criteria.md) — Accept on four layers: a brute-force oracle for the fold geometry, config-parametrized alternate-policy tests, spread-0 parity against the existing accuracy baselines, and a ten-scenario manual device script; no new eval fixtures or ratchet for alternates.
+- [Define how alternates and the existing suggestion breakdown coexist](issues/06-define-leg-details-breakdown-integration.md) — Stack `Left shift`/`Expected`/`Right shift` case cards above an untouched `SuggestionBreakdown`, annotate each alternate's `SailEvaluationCard` with its qualifying interval, and state only what the alternate rule found — never that the primary sail holds across an unverified stretch.
 
 ## Not yet specified
 
-- Default half-spread offered the first time a boat profile enables
-  uncertainty.
-- Detailed test matrix, fixtures, and accuracy thresholds needed to trust the
-  range-aware result.
+- Case-by-case enumeration of the test matrix under the obligations fixed by
+  issue 05 — a spec-writing task at the destination, not a decision.
 - Final specification structure and handoff boundaries once the product and
   technical decisions have resolved.
 
