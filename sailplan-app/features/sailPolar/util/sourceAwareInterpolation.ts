@@ -23,6 +23,10 @@ export const CAPTURE_BLEND_WEIGHT = 0.5;
 /**
  * Interim capture coverage rectangle (kn × degrees), pending ticket 16
  * calibration. Do not treat this as a validated trust setting.
+ *
+ * Read on two paths, not one: the blend weight below, and `evaluateSail`'s
+ * coverage envelope, which admits a captured point to TWA-limit scoring only
+ * within this radius. Ticket 16 moves both.
  */
 export const CAPTURE_COVERAGE_RADIUS = {
   tws: 1,

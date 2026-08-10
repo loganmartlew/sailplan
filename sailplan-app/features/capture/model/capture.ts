@@ -4,7 +4,6 @@ import {
   captureSession,
   connectionEvent,
   plotterSetup,
-  polarImportBatch,
   sailedLeg,
   sailSpan,
   sailStamp,
@@ -22,8 +21,6 @@ export type SailedLeg = typeof sailedLeg.$inferSelect;
 export type SailedLegInsert = typeof sailedLeg.$inferInsert;
 export type SailSpan = typeof sailSpan.$inferSelect;
 export type SailSpanInsert = typeof sailSpan.$inferInsert;
-export type PolarImportBatch = typeof polarImportBatch.$inferSelect;
-export type PolarImportBatchInsert = typeof polarImportBatch.$inferInsert;
 export type PlotterSetup = typeof plotterSetup.$inferSelect;
 export type PlotterSetupInsert = typeof plotterSetup.$inferInsert;
 
@@ -82,13 +79,6 @@ export const sailSpanSchema: z.ZodType<SailSpan> = z.object({
 });
 export const sailSpanInsertSchema: z.ZodType<SailSpanInsert> = z.object({
   sailedLegId: z.number(), startTime: z.number(), endTime: z.number(), sailId: z.number().nullable(),
-});
-export const polarImportBatchSchema: z.ZodType<PolarImportBatch> = z.object({
-  id: z.number(), boatProfileId: z.number(), importedAt: z.number(), fileName: z.string(),
-  batchFingerprint: z.string(), rowCount: z.number(),
-});
-export const polarImportBatchInsertSchema: z.ZodType<PolarImportBatchInsert> = z.object({
-  boatProfileId: z.number(), importedAt: z.number(), fileName: z.string(), batchFingerprint: z.string(), rowCount: z.number(),
 });
 export const plotterSetupSchema: z.ZodType<PlotterSetup> = z.object({
   id: z.number(), boatProfileId: z.number(), mode: plotterSetupModeSchema, sourceName: z.string().nullable(),

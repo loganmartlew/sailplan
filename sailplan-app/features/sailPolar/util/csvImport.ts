@@ -9,7 +9,10 @@ function parseFiniteNumber(raw: string): number | null {
   const value = raw.trim();
   if (value.length === 0) return null;
 
-  const parsed = Number(value);
+  // parseFloat, not Number: a trailing unit ("12kn", "8.1 kts") has always been
+  // read as the leading number, and tightening that here would silently drop
+  // rows the import count reports as neither new nor previously imported.
+  const parsed = parseFloat(value);
   return Number.isFinite(parsed) ? parsed : null;
 }
 

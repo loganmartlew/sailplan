@@ -27,8 +27,15 @@ All tables and relations are defined in one file: [`schema.ts`](../schema.ts).
 Drizzle `relations()` power the nested `db.query.*.findMany({ with: … })` API.
 
 ```
-boatProfile ─┬─< sail ─┬─< sailPolar
+boatProfile ─┬─< sail ─┬─< sailPolar ─┬─> captureSession
+             │         │             └─> polarImportBatch
              │         └─< sailTwaLimit
+             ├─< polarImportBatch
+             ├─── plotterSetup (1:1, unique on boatProfileId)
+             ├─< captureSession ─┬─< captureSample
+             │                   ├─< connectionEvent
+             │                   ├─< sailStamp >─ sail
+             │                   └─< sailedLeg ─< sailSpan >─ sail
              │
 courseGroup ─┴─< course ─< courseMark >─ mark
 ```
@@ -38,11 +45,27 @@ courseGroup ─┴─< course ─< courseMark >─ mark
 | `boatProfile`  | `id`, `name`                                             | The active profile scopes most sail data     |
 | `mark`         | `id`, `name`, `latitude`, `longitude`                   | A geographic point                           |
 | `sail`         | `id`, `name`, `color`, `sailArea?`, `symmetrical`, `masthead`, `boatProfileId` | Belongs to a boat profile |
-| `sailPolar`    | `id`, `tws`, `twa`, `speed`, `sailId`                   | One polar data point (see glossary)          |
+| `sailPolar`    | `id`, `tws`, `twa`, `speed`, `sailId`, `sourceKind`, `captureSessionId?`, `importBatchId?`, `observationFingerprint?` | One polar data point (see glossary). `sourceKind` ∈ `manual`/`import`/`capture` — no ORM default, so a writer that forgets it fails loudly |
 | `sailTwaLimit` | `id`, `tws`, `minTwa?`, `maxTwa?`, `sailId`             | Usable TWA band at a wind speed              |
 | `course`       | `id`, `name`, `courseGroupId?`                           | An ordered set of marks                      |
 | `courseMark`   | `id`, `courseId`, `markId`, `order`, `direction?`       | Join row; `order` sequences the legs         |
 | `courseGroup`  | `id`, `name`                                             | Optional grouping of courses                 |
+
+#### Capture tables
+
+Landed by the NMEA ingestion migrations. Schema only so far — nothing writes to
+them yet, so an empty capture table is the normal state.
+
+| Table               | Key columns                                                                                                                                     | Notes                                                                                                          |
+| ------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------- |
+| `captureSession`    | `id`, `boatProfileId`, `name`, `courseId?`, `startedAt`, `endedAt?`, `status`, `resumeDismissedAt?`, `rawLogPath?`, `windFrame?`, `healthCounters`, `notes` | One recording. `status` ∈ `active`/`ended`/`autoEnded`; `healthCounters` is JSON text                          |
+| `captureSample`     | `id`, `captureSessionId`, `timestamp`, + nullable instrument fields (`tws`, `twa`, `stw`, `sog`, `lat`, `lon`, …)                              | Only the session id and timestamp are `notNull` — a TTL-null means the instrument genuinely had nothing to say. **Unique** on `(captureSessionId, timestamp)`: one row per coalesce window |
+| `connectionEvent`   | `id`, `captureSessionId`, `at`, `kind`                                                                                                          | Connection loss/recovery log for a session                                                                     |
+| `sailStamp`         | `id`, `captureSessionId`, `sailId`, `timestamp`                                                                                                 | "This sail, from now." **Deliberately no end time** — an interval must be inexpressible                        |
+| `sailedLeg`         | `id`, `captureSessionId`, `ordinal`, `startTime`, `endTime`, `name?`, `courseMarkId?`, `confirmedAt?`                                          | A leg as actually sailed, optionally tied back to a course mark                                                |
+| `sailSpan`          | `id`, `sailedLegId`, `startTime`, `endTime`, `sailId?`                                                                                          | `[startTime, endTime)` attribution within a leg. Null `sailId` is "not used". No sample carries a span id      |
+| `polarImportBatch`  | `id`, `boatProfileId`, `importedAt`, `fileName`, `batchFingerprint`, `rowCount`                                                                | One CSV import. Removable, and takes its polar rows with it                                                    |
+| `plotterSetup`      | `id`, `boatProfileId` (unique), `mode`, `sourceName?`, `sourceModel?`, `cachedHost?`, `cachedPort?`, `host?`, `port?`, `lastTestedAt?`         | 1:1 side table — "configured" means a row exists. `mode` ∈ `automatic`/`manual`                               |
 
 See [`../../CONTEXT.md`](../../CONTEXT.md) for what TWS/TWA/polar/etc. mean.
 

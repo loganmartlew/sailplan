@@ -11,18 +11,3 @@ export async function createSailPolar(
     .returning();
   return sailPolars[0];
 }
-
-export async function importSailPolars(
-  sailPolars: SailPolarInsert[],
-): Promise<SailPolar[]> {
-  if (sailPolars.length === 0) {
-    return [];
-  }
-
-  const insertedPolars = await db
-    .insert(sailPolar)
-    .values(sailPolars)
-    .returning();
-
-  return insertedPolars;
-}

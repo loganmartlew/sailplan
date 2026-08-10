@@ -50,6 +50,14 @@ with the boat tied up there is no boat speed, so there are no polar points to
 weigh. It needs sailing, and it needs the race data to have been through the
 `07` → `10` pipeline into actual captured points — not just raw sentences.
 
+**Two read paths, not one.** Build ticket `10` landed
+`CAPTURE_COVERAGE_RADIUS` in
+`sailplan-app/features/sailPolar/util/sourceAwareInterpolation.ts`, and it is
+read in two places: the blend weight itself, and `evaluateSail`'s coverage
+envelope, which admits a captured point to TWA-limit scoring only within the
+same radius. Whatever this ticket decides moves both — check the envelope
+behaviour, not just the blended speed.
+
 Reuse `sailplan-app/features/sailPolar/eval/mixed-provenance.prototype.ts` on
 branch `prototype/03-mixed-provenance` — the blend sweep is already built
 (`evaluateBlended`); it needs real data substituted for the fixtures.

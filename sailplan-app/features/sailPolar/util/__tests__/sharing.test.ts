@@ -32,6 +32,26 @@ describe('parsePolarCsvImport', () => {
     );
   });
 
+  it('reads a value carrying a trailing unit as its leading number', () => {
+    const result = parsePolarCsvImport(
+      'Timestamp,Sail,TWS,TWA,BoatSpeed,Notes\n2026-06-30T00:00:00.000Z,A6,12kn,135,8.1 kts,',
+      sails,
+    );
+
+    expect(result.rows).toEqual([
+      expect.objectContaining({ tws: 12, twa: 135, speed: 8.1 }),
+    ]);
+  });
+
+  it('skips a row whose numbers cannot be read at all', () => {
+    const result = parsePolarCsvImport(
+      'Timestamp,Sail,TWS,TWA,BoatSpeed,Notes\n2026-06-30T00:00:00.000Z,A6,fast,135,7.2,',
+      sails,
+    );
+
+    expect(result.rows).toEqual([]);
+  });
+
   it('keeps rows without a valid timestamp importable', () => {
     const result = parsePolarCsvImport(
       'Timestamp,Sail,TWS,TWA,BoatSpeed,Notes\nnot-a-date,A6,12,135,7.2,',
