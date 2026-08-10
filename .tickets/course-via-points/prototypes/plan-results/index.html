@@ -1,0 +1,172 @@
+<!doctype html>
+<!--
+  THROWAWAY PROTOTYPE — Three radically different Course Plan result views,
+  switchable via ?variant=segments|legs|route. This is not production app code.
+-->
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Via Points — Plan results prototype</title>
+    <style>
+      :root { --ink:#10233c; --muted:#65758b; --line:#d9e2ec; --paper:#f7fafc; --card:#fff; --navy:#0b2447; --blue:#146cbe; --aqua:#0e9f9a; --gold:#f2b84b; --red:#d04a4a; --shadow:0 12px 30px rgba(15,35,60,.1); }
+      * { box-sizing:border-box; }
+      body { margin:0; background:#e9f0f6; color:var(--ink); font:15px/1.4 Inter,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif; }
+      button { font:inherit; cursor:pointer; }
+      .phone { width:min(100%,430px); min-height:100vh; margin:auto; background:var(--paper); padding-bottom:94px; box-shadow:0 0 40px rgba(8,28,50,.14); }
+      header { color:white; background:linear-gradient(135deg,#0b2447,#124b78); padding:20px 18px 16px; }
+      .eyebrow { color:#b9def1; font-size:11px; font-weight:800; letter-spacing:.11em; text-transform:uppercase; }
+      h1 { margin:4px 0 3px; font-size:25px; line-height:1.1; }
+      .sub { color:#d7e8f3; font-size:13px; }
+      .wind { display:flex; align-items:center; justify-content:space-between; margin-top:15px; padding:10px 12px; border:1px solid rgba(255,255,255,.2); border-radius:12px; background:rgba(255,255,255,.09); }
+      .wind strong { font-size:17px; }
+      main { padding:14px; }
+      .notice { display:flex; gap:9px; align-items:flex-start; margin:0 0 12px; padding:10px; border:1px solid #b9e4d5; border-radius:11px; background:#edfff8; color:#166a55; font-size:13px; }
+      .notice[hidden] { display:none; }
+      .overview { display:grid; grid-template-columns:1fr auto; gap:10px; align-items:center; margin-bottom:14px; padding:12px; border:1px solid var(--line); border-radius:14px; background:var(--card); }
+      .overview strong { display:block; font-size:14px; }
+      .overview span { color:var(--muted); font-size:12px; }
+      .map-link, .text-button { padding:0; border:0; background:none; color:var(--blue); font-weight:750; text-decoration:underline; text-underline-offset:3px; }
+      .location-strip { display:flex; align-items:stretch; gap:7px; margin:0 0 16px; overflow:auto; padding-bottom:2px; }
+      .location { min-width:94px; padding:8px; border-radius:10px; background:#edf3f8; color:#37506c; font-size:11px; }
+      .location b { display:block; margin-top:2px; color:var(--ink); font-size:12px; }
+      .location.plan { border:1px dashed #84a8be; background:#f6fcff; }
+      .arrow { align-self:center; color:#87a0b6; font-size:18px; }
+      .section-title { display:flex; align-items:end; justify-content:space-between; gap:8px; margin:10px 2px 9px; }
+      .section-title h2 { margin:0; font-size:18px; line-height:1.2; }
+      .section-title span { color:var(--muted); font-size:12px; text-align:right; }
+      .card { margin-bottom:10px; padding:13px; border:1px solid var(--line); border-radius:14px; background:var(--card); box-shadow:0 2px 5px rgba(16,35,60,.03); }
+      .card-head, .segment-meta, .metrics, .leg-summary { display:flex; align-items:center; justify-content:space-between; gap:8px; }
+      .kicker { color:var(--blue); font-size:11px; font-weight:800; letter-spacing:.07em; text-transform:uppercase; }
+      .route-name { margin:3px 0 10px; font-weight:800; font-size:18px; }
+      .via { color:#55708a; font-size:12px; }
+      .via b { color:#1c6689; }
+      .metrics { padding-top:10px; border-top:1px solid #edf1f5; }
+      .metric small { display:block; color:var(--muted); font-size:11px; }
+      .metric b { display:block; font-size:19px; }
+      .sail { display:inline-flex; align-items:center; gap:5px; border-radius:99px; background:#dff6ef; color:#12694f; padding:4px 8px; font-size:12px; font-weight:800; }
+      .tack { display:inline-block; margin-left:4px; padding:2px 5px; border-radius:5px; background:#e8f1ff; color:#245e9a; font-size:10px; font-weight:800; vertical-align:2px; }
+      .tack.port { background:#fff0ef; color:#b33f3a; }
+      .route-line { display:flex; align-items:center; gap:6px; margin:8px 0 3px; overflow:hidden; }
+      .route-line .dot { width:9px; height:9px; flex:none; border:2px solid var(--blue); border-radius:50%; background:white; }
+      .route-line .dot.via-dot { border-color:var(--aqua); background:#cdf5ef; }
+      .route-line .bar { height:2px; min-width:14px; flex:1; background:#aec9df; }
+      .route-line label { max-width:82px; overflow:hidden; color:#47627c; font-size:10px; text-overflow:ellipsis; white-space:nowrap; }
+      .segment-card { position:relative; padding-left:28px; }
+      .segment-card:before { content:""; position:absolute; left:14px; top:19px; bottom:-16px; width:2px; background:#bdd1df; }
+      .segment-card:last-child:before { display:none; }
+      .segment-card:after { content:""; position:absolute; left:10px; top:17px; width:8px; height:8px; border-radius:50%; background:var(--blue); box-shadow:0 0 0 3px #e5f1f8; }
+      .leg-card { margin-bottom:14px; overflow:hidden; border:1px solid #cad9e5; border-radius:15px; background:white; }
+      .leg-head { padding:13px; background:#f3f8fc; border-bottom:1px solid #dce7ef; }
+      .leg-head h3 { margin:3px 0 1px; font-size:17px; }
+      .leg-head p { margin:0; color:var(--muted); font-size:12px; }
+      .leg-body { padding:11px 10px 2px; }
+      /* Within a Leg, the timeline is the hierarchy; segment rows are intentionally not cards. */
+      .leg-body .segment-card { margin-bottom:0; padding:13px 10px 14px 28px; border:0; border-radius:0; background:transparent; box-shadow:none; }
+      .empty { color:#427090; font-size:12px; font-weight:700; }
+      .journey { position:relative; padding:8px 0 0 33px; }
+      .journey:before { content:""; position:absolute; left:13px; top:14px; bottom:18px; width:2px; background:#9bbbd0; }
+      .journey-row { position:relative; margin:0 0 15px; }
+      .journey-row:before { content:""; position:absolute; left:-25px; top:8px; width:12px; height:12px; border:3px solid var(--blue); border-radius:50%; background:var(--paper); }
+      .journey-row.via-row:before { border-color:var(--aqua); background:#d4f6f2; }
+      .journey-row.plan-row:before { border-style:dashed; border-color:#789db5; }
+      .journey-row h3 { margin:0; font-size:15px; }
+      .journey-row p { margin:2px 0 6px; color:var(--muted); font-size:12px; }
+      .journey-leg { margin:7px 0 18px; padding:12px; border-radius:13px; background:#0f3658; color:white; box-shadow:var(--shadow); }
+      .journey-leg .kicker { color:#a9dcf5; }
+      .journey-leg h2 { margin:3px 0 7px; font-size:19px; }
+      .journey-leg .sail { background:#d6f5eb; }
+      .journey-leg .metric small { color:#bcd3e3; }
+      .journey-leg .metric b { font-size:21px; }
+      .stepper { display:flex; align-items:center; justify-content:space-between; gap:8px; margin-top:10px; }
+      .stepper button, .action { border:0; border-radius:9px; padding:8px 10px; background:white; color:#113b5d; font-weight:800; }
+      .stepper span { color:#c8ddea; font-size:12px; text-align:center; }
+      .state { margin-top:14px; padding:10px; border:1px dashed #afc4d5; border-radius:10px; background:#f1f7fb; color:#3f5c72; font:11px/1.5 ui-monospace,SFMono-Regular,Menlo,monospace; white-space:pre-line; }
+      .prototype-bar { position:fixed; z-index:10; bottom:16px; left:50%; display:flex; align-items:center; gap:7px; width:min(calc(100% - 28px),402px); padding:8px; border:1px solid #1e4f78; border-radius:999px; background:#09233c; color:white; box-shadow:0 12px 28px rgba(5,25,45,.35); transform:translateX(-50%); }
+      .prototype-bar button { width:34px; height:34px; border:0; border-radius:50%; background:#1a507a; color:white; font-size:21px; }
+      .prototype-bar .label { flex:1; text-align:center; font-size:12px; font-weight:800; }
+      .modal-backdrop { position:fixed; z-index:20; inset:0; display:flex; align-items:end; justify-content:center; padding:0; background:rgba(4,22,39,.54); }
+      .modal-backdrop[hidden] { display:none; }
+      .modal { width:min(100%,430px); border-radius:20px 20px 0 0; background:var(--card); padding:18px 16px 28px; }
+      .modal h2 { margin:0 0 4px; font-size:21px; }
+      .modal p { color:var(--muted); font-size:13px; }
+      .read-only { display:inline-block; margin:4px 0 12px; padding:4px 8px; border-radius:99px; background:#edf2f5; color:#526b80; font-size:11px; font-weight:800; }
+      .mini-map { position:relative; height:180px; overflow:hidden; border-radius:13px; background:linear-gradient(145deg,#d6f1f5 0 45%,#bedee6 45% 100%); }
+      .land { position:absolute; background:#d7dbb7; transform:rotate(-10deg); }
+      .land.one { top:-25px; right:-26px; width:210px; height:130px; border-radius:10% 0 0 65%; }
+      .land.two { bottom:-70px; left:-25px; width:250px; height:105px; border-radius:0 70% 0 0; }
+      .map-route { position:absolute; left:40px; top:116px; width:280px; height:80px; border-top:4px solid #125d9e; border-right:4px solid #125d9e; border-radius:0 68px 0 0; transform:rotate(-19deg); }
+      .map-route:after { content:""; position:absolute; top:-52px; right:-4px; width:4px; height:60px; background:#125d9e; transform:rotate(48deg); transform-origin:bottom; }
+      .pin { position:absolute; width:13px; height:13px; border:3px solid white; border-radius:50%; background:var(--blue); box-shadow:0 1px 4px rgba(0,0,0,.25); }
+      .pin.via-pin { background:var(--aqua); }.pin.plan-pin { background:#789db5; border-style:dashed; }
+      .pin label { position:absolute; top:12px; left:-15px; width:75px; color:#123d56; font-size:9px; font-weight:800; }
+      .close { float:right; border:0; background:none; color:var(--muted); font-size:24px; line-height:1; }
+      .actions { display:flex; gap:8px; margin-top:15px; }.actions .action { flex:1; border:1px solid var(--line); text-align:center; }.actions .primary { background:var(--blue); border-color:var(--blue); color:white; }
+      .edit-step { margin:13px 0; padding:11px; border:1px solid #c5d7e4; border-radius:11px; background:#f4f9fc; }.edit-step b { display:block; }.edit-step span { color:var(--muted); font-size:12px; }
+      @media (min-width:650px) { body { padding:20px; }.phone { min-height:calc(100vh - 40px); border-radius:20px; overflow:hidden; } }
+    </style>
+  </head>
+  <body>
+    <div class="phone">
+      <header>
+        <div class="eyebrow">Plan results · prototype</div>
+        <h1>Winter Series — Harbour Loop</h1>
+        <div class="sub">Course plan · Group: Club races</div>
+        <div class="wind"><span>True wind</span><strong>220° · 16 kn</strong><span>Change</span></div>
+      </header>
+      <main>
+        <div id="recalculated" class="notice" hidden>✓ <span><b>Course updated — plan recalculated.</b><br />The saved route now includes West Shoal before Windward. Guidance uses the current 220° / 16 kn wind.</span></div>
+        <div class="overview">
+          <div><strong id="guidance-count">6 guidance segments</strong><span id="segment-count">Across 3 course legs · 3 route-shaping Via Points</span></div>
+          <button class="map-link" id="open-map">Plan map</button>
+        </div>
+        <div class="location-strip" aria-label="Route endpoints">
+          <div class="location plan">Plan start<b>Committee boat</b></div><div class="arrow">→</div>
+          <div class="location">Course mark<b>Start</b></div><div class="arrow">→</div>
+          <div class="location">Course mark<b>Windward</b></div><div class="arrow">→</div>
+          <div class="location plan">Plan finish<b>Finish boat</b></div>
+        </div>
+        <section id="content" aria-live="polite"></section>
+        <div class="state" id="state"></div>
+      </main>
+    </div>
+    <nav class="prototype-bar" aria-label="Prototype variant switcher">
+      <button id="prev" aria-label="Previous variant">←</button><div class="label" id="variant-label"></div><button id="next" aria-label="Next variant">→</button>
+    </nav>
+    <div id="map-modal" class="modal-backdrop" hidden><section class="modal" role="dialog" aria-modal="true" aria-labelledby="map-title"><button class="close" data-close aria-label="Close">×</button><h2 id="map-title">Winter Series — Harbour Loop</h2><span class="read-only">Read-only Plan Map</span><p>This is the route inherited from the saved Course, plus this Plan’s custom start and finish. It is for orientation, not in-place editing.</p><div class="mini-map"><i class="land one"></i><i class="land two"></i><i class="map-route"></i><i class="pin plan-pin" style="left:34px;top:117px"><label>Committee boat</label></i><i class="pin" style="left:88px;top:107px"><label>Start</label></i><i class="pin via-pin" style="left:171px;top:70px"><label>Headland</label></i><i class="pin via-pin" style="left:236px;top:42px"><label>Mole end</label></i><i class="pin plan-pin" style="left:291px;top:21px"><label>Finish boat</label></i></div><div class="actions"><button class="action" data-close>Back to plan</button><button class="action primary" id="open-edit">Edit saved course</button></div></section></div>
+    <div id="edit-modal" class="modal-backdrop" hidden><section class="modal" role="dialog" aria-modal="true" aria-labelledby="edit-title"><button class="close" data-close aria-label="Close">×</button><h2 id="edit-title">Edit saved course</h2><p>Separate, transactional edit flow. The Plan is read-only while this saved Course draft changes.</p><div class="edit-step"><b>Start → Windward</b><span>Draft change: insert a local Via Point, “West Shoal”. This turns the zero-Via Leg into two Leg Segments.</span></div><div class="actions"><button class="action" data-close>Cancel</button><button class="action primary" id="save-edit">Save course edit & return</button></div></section></div>
+    <script>
+      const variants = [
+        { key:'segments', name:'A — Segment itinerary', description:'Every Leg Segment is a first-class, top-level guidance card.' },
+        { key:'legs', name:'B — Mark-to-Mark groups', description:'A sailor-recognised Leg owns its Segment guidance; its segments are lighter timeline rows.' },
+        { key:'route', name:'C — Route journal', description:'A route timeline with one active guidance moment at a time.' },
+      ];
+      const state = { edited:false, activeSegment:0 };
+      const baseLegs = [
+        { number:1, from:'Start', to:'Windward', vias:[], segments:[['Start','Windward','028°','168°','Port','A2']], note:'Direct leg — no Via Points' },
+        { number:2, from:'Windward', to:'Leeward Gate', vias:['Headland'], segments:[['Windward','Headland','154°','066°','Starboard','J2'],['Headland','Leeward Gate','212°','008°','—','No suggestion']], note:'One Via Point shapes this leg' },
+        { number:3, from:'Leeward Gate', to:'Finish Mark', vias:['Mole End','Channel North'], segments:[['Leeward Gate','Mole End','272°','052°','Port','J2'],['Mole End','Channel North','318°','098°','Starboard','A2'],['Channel North','Finish Mark','006°','146°','Port','Code 0']], note:'Several Via Points shape this leg' },
+      ];
+      function legs() {
+        if (!state.edited) return baseLegs;
+        const copy = JSON.parse(JSON.stringify(baseLegs));
+        copy[0].vias = ['West Shoal']; copy[0].segments = [['Start','West Shoal','012°','152°','Port','Code 0'],['West Shoal','Windward','036°','176°','Port','A2']]; copy[0].note = 'Saved edit inserted West Shoal';
+        return copy;
+      }
+      function allSegments() { return legs().flatMap(leg => leg.segments.map((segment,index) => ({leg,segment,index}))); }
+      function tack(value) { return value === '—' ? '' : `<span class="tack ${value === 'Port' ? 'port':''}">${value}</span>`; }
+      function segmentCard(leg, segment, index, grouped=false) { const [from,to,bearing,twa,tackName,sail] = segment; return `<article class="card ${grouped?'segment-card':''}"><div class="segment-meta"><span class="kicker">${grouped ? `Segment ${index + 1} of ${leg.segments.length}` : `Leg ${leg.number} · Segment ${index + 1} of ${leg.segments.length}`}</span><span class="via">${index ? 'from Via Point' : 'leg start'}</span></div><div class="route-name">${from} <span aria-hidden="true">→</span> ${to}</div><div class="metrics"><div class="metric"><small>TWA</small><b>${twa}${tack(tackName)}</b></div><div class="metric"><small>Bearing</small><b>${bearing}</b></div><span class="sail">⛵ ${sail}</span></div></article>`; }
+      function renderSegments() { return `<div class="section-title"><h2>Guidance by segment</h2><span>Each straight portion gets its own sail call</span></div>${allSegments().map(({leg,segment,index}) => segmentCard(leg,segment,index)).join('')}`; }
+      function routeLine(leg) { const points=[leg.from,...leg.vias,leg.to]; return `<div class="route-line">${points.map((point,index) => `${index ? '<i class="bar"></i>' : ''}<i class="dot ${index>0&&index<points.length-1?'via-dot':''}"></i><label>${point}</label>`).join('')}</div>`; }
+      function renderLegs() { return `<div class="section-title"><h2>Guidance by leg</h2><span>Mark-to-Mark is the primary sailor mental model</span></div>${legs().map(leg => `<section class="leg-card"><div class="leg-head"><div class="leg-summary"><span class="kicker">Leg ${leg.number}</span><span class="empty">${leg.segments.length} segment${leg.segments.length===1?'':'s'}</span></div><h3>${leg.from} → ${leg.to}</h3><p>${leg.vias.length ? `Via ${leg.vias.join(' → ')}` : 'Direct — no Via Points'}</p>${routeLine(leg)}</div><div class="leg-body">${leg.segments.map((segment,index) => segmentCard(leg,segment,index,true)).join('')}</div></section>`).join('')}`; }
+      function renderRoute() { const segments=allSegments(); const current=segments[state.activeSegment]; const [from,to,bearing,twa,tackName,sail]=current.segment; return `<div class="section-title"><h2>Route journal</h2><span>Scan the route; focus on the next straight portion</span></div><div class="journey"><div class="journey-row plan-row"><h3>Committee boat</h3><p>Custom Plan start · not part of the saved Course</p></div>${legs().map(leg => `<div class="journey-row"><h3>${leg.from}</h3><p>Course Mark · starts Leg ${leg.number}</p></div>${leg.vias.map(via=>`<div class="journey-row via-row"><h3>${via}</h3><p>Via Point · shapes ${leg.from} → ${leg.to}</p></div>`).join('')}<div class="journey-row"><h3>${leg.to}</h3><p>Course Mark · ends Leg ${leg.number}</p></div>`).join('')}<div class="journey-row plan-row"><h3>Finish boat</h3><p>Custom Plan finish · not part of the saved Course</p></div></div><section class="journey-leg"><span class="kicker">Active guidance · Leg ${current.leg.number}, segment ${current.index+1}/${current.leg.segments.length}</span><h2>${from} → ${to}</h2><div class="metrics"><div class="metric"><small>TWA</small><b>${twa}${tack(tackName)}</b></div><div class="metric"><small>Bearing</small><b>${bearing}</b></div><span class="sail">⛵ ${sail}</span></div><div class="stepper"><button id="segment-prev">← Previous</button><span>${state.activeSegment + 1} of ${segments.length} guidance segments</span><button id="segment-next">Next →</button></div></section>`; }
+      function currentVariant() { return new URLSearchParams(location.search).get('variant') || 'segments'; }
+      function switchVariant(direction) { const index=variants.findIndex(v=>v.key===currentVariant()); const target=variants[(index+direction+variants.length)%variants.length]; const url=new URL(location); url.searchParams.set('variant',target.key); history.replaceState({},'',url); render(); }
+      function render() { const key=currentVariant(); const v=variants.find(x=>x.key===key)||variants[0]; const content=document.querySelector('#content'); content.innerHTML=key==='legs'?renderLegs():key==='route'?renderRoute():renderSegments(); document.querySelector('#variant-label').textContent=v.name; document.querySelector('#state').textContent=`Visible prototype state\nvariant: ${v.key}\npresentation: ${v.description}\nsaved course edit: ${state.edited ? 'West Shoal inserted; guidance recalculated' : 'unchanged'}\ncurrent wind: 220° / 16 kn`; document.querySelector('#guidance-count').textContent=`${allSegments().length} guidance segments`; document.querySelector('#segment-count').textContent=`Across 3 course legs · ${state.edited ? 4 : 3} route-shaping Via Points`; document.querySelector('#recalculated').hidden=!state.edited; const prev=document.querySelector('#segment-prev'), next=document.querySelector('#segment-next'); if(prev) prev.onclick=()=>{state.activeSegment=(state.activeSegment-1+allSegments().length)%allSegments().length;render();}; if(next) next.onclick=()=>{state.activeSegment=(state.activeSegment+1)%allSegments().length;render();}; }
+      document.querySelector('#prev').onclick=()=>switchVariant(-1); document.querySelector('#next').onclick=()=>switchVariant(1);
+      window.addEventListener('keydown', event => { const tag=document.activeElement?.tagName; if(['INPUT','TEXTAREA','SELECT'].includes(tag)||document.activeElement?.isContentEditable) return; if(event.key==='ArrowLeft') switchVariant(-1); if(event.key==='ArrowRight') switchVariant(1); });
+      const map=document.querySelector('#map-modal'), edit=document.querySelector('#edit-modal'); document.querySelector('#open-map').onclick=()=>map.hidden=false; document.querySelector('#open-edit').onclick=()=>{map.hidden=true;edit.hidden=false;}; document.querySelectorAll('[data-close]').forEach(button=>button.onclick=()=>{map.hidden=true;edit.hidden=true;}); document.querySelector('#save-edit').onclick=()=>{state.edited=true;state.activeSegment=0;edit.hidden=true;render();};
+      render();
+    </script>
+  </body>
+</html>

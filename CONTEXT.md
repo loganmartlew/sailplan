@@ -22,9 +22,12 @@ and the boat's bearing — see [`getTwa`](sailplan-app/features/coordinate/util/
 | Term        | Meaning                                                                                          |
 | ----------- | ------------------------------------------------------------------------------------------------ |
 | **Bearing** | Compass direction (0–360°) from one point to another, i.e. the heading to sail a leg. Computed by [`coordsToBearing`](sailplan-app/features/coordinate/util/bearing.ts) (great-circle formula). |
-| **Mark**    | A fixed geographic point (buoy/landmark) with a name, latitude, longitude. Table `mark`.         |
-| **Leg**     | The straight sail from one mark to the next. A course is a sequence of legs.                     |
-| **Course**  | An ordered list of marks (`course` + `courseMark.order`). Sailing it means sailing each leg in order. Optionally grouped by `courseGroup`. |
+| **Mark**    | A reusable fixed geographic point (buoy/landmark) with a name, latitude, and longitude. Table `mark`. |
+| **Course Mark** | A Mark used in a Course as a Leg boundary. A Mark's role is course-specific: the same saved Mark may instead be used as a Via Point in another Course. |
+| **Via point** | A directionless role inside a Leg, chosen by the sailor to shape the Course's intended route around a known constraint. It may reference a reusable Mark or hold course-local coordinates; promoting local coordinates to a Mark does not change the point's role. It does not assert that the route is navigable, and port/starboard course direction applies only to Course Marks. _Avoid:_ boundary (a boundary is a line or area, not a point). |
+| **Leg**     | The portion of a Course from one Course Mark to the next Course Mark. A Leg may contain Via Points and therefore multiple Leg Segments. |
+| **Leg Segment** | A straight portion of a Leg between consecutive Course Marks or Via Points. Bearing, TWA, tack, and sail guidance apply to each Leg Segment. _Avoid:_ sub-leg, route segment. |
+| **Course**  | An ordered route through Course Marks, with optional Via Points inside its Legs. Sailing it means sailing each Leg in order; future plans inherit its route. Optionally grouped by `courseGroup`. |
 | **Course direction** | Optional per-mark hint (`courseMark.direction`), e.g. which side to round.               |
 
 ### TWA and tack, precisely
