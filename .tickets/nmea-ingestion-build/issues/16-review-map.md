@@ -1,0 +1,22 @@
+# 16 — The review map
+
+Spec: [`spec.md`](../../nmea-ingestion/spec.md) §8. User stories 56, 57.
+
+**What to build:** A read-only track that follows the pager, drawing each span in
+its own colour, so the sailor can recognise the leg on the water — without the
+map becoming another thing to navigate. A chip switches between this leg and the
+whole course, so orienting yourself is a per-glance choice rather than a
+remembered mode.
+
+**Blocked by:** `14`.
+
+**Status:** ready-for-agent
+
+- [ ] The map is **read-only** and follows the pager
+- [ ] Each sail-attribution span draws in its own colour, matching the span row
+- [ ] A chip on the map switches focus-leg ⟷ whole-course
+- [ ] **GPS only** — no chart tiles, no land
+- [ ] It never becomes a second navigable surface: no selection, no
+      panning-driven state, nothing to get lost in
+- [ ] Reads correctly when a leg has no GPS fix for part of its range (TTL-null
+      `lat`/`lon`) and across a >5 s discontinuity — no line drawn across a gap
