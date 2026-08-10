@@ -348,6 +348,28 @@ have no ticket of their own; everything after this point gets one.
    testable on a desk. See the boat-access constraint in
    [Notes](#notes) and ticket `12`.
 
+- [13 — Device spike: prove the screen-off capture survives a race](issues/13-device-spike-background-capture.md)
+  — **founding decision 6 stands — no code changes needed.** A
+  `connectedDevice` foreground service (`react-native-background-actions` +
+  `react-native-tcp-socket`, fully event-driven off socket `data`, no JS
+  timer on the path) survives genuine backgrounding, deep Doze and the
+  restricted standby bucket on real hardware; writes never drop between
+  emission and SQLite even at twice race volume. A multi-session "samples
+  thin under sustained backgrounding" scare turned out to be a **desk-rig
+  artifact**: a controlled A/B (packet capture running on the test AP's
+  interface vs not, four dead runs vs two healthy ones, confirmed by
+  reproducing the death the moment the capture was removed) points at this
+  box's own NetworkManager/hostapd hotspot, not the phone's radio or
+  Android's power management — `04`/`21` should watch for the same shape
+  against the Zeus 3's real AP as a confirmation step, but nothing blocks on
+  it. One real, separate finding carries forward as an implementation risk,
+  not a design change: a reproducible Android ANR on **resume** (5s after
+  `app_state → active`), cause not yet root-caused. Also: the no-route
+  failure `11` needs to detect costs **31s** on this stack, and
+  `interface: 'wifi'` OFF fails the no-internet trap non-deterministically
+  (ON still reliably fixes it). Full findings, the stack, and the
+  `app.config.js`/manifest diff: the ticket's Answer.
+
 ## Not yet specified
 
 - **Instrument calibration.** A miscalibrated wind vane or boat-speed paddle
@@ -573,3 +595,11 @@ Open tickets are found by scanning `issues/`; this list is not maintained.
     survive screen-off. Everything downstream can be built later and replayed.
     An independent third-party TCP logger carried as a fallback makes a failed
     first outing cost nothing.
+- After `13`: frontier is `04`(boat), `16`(blocked by `04`) — nothing else.
+  **`13` was the last non-boat ticket on the map.** Founding decision 6 is
+  confirmed on hardware with no code changes implied; the multi-session
+  "thinning" scare resolved as a desk-rig artifact rather than a phone or
+  Android limitation, via a controlled A/B rather than inference. Everything
+  left needs the water: `04` (dockside go/no-go) and `16` (blend weight,
+  blocked behind it). **The destination — `.tickets/nmea-ingestion/spec.md`
+  — can be written now**; `04`/`21` are confirmation steps, not gates on it.
