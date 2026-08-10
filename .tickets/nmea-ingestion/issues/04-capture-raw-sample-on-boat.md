@@ -1,4 +1,4 @@
-# 04 — Dockside verification: does the wire behave the way `01` says?
+# 04 — Wire verification: does the wire behave the way `01` says?
 
 Type: task
 Status: open
@@ -7,27 +7,101 @@ Map: [map.md](../map.md)
 
 ## Question
 
-Get **a real raw capture off the actual Zeus 3, from the dock, in 30 minutes**,
-and answer everything that could invalidate a build.
+Get **a real raw capture off the actual Zeus 3** and answer everything that
+could invalidate a build.
 
-This ticket was originally "get a sample off the boat" — one exhaustive visit
-covering all 24 verify items, written when boat access was assumed to be rare
-and undifferentiated. It has been **re-cut into two**, because access turned out
-to have two very different shapes:
+This ticket has been re-cut **twice**. Originally it was "get a sample off the
+boat" — one exhaustive visit covering all 24 verify items, written when boat
+access was assumed to be rare and undifferentiated. It was then split into a
+30-minute dockside visit (`04`) and a race day (`21`).
 
-- **`04` (this ticket) — 30 minutes at the dock, today or Wednesday.** Cannot
-  leave the berth. Covers the **go/no-go set**: everything that would waste the
-  build week if it turned out false.
-- **[`21` — race-day capture](21-race-day-capture.md) — Saturday.** A one-hour
-  motor each way plus the race itself. Covers everything needing way on, plus
-  the slow fiddly menu items there is no time for in 30 minutes.
+**Second re-cut — the separate dockside trip is gone.** Logan can no longer
+count on reaching the boat before Saturday's race, so a standalone midweek
+dockside visit is not something the plan may assume. `04` now has two halves
+that run in **different places at different times**, and neither is a special
+trip:
 
-The split is worth stating plainly: **the dock answers "can I build against
-this?", Saturday answers "is what I built any good?"** Only the first is urgent.
+- **The desk half — this week, at home.** Termux, tooling, and `capture.py`
+  shaken out against `nmea-sim`. This was always desk work; it was only ever
+  filed under "the boat trip" because it was preparation *for* the trip. It
+  loses nothing by the trip disappearing and **must still happen**.
+- **The berth half — Saturday ~08:00, before slipping.** The four
+  damage-ordered dominators, compressed to ~10–15 minutes in whatever window
+  exists while the boat is prepped. Run at the berth, before the lines come
+  off, so a bad answer is still actionable.
 
-### What the dock cannot answer
+The old split's framing still holds, just relocated: **the berth answers "can I
+record against this wire?", the day answers "is what I built any good?"** What
+changed is that both now happen on the same morning, so the first answer arrives
+*after* the build rather than before it — see
+[What building blind costs](#what-building-blind-costs).
 
-Three items, all of which `21` picks up:
+## What building blind costs
+
+The map already licenses this: `04` has been a **confirmation step** since `14`
+took the boat off the critical path, and after `08` there was no design decision
+left waiting on it. Per FD2 and `05` the **raw log is lossless** — sample rows
+are derived from the sentence stream — so the whole of Saturday survives in one
+timestamped file, and parsing, leg detection and promotion can be replayed the
+following week.
+
+That bounds the downside well below "lost race", but it does not make it zero.
+Four things that a midweek dock trip would have settled now land on race
+morning, ranked by damage:
+
+1. **The Serial-output checkbox (`01` item 8).** If it gates the Ethernet
+   stream and it is unticked, you get **zero bytes** and find out at 08:00.
+   Two minutes to fix *if you know the menu path* — so this ticket goes to the
+   boat on your phone, readable offline. Cheapest insurance available.
+2. **The endpoint is unknown until Saturday.** Manual host/port must be a
+   first-class, **editable-on-the-day** field, exactly as `11` designed it —
+   discovery must not be the only way in. `nmap -p 1-65535 <gateway>` in Termux
+   is the backup; GoFree also uses 2053.
+3. **`MWV,T` absent, or present with status `V`.** `05`'s anchor rule and
+   `17`'s trust-the-instrument stance both rest on it. If it is missing, the
+   race yields no polar points — but the raw log still preserves everything
+   **provided raw bytes are written unconditionally**, which is why that is now
+   a build requirement rather than a nicety (see below).
+4. **No DHCP lease / link-local address (`01` item 3).** Setting a static IP on
+   Android under time pressure is unpleasant. Worth rehearsing once at home so
+   the toggle is findable.
+
+### Two things the build must do because of this
+
+Both are qualifications on `11`, carried here so the spec picks them up:
+
+- **Raw-first, parse-second.** `11` decided that starting *"waits for valid
+  NMEA data before opening the recording"*. Against an unverified wire that
+  rule can refuse to record a race because the sentence set differs from `01`'s
+  prediction. Open the raw file **the instant the socket connects**; validation
+  gates the *sample* pipeline, not the *file*. Log unrecognised sentences
+  rather than dropping them.
+- **Soften the five-minute auto-end for this build.** `11`'s
+  auto-end-at-last-valid-sample rule can silently terminate a race recording on
+  a dropout that a dock visit would have characterised. Make it a warning, or a
+  longer horizon, on the Saturday build.
+
+Also carry `13`'s finding: its "samples thin under sustained backgrounding"
+scare resolved as a **desk-rig artifact** (this box's own hostapd AP), but the
+shape to watch for is **solid coverage then a hard cliff to total silence with
+no socket error**. If that appears against the Zeus 3's own AP, it was not the
+rig after all.
+
+### What is now deliberately unanswered until Saturday
+
+Not deferred for want of time — there is simply no window before the day:
+
+- The **Serial-output A/B toggle** with 3 minutes of capture banked either
+  side. You will find out whether the box needs ticking; you will not get a
+  clean before/after diff.
+- The **slow menu set** — wind source, "use SOG as boat speed" / "use COG as
+  heading", damping values, H5000 correction tables, mast height. These are
+  diagnostics for *interpreting* the data, not gates on building, and
+  [`21`](21-race-day-capture.md)'s motor-out hour already holds them.
+
+## What a boat at a berth cannot answer
+
+Three items, all of which `21` picks up later the same day:
 
 - **`01` item 7 — water- vs ground-referenced `MWV,T`.** Needs way on through a
   known tide. At a fixed berth STW and SOG are both zero, so the two frames
@@ -52,9 +126,11 @@ is the actual target device, so its DHCP behaviour, its no-internet handling
 and its routing are the ones that matter. A laptop getting a lease never proved
 the phone would.
 
-### Before leaving the house
+## The desk half — this week, at home
 
-Everything in this section is desk work. None of it can be salvaged at the boat.
+Everything in this section is desk work. None of it can be salvaged at the boat,
+and **none of it was ever affected by losing the dock trip** — do it this week
+regardless.
 
 1. **Install Termux from [F-Droid](https://f-droid.org/packages/com.termux/) or
    the [GitHub releases](https://github.com/termux/termux-app/releases)** — the
@@ -67,8 +143,9 @@ Everything in this section is desk work. None of it can be salvaged at the boat.
 3. **Take the wakelock from the command line, not the notification** — see
    *The wakelock* below.
 4. **Get `capture.py` onto the phone and test it against the simulator** — see
-   *Testing against the simulator* below. Turning up at the boat with an
-   untested script wastes the visit.
+   *Testing against the simulator* below. With no dockside rehearsal left, this
+   script is the only capture path that will have been proven before race
+   morning. Turning up with an untested one now risks the *race*, not a visit.
 
 ### The wakelock
 
@@ -207,16 +284,28 @@ works. Nothing on the map blocks on it.
 Nothing on the map blocks on this. It decides whether the user ever has to type
 an IP, not whether the feature works.
 
-### Bonus: this is also Saturday's fallback logger
+### Not a bonus any more: this *is* Saturday's fallback logger
 
 The same script, run in Termux with a wakelock, is the independent second
-capture [`21`](21-race-day-capture.md) calls for. You will have already tested
-it at the dock, which is exactly what you want from a fallback.
+capture [`21`](21-race-day-capture.md) calls for — and with the dockside
+rehearsal gone it is no longer a nice-to-have. It is the **only** capture path
+that will have been exercised against a real stream before race morning; the
+app's own capture will be running for the first time ever, on a boat, in a
+race. Started at the berth in step 5 above, it simply keeps running all day.
 
-## The 30 minutes
+That is also why the desk half above is not optional: the simulator test *is*
+the rehearsal now.
 
-The capture runs in the background while you do the menus. That overlap is the
-only reason this fits.
+## The berth half — Saturday ~08:00, before slipping
+
+**~10–15 minutes, in whatever window exists while the boat is prepped.** Not a
+special trip; if the crew is ready early you get more, if not this is the
+irreducible set. The capture starts as early as possible and keeps running for
+the rest of the day, so everything after step 5 overlaps it.
+
+Order matters here more than it did in the 30-minute version: these are the four
+damage-ordered dominators and nothing else. If you are interrupted, you want to
+have been interrupted **late** in this list.
 
 **T+0 to T+5 — get connected and get bytes flowing.**
 
@@ -238,79 +327,79 @@ only reason this fits.
 4. Read *Settings → Network → NMEA0183 → Ethernet* on the plotter and
    photograph it (`01` item 2). Confirm the port — 10110 is `01`'s prediction.
 5. Open Termux and start the capture. **This is the single highest-value
-   artifact of the trip** — get it running before anything else can eat the
+   artifact of the morning** — get it running before anything else can eat the
    clock.
    ```sh
    termux-wake-lock
-   python ~/capture.py <gateway-ip> 10110 ~/dock-$(date +%Y%m%dT%H%M).log
+   python ~/capture.py <gateway-ip> 10110 ~/race-$(date +%Y%m%dT%H%M).log
    ```
    Watch the sentence counter climb. If it stays at zero, that is `01` item 1
-   failing and the rest of the visit changes character entirely — fall through
-   to *Troubleshooting* below.
+   failing — fall through to *Troubleshooting* below, and do it **now**, at the
+   berth, not once you have slipped.
 
-**T+5 to T+12 — the Serial-output toggle (`01` item 8).**
+**T+5 to T+8 — the load-bearing grep.**
 
-6. With ~3 minutes of capture banked, toggle the **Serial output** checkbox.
-   Drop a marker into the log from a second Termux session (swipe from the left
-   edge → *New session*):
+6. With ~2 minutes banked, check the one assumption everything downstream rests
+   on, **without stopping the capture** (second Termux session: swipe from the
+   left edge → *New session*):
    ```sh
-   echo "### toggled serial output $(date +%s)" >> ~/dock-*.log
+   grep -c 'MWV,T' ~/race-*.log   # 01 item 4 — must be non-zero
+   grep -c 'VHW'   ~/race-*.log   # 05's other anchor
+   tail -3 ~/race-*.log           # timestamps present? sentences intact?
    ```
-   Let it run 3 more minutes. The diff lives inside one timestamped file, so
-   you can split it on the marker later — no second capture needed.
+   Non-zero `MWV,T` means the build's central assumption holds and the day is
+   worth recording. Zero means `01` item 4 is wrong — the race still produces a
+   raw log worth having, but no polar points, and you should say so in the
+   answer rather than discovering it next week.
 
-   If this gates the Ethernet stream, every recording needs a
+7. **The Serial-output checkbox (`01` item 8)** — only if step 6 came back
+   zero, or nothing connected at all. Tick it, drop a marker
+   (`echo "### toggled serial output $(date +%s)" >> ~/race-*.log`) and re-grep.
+   The clean 3-minutes-either-side A/B the dock visit was going to give is gone;
+   what remains is the fix, not the measurement. If ticking it is what made the
+   stream appear, **that is the finding** — every recording needs a
    plotter-configuration step and the app must detect missing sentences.
 
-**T+12 to T+25 — the menus, photographed, capture still running.**
+**T+8 to T+15 — whatever the morning allows, in this order.**
 
-7. *Settings → Network → Sources* → **the wind source** (`01` item 15,
-   `17` item 1). H5000 CPU, Triton², or masthead direct. This one decides
-   whether deriving true wind is permanently off the table.
-8. **"Use SOG as boat speed"** and **"Use COG as heading"** (`17` item 2). They
-   live in *different* menus — boat speed and compass. Photograph both. These
-   are the difference between a usable polar and one with tide baked in.
-9. **Damping values** for apparent wind, true wind, boat speed, heading
-   (`01` item 16, `17` item 4).
-10. **If an H5000 is present**: the TWA and TWS correction tables (`17` item 3).
-    Is the −10 % TWS default there, or are they all zeros?
-11. **Mast height above waterline** (`17` item 5). Tape on a halyard, or the
-    rig spec if you have it. One number, and it makes the wind-gradient
-    question answerable later without another trip. Do it at the dock — it is
-    much worse underway.
+Everything here is a *diagnostic for interpreting the data*, not a gate on
+recording it, and all of it is also on [`21`](21-race-day-capture.md)'s
+motor-out list. Take it now only if the boat is not ready; otherwise leave it —
+you will have an unhurried hour under power.
 
-**T+25 to T+30 — shutdown, and check before you leave.**
+8. **Mast height above waterline** (`17` item 5). The one genuinely easier at a
+   berth than underway — tape on a halyard, or the rig spec. Take it now if
+   there is any chance at all.
+9. *Settings → Network → Sources* → **the wind source** (`01` item 15,
+   `17` item 1). H5000 CPU, Triton², or masthead direct.
+10. **"Use SOG as boat speed"** and **"Use COG as heading"** (`17` item 2), in
+    *different* menus — boat speed and compass.
+11. **Damping values**, and the H5000 correction tables if a CPU is present
+    (`01` item 16, `17` items 3–4).
 
-12. Stop the capture (Ctrl-C). **Verify it before stepping off the boat** —
-    this is the last moment it is cheap to fix:
-    ```sh
-    wc -l ~/dock-*.log            # non-empty?
-    tail -3 ~/dock-*.log          # timestamps present? sentences intact?
-    grep -c 'MWV,T' ~/dock-*.log  # 01 item 4, the load-bearing assumption
-    grep -c '###' ~/dock-*.log    # any unexpected reconnects?
-    cp ~/dock-*.log ~/storage/shared/    # get it somewhere you can retrieve it
-    ```
-13. If `MWV,T` count is zero, **do not leave** — work the troubleshooting
-    ladder. That single grep is the difference between a useful trip and a
-    wasted one.
+**Do not stop the capture.** Unlike the old dockside visit, this log runs on
+into the day — it *is* `21`'s independent fallback stream. Leave
+`termux-wake-lock` held and the script running, and verify it on the motor back
+per `21`.
 
 *(`01` item 11, the multicast discovery announcement, is deliberately not here
-— see "The one item that does not port" above.)*
+— see "Multicast discovery is deliberately not tested" above.)*
 
-## Deliberately deferred to `21`
+## Deliberately left to `21`
 
-Not because they don't matter — because 30 minutes doesn't hold them and
-Saturday's hour does:
+Not because they don't matter — because they need way on, or because the
+morning is too tight to hold them and the motor out is not:
 
 - **`01` item 12 — plotter in Client mode** on the phone's hotspot. A menu
   change with a real risk of leaving the plotter misconfigured, and if it works
   it is strictly better (the phone keeps mobile data during a race). Do it on
   the motor out where there is time to put it back.
-- **`01` item 5 — `MWD` cross-check against `MWV,T`** is *readable* dockside but
-  only *meaningful* with way on.
+- **`01` item 5 — `MWD` cross-check against `MWV,T`** is *readable* at a berth
+  but only *meaningful* with way on.
 - **`01` item 11 — multicast discovery.** Not a time problem but a tooling one:
   Termux cannot hold a `MulticastLock`, so a negative result would be
-  uninterpretable. Moved to `21`, where the app's own discovery code tests it.
+  uninterpretable. Handled in `21`, where the app's own discovery code tests it.
+- **The whole slow menu set**, if the morning does not stretch to steps 8–11.
 
 ## Troubleshooting, if no bytes arrive
 
@@ -323,9 +412,11 @@ In order:
    DHCP (`01` item 3, the manual contradiction) and you may need a static
    address on the plotter's subnet.
 4. If the wireless module genuinely emits nothing, **that is the finding** —
-   record it and stop. The forum posts were right, founding decision 1's
-   transport is wrong, and the whole feature needs re-planning. Better to know
-   in 30 minutes than after a build week.
+   record it and go sailing. The forum posts were right, founding decision 1's
+   transport is wrong, and the whole feature needs re-planning. This is the
+   scenario the lost dock trip was insuring against: you find out after the
+   build week rather than before it. The build is not wasted — nothing above the
+   transport layer changes — but the week's schedule was.
 
 ## Resolution
 
@@ -340,7 +431,17 @@ Resolved when the capture file is committed under
 - whether `MWV,T` is present and populated with status `A` (`01` item 4)
 - whether the Serial-output checkbox changed the sentence set
 - the wind source, and every photographed setting
+- **which of the "build blind" risks above actually bit**, and what it cost —
+  this is the evidence for whether skipping a dockside trip was the right call,
+  and it is worth writing down while it is fresh
+
 - anything surprising
+
+`04` and [`21`](21-race-day-capture.md) now resolve **on the same day, from the
+same log**. They stay separate tickets because they answer different questions —
+`04` is "did the wire behave as `01` predicted", `21` is "is the boat's wind
+system trustworthy and did the build hold up" — but expect to write both answers
+in one sitting, and expect `04`'s to be the shorter of the two.
 
 ## Answer
 

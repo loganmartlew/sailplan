@@ -2,17 +2,30 @@
 
 Type: task
 Status: open
-Blocked by: 04
+Blocked by: —
 Map: [map.md](../map.md)
 
 ## Question
 
-Capture a **real race** — Saturday — and answer the three things a dock cannot.
+Capture a **real race** — Saturday — and answer the three things a berth cannot.
 
-Split out of [`04`](04-capture-raw-sample-on-boat.md), which is now the 30-minute
-dockside go/no-go visit. `04` answers "can I build against this wire?"; this
-ticket answers "is what I built any good, and is the boat's wind system
-trustworthy?"
+Split out of [`04`](04-capture-raw-sample-on-boat.md). `04` answers "can I
+record against this wire?"; this ticket answers "is what I built any good, and
+is the boat's wind system trustworthy?"
+
+> **The `Blocked by: 04` edge is cut.** It was written when `04` was a separate
+> midweek dockside visit that would land days ahead of the race. Boat access
+> before Saturday can no longer be assumed, so `04`'s berth half now runs
+> **at 08:00 the same morning, before slipping** — the two tickets share a day
+> and a log file rather than sitting in sequence. Nothing here waits on `04`
+> being resolved first; in practice `04`'s answer gets written from the opening
+> minutes of the very capture this ticket is about.
+>
+> One consequence worth holding onto: **the go/no-go answers now arrive after
+> the build, not before it.** `04` lists what that costs and the two build
+> requirements it forces (raw-first-parse-second, and softening `11`'s
+> five-minute auto-end). Read `04`'s *What building blind costs* before the
+> build week, not on the day.
 
 **The shape of the day is the point.** There is a **~1 hour motor to the start
 and ~1 hour back**, plus the race. That is far more instrumented time than the
@@ -96,15 +109,31 @@ not a workaround.
 ## The fallback, and why it matters more than usual
 
 Whatever gets built this week will be running for the first time, on real
-hardware, on a boat, in a race. `13` (the device spike) is unresolved, so
-founding decision 6 — the foreground service surviving screen-off — still rests
-on inference.
+hardware, on a boat, in a race. **`13` is now resolved** — founding decision 6
+is confirmed on hardware, so the foreground service surviving screen-off is no
+longer the open question it was. What is still unproven is *this* wire and
+*this* build against it, and with `04`'s midweek dock trip gone, neither gets a
+rehearsal.
 
 **Carry a second, independent capture**: `termux-wake-lock` then
-[`capture.py`](../capture.py) in Termux — the same script `04` shakes out at
-the dock, so by Saturday it is proven rather than hopeful. It costs nothing, it means a failed foreground
-service is not a lost race, and it gives a known-good stream to diff the app's
-own output against, which is better evidence than either alone.
+[`capture.py`](../capture.py) in Termux — started at the berth per `04` step 5
+and left running all day. Shaken out against `nmea-sim` at the desk this week,
+which is now the *only* rehearsal either capture path gets. It costs nothing, it
+means a failed foreground service is not a lost race, and it gives a known-good
+stream to diff the app's own output against, which is better evidence than
+either alone.
+
+Two specific shapes to watch for, both from `13`:
+
+- **Solid coverage, then a hard cliff to total silence with no socket error.**
+  `13` chased this for several sessions and pinned it on the desk rig's own
+  hostapd AP via a controlled A/B — but "very likely rig-specific" is a
+  hypothesis, not a hardware-confirmed fact. If it appears against the Zeus 3's
+  own AP, it was not the rig.
+- **An ANR on resume**, ~5 s after the app returns to the foreground,
+  reproducible and not root-caused. Known, not fixed. If it fires mid-race,
+  dismiss it and check the recording is still running rather than assuming the
+  app died.
 
 Per founding decision 2 and `05`, **the raw log is lossless**: sample rows are
 derived from the sentence stream, so a raw capture alone preserves the entire

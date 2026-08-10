@@ -35,8 +35,8 @@ re-litigating any of the decisions below. Building it is a separate effort.
 - **Hard constraint — boat access is scarce.** Logan does not have the boat on
   demand. No ticket may sit on the critical path waiting for the water. The
   map is wired so design proceeds on documented behaviour (`01`) plus a
-  simulator (`12`), and the on-boat tickets (`04` dockside, `21` race day) are
-  a **confirmation** step
+  simulator (`12`), and the on-boat tickets (`04` wire verification, `21` race
+  day — both now on the same Saturday) are a **confirmation** step
   that may force revisions afterwards. Any new ticket that would need the boat
   must be checked against this before being wired as a blocker.
 
@@ -595,11 +595,49 @@ Open tickets are found by scanning `issues/`; this list is not maintained.
     survive screen-off. Everything downstream can be built later and replayed.
     An independent third-party TCP logger carried as a fallback makes a failed
     first outing cost nothing.
-- After `13`: frontier is `04`(boat), `16`(blocked by `04`) — nothing else.
+- After `13`: frontier is `04`(boat), `16`(blocked by `21`) — nothing else.
   **`13` was the last non-boat ticket on the map.** Founding decision 6 is
   confirmed on hardware with no code changes implied; the multi-session
   "thinning" scare resolved as a desk-rig artifact rather than a phone or
   Android limitation, via a controlled A/B rather than inference. Everything
-  left needs the water: `04` (dockside go/no-go) and `16` (blend weight,
-  blocked behind it). **The destination — `.tickets/nmea-ingestion/spec.md`
-  — can be written now**; `04`/`21` are confirmation steps, not gates on it.
+  left needs the water: `04`, `21`, and `16` (blend weight, blocked behind
+  `21`). **The destination — `.tickets/nmea-ingestion/spec.md` — can be written
+  now**; `04`/`21` are confirmation steps, not gates on it.
+- **`04` re-cut a second time, and `21`'s blocking edge cut** (scoping act, not
+  a decision on the route). Boat access before Saturday can no longer be
+  assumed, so the standalone midweek dockside visit is **gone** — not deferred,
+  removed from the plan. `04` now has two halves that are not a special trip:
+  a **desk half** this week (Termux, `capture.py` against `nmea-sim`, the
+  five-minute wakelock test) and a **berth half at ~08:00 Saturday**, ~10–15
+  minutes of the four damage-ordered dominators before slipping. `21` no longer
+  reads `Blocked by: 04`; the two share a day and a log file.
+  - **The map already licensed this.** The boat-access constraint in
+    [Notes](#notes) forbids the water sitting on the critical path, `14` took
+    the boat off it entirely, and after `08` no design decision waited on `04`.
+    Per FD2 and `05` the **raw log is lossless**, so a race survives in one
+    timestamped file whatever the app does.
+  - **What it costs: the go/no-go answers now arrive after the build, not
+    before.** Four risks land on race morning instead of midweek — the
+    Serial-output checkbox gating the stream (zero bytes at 08:00), an endpoint
+    unknown until the day, `MWV,T` absent or status `V` (a raw log but no polar
+    points), and a link-local address instead of a DHCP lease. All four are
+    recoverable *at the berth* with the ticket to hand; none is recoverable once
+    the lines are off. Ranked and written up in `04`.
+  - **Two build requirements fall out of it, both qualifying `11`.**
+    **Raw-first, parse-second**: `11`'s "wait for valid NMEA data before opening
+    the recording" must gate the *sample pipeline*, not the *file* — open the
+    raw log the instant the socket connects, or an unpredicted sentence set can
+    refuse to record a race. And **soften `11`'s five-minute auto-end** for this
+    build, since a dropout no dock visit has characterised would otherwise end a
+    race recording silently. Whoever writes the spec should carry both.
+  - **`capture.py` in Termux is promoted from bonus to primary insurance.** It
+    is now the only capture path that will have been exercised against a real
+    stream before race morning; the app's own capture runs for the first time
+    ever on the water. The desk half is therefore **not optional** — the
+    simulator test *is* the rehearsal.
+  - **The dock trip's diagnostic half was not lost, only relocated.** Wind
+    source, SOG-as-boat-speed / COG-as-heading, damping, H5000 correction
+    tables and mast height are diagnostics for *interpreting* data, not gates on
+    recording it, and `21`'s unhurried motor-out hour already held them.
+  - **Nothing on the route changed.** No decision was made or unmade here; the
+    spec is unaffected, and `16` stays blocked behind `21` exactly as before.
