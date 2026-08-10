@@ -54,96 +54,155 @@ the phone would.
 
 ### Before leaving the house
 
+Everything in this section is desk work. None of it can be salvaged at the boat.
+
 1. **Install Termux from [F-Droid](https://f-droid.org/packages/com.termux/) or
    the [GitHub releases](https://github.com/termux/termux-app/releases)** — the
-   Play Store build is deprecated and years out of date. This is the one step
-   that cannot be done at the boat if it goes wrong.
-2. ```sh
+   Play Store build is deprecated and years out of date.
+2. Install the tools:
+   ```sh
    pkg update && pkg install python nmap netcat-openbsd
    termux-setup-storage    # so captures can be copied off afterwards
    ```
-3. Save the capture script below to `~/capture.py` and **test it against the
-   simulator on your desk** — `nmea-sim` is already built and listening.
-   Turning up at the boat with an untested script wastes the visit.
+3. **Take the wakelock from the command line, not the notification** — see
+   *The wakelock* below.
+4. **Get `capture.py` onto the phone and test it against the simulator** — see
+   *Testing against the simulator* below. Turning up at the boat with an
+   untested script wastes the visit.
+
+### The wakelock
+
+Ignore the notification. Termux ships a command that does the same job and is
+far easier to confirm:
+
+```sh
+command -v termux-wake-lock    # confirm it exists (it is in termux-tools, installed by default)
+termux-wake-lock               # take it — run before starting a capture
+termux-wake-unlock             # release it when done
+```
+
+**Why you are not seeing a notification.** Termux only posts one while a
+session is actually running, and on Android 13+ it is hidden entirely unless
+`POST_NOTIFICATIONS` was granted on first launch — a prompt that is easy to
+dismiss. Even when granted, the session notification is low priority, so it
+lands in the collapsed **Silent** section at the bottom of the shade rather
+than up with your normal notifications, and its actions only appear once the
+notification is expanded. If you want it back:
+*Settings → Apps → Termux → Notifications* and enable the channels.
+
+But you do not need it. `termux-wake-lock` is the same wakelock, and the test
+below is how you confirm it is working — which is better evidence than a
+notification saying it should be.
+
+### Testing against the simulator
+
+Both devices on your home WiFi. No hotspot rig needed — that is `13`'s problem,
+not this one.
+
+**On the Fedora box:**
+
+```sh
+cd nmea-sim
+hostname -I                                # note the LAN IP, e.g. 192.168.1.42
+ss -ltn | grep 10110                       # is the port free?
+sudo firewall-cmd --add-port=10110/tcp     # firewalld blocks it otherwise; not permanent
+node nmea-sim.js replay --rate 20 --loop   # real Navico data, forever
+```
+
+Two gotchas that will otherwise cost you twenty minutes:
+
+- **firewalld blocks 10110 by default.** Without that `firewall-cmd` line the
+  phone's connection times out with no useful error. It reverts on reboot; use
+  `--remove-port=10110/tcp` to undo it sooner.
+- **Something may already hold port 10110** on this machine — check with the
+  `ss` line above. If so, kill it or run the simulator on `--port 10111` and
+  point the phone there.
+
+`replay` is the right mode for this test specifically because
+[the GoFree log is already malformed](../../nmea-sim/README.md) — corrupt
+`$SDVLW`, `-1.-3` in an `$IIXDR`, 331 over-length lines. If `capture.py` copes
+with that, it will cope with the boat.
+
+**Get the script onto the phone.** Simplest route, no ssh setup:
+
+```sh
+# Fedora, in .tickets/nmea-ingestion/
+python3 -m http.server 8000
+sudo firewall-cmd --add-port=8000/tcp
+```
+```sh
+# Termux
+curl -O http://192.168.1.42:8000/capture.py
+```
+
+**On the phone:**
+
+```sh
+termux-wake-lock
+python capture.py 192.168.1.42 10110 ~/simtest.log
+```
+
+You should see `connected`, then a sentence counter climbing. Let it run a
+minute, Ctrl-C, and check the output is what you expect:
+
+```sh
+head -3 ~/simtest.log     # ### markers, then `<epoch>.mmm $SDHDG,...` lines
+wc -l ~/simtest.log       # ~1200 lines after a minute at --rate 20
+```
+
+A good first three lines look like this — millisecond timestamps, sentence
+intact:
+
+```
+### connecting 1786320097.364
+### connected 1786320097.371
+1786320097.373 $SDHDG,158.5,,,21.5,E*0A
+```
+
+**Then the test that actually matters — the wakelock.** Start the capture
+again, lock the phone, leave it five minutes, unlock, and confirm the counter
+kept climbing the whole time (`wc -l` before and after). This is the one
+failure mode you cannot detect at the boat: without a wakelock the capture
+stalls on screen sleep and you find out when you get home. Run it once with
+`termux-wake-lock` and, if you want to see the difference, once after
+`termux-wake-unlock`.
+
+Free the ports when you are done:
+`sudo firewall-cmd --remove-port=10110/tcp --remove-port=8000/tcp`
 
 ### The capture script
 
+**[`capture.py`](../capture.py)**, next to this ticket. Verified working against
+`nmea-sim`'s replay of the real GoFree log.
+
 Python rather than `nc | ts`, for three reasons: it avoids the moreutils and
-netcat-variant lottery, it **reconnects automatically** so a blip doesn't end
-the capture silently, and its `###` markers double as the session connection
-log that `05` §5 wants.
-
-```python
-# ~/capture.py — usage: python capture.py <ip> <port> <outfile>
-import socket, sys, time
-
-host, port, out = sys.argv[1], int(sys.argv[2]), sys.argv[3]
-n = 0
-with open(out, "ab", buffering=0) as f:
-    while True:
-        try:
-            f.write(f"### connecting {time.time():.3f}\n".encode())
-            s = socket.create_connection((host, port), timeout=10)
-            f.write(f"### connected {time.time():.3f}\n".encode())
-            buf = b""
-            while True:
-                chunk = s.recv(4096)
-                if not chunk:
-                    raise ConnectionError("peer closed")
-                buf += chunk
-                while b"\n" in buf:
-                    line, buf = buf.split(b"\n", 1)
-                    f.write(f"{time.time():.3f} ".encode() + line.rstrip(b"\r") + b"\n")
-                    n += 1
-                    if n % 50 == 0:
-                        print(f"\r{n} sentences", end="", flush=True)
-        except KeyboardInterrupt:
-            raise
-        except Exception as e:
-            f.write(f"### lost {time.time():.3f} {e}\n".encode())
-            time.sleep(2)
-```
+netcat-variant lottery in Termux, it **reconnects automatically** so a blip
+does not silently end the capture, and its `###` markers double as the session
+connection log that `05` §5 wants.
 
 Millisecond timestamps matter: `05`'s coalesce window is 250 ms, so
-second-resolution stamps cannot validate it.
+second-resolution stamps could not validate it.
 
-### Three phone-specific gotchas
+### Multicast discovery is deliberately not tested — decided
 
-1. **Acquire the Termux wakelock** — pull down the Termux notification and tap
-   *Acquire wakelock* before starting the capture. Without it the capture can
-   stall when the screen sleeps, and you will not notice until you get home.
-2. **Turn mobile data off for the visit** — *after* noting whether Android
-   prompts about the network having no internet. This is `11`'s worst trap and
-   it will bite Termux exactly as it would bite the app: Android may decide the
-   plotter's AP is unusable and route to cellular, where the plotter does not
-   exist. Observe the prompt (that is the `11` evidence), then kill mobile data
-   so the capture actually works. `13` item 5 tests the real fix
-   (`interface: 'wifi'`) properly on the desk rig.
-3. **Read the IP from Settings, not the shell.** Android restricts `/proc/net`
-   for non-root apps, so `ip route` in Termux is unreliable. *Settings → Wi-Fi →
-   the plotter's network → Advanced* shows your assigned IP (real lease, or
-   `169.254.x.x`? — that is `01` item 3) and the **gateway, which is the
-   plotter IP candidate**.
+`01` item 11, the GoFree announcement on `239.2.1.1:2052`, is **not on this
+trip and not on the laptop, because the laptop is not coming.** Settled, not
+deferred for want of time.
 
-### The one item that does not port: multicast discovery
-
-`01` item 11 — the GoFree announcement on `239.2.1.1:2052` — is the exception.
 Android's WiFi stack drops multicast unless an app holds a `MulticastLock`, and
-Termux cannot acquire one. `socat` may or may not see the announcement
-depending on the driver, which makes it **the worst kind of test: a negative
-result proves nothing.** "Saw no announcement" and "the plotter does not
-announce" are indistinguishable.
+Termux cannot acquire one. So a phone test would be **the worst kind of test: a
+negative result proves nothing** — "saw no announcement" and "the plotter does
+not announce" would be indistinguishable. Do not run it and do not record a
+result.
 
-Do not run it on the phone and record the result. Instead, pick one:
+The consequence is small and already designed for. `11` decided
+*discovery-first with an explicit manual mode*, where manual mode pins
+host/port — and **manual mode is needed regardless**, so building it first
+costs nothing and is the right order anyway. Saturday's capture (`21`) becomes
+the real discovery test, run by app code that *can* hold a `MulticastLock`.
 
-- **Take the laptop purely for this** — five minutes, one `socat` command. Only
-  worth it if the laptop is coming anyway.
-- **Leave it unverified, and build manual mode first.** This is the
-  recommendation. `11` already decided *discovery-first with an explicit manual
-  mode*, where manual mode pins host/port — and you need manual mode regardless.
-  Building it first costs nothing, and the app's own discovery attempt on
-  Saturday (`21`) becomes the real test, run by code that *can* hold a
-  `MulticastLock`.
+This decides whether the user ever has to type an IP, not whether the feature
+works. Nothing on the map blocks on it.
 
 Nothing on the map blocks on this. It decides whether the user ever has to type
 an IP, not whether the feature works.
@@ -164,17 +223,25 @@ only reason this fits.
 1. Plotter on. *About* → photograph the **software version** (`01` item 14).
    Everything below is keyed to it.
 2. Join the plotter's WiFi from the phone. **Note whether Android warns that
-   the network has no internet** — that observation is the `11` evidence, and
-   it is gone once you dismiss the prompt. Then turn **mobile data off**.
+   the network has no internet** — that observation *is* the `11` evidence and
+   it is gone the moment you dismiss the prompt, so read it before you tap.
+   Then **turn mobile data off** for the rest of the visit: this is `11`'s worst
+   trap and it bites Termux exactly as it would bite the app — Android decides
+   the plotter's AP is useless and routes to cellular, where the plotter does
+   not exist. (`13` item 5 tests the real fix, `interface: 'wifi'`, on the desk
+   rig; killing mobile data is just how you get today's capture done.)
 3. *Settings → Wi-Fi → the plotter's network → Advanced*: photograph the
    **assigned IP** (real lease, or `169.254.x.x`? — `01` item 3) and the
-   **gateway**, which is your plotter IP candidate.
+   **gateway**, which is your plotter IP candidate. Read it here rather than
+   with `ip route` in Termux — Android restricts `/proc/net` for non-root apps,
+   so the shell is unreliable.
 4. Read *Settings → Network → NMEA0183 → Ethernet* on the plotter and
    photograph it (`01` item 2). Confirm the port — 10110 is `01`'s prediction.
-5. Start the capture in Termux, wakelock acquired. **This is the single
-   highest-value artifact of the trip** — get it running before anything else
-   can eat the clock.
+5. Open Termux and start the capture. **This is the single highest-value
+   artifact of the trip** — get it running before anything else can eat the
+   clock.
    ```sh
+   termux-wake-lock
    python ~/capture.py <gateway-ip> 10110 ~/dock-$(date +%Y%m%dT%H%M).log
    ```
    Watch the sentence counter climb. If it stays at zero, that is `01` item 1

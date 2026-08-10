@@ -35,7 +35,8 @@ re-litigating any of the decisions below. Building it is a separate effort.
 - **Hard constraint — boat access is scarce.** Logan does not have the boat on
   demand. No ticket may sit on the critical path waiting for the water. The
   map is wired so design proceeds on documented behaviour (`01`) plus a
-  simulator (`12`), and the on-boat ticket (`04`) is a **confirmation** step
+  simulator (`12`), and the on-boat tickets (`04` dockside, `21` race day) are
+  a **confirmation** step
   that may force revisions afterwards. Any new ticket that would need the boat
   must be checked against this before being wired as a blocker.
 
@@ -359,7 +360,7 @@ have no ticket of their own; everything after this point gets one.
   calibrated or raw bus values. Separately, NMEA 0183 cannot express whether
   true wind is water- or ground-referenced — the latter bakes tidal current
   into every polar. The reference-frame question is now sharp enough to be
-  owned by `05` and measured by `04`; the wider calibration question stays
+  owned by `05` and measured by `21`; the wider calibration question stays
   here. **`03` measured the cost of leaving it unsolved:** a session recorded
   with a +6 % boat-speed error is not rejected by pooling, it is *averaged in
   proportionally* — one bad session in three drags fleet bias from −0.72 % to
@@ -387,7 +388,7 @@ have no ticket of their own; everything after this point gets one.
   the Plan tab and the TWD their polars were derived from may be in different
   frames, differing by the tidal current vector. Surfaced while resolving `05`;
   deliberately left as fog because it only bites in a tideway and the size of
-  the bite is unknown until `04` classifies a real session.
+  the bite is unknown until `21` classifies a real session.
 - **Generating `sailTwaLimit` rows from captured data.** The same tracks that
   yield polar points also reveal the angles a sail was actually usable at. An
   algorithm could propose limit rows or flag existing ones as wrong. Wanted
@@ -527,3 +528,48 @@ Open tickets are found by scanning `issues/`; this list is not maintained.
   - `16` still cannot be decided without real captured data, so the blend weight
     stays open past the spec — the spec should say so explicitly rather than
     inventing a placeholder weight.
+- **`04` re-cut into two tickets** (scoping act, not a decision on the route).
+  Boat access turned out to have two shapes, not one: a **30-minute dockside
+  visit** where the boat cannot leave the berth, and a **race day** with a
+  ~1 hour motor each way either side of the racing. The original ticket assumed
+  a single undifferentiated trip and bundled all 24 verify items into it.
+  - [`04`](issues/04-capture-raw-sample-on-boat.md) is now the **dockside
+    go/no-go set** — 22 of the 24 items, including all four damage-ordered
+    dominators (does the WiFi module emit at all, does Android get DHCP, is
+    `MWV,T` populated, does the Serial-output checkbox gate Ethernet). It fits
+    in 30 minutes only because the capture runs while the menus are
+    photographed.
+  - [`21`](issues/21-race-day-capture.md) is new: the **on-water half**. Three
+    items are unanswerable at a fixed berth — water- vs ground-referenced
+    `MWV,T`, the ⭐ tack-to-tack calibration split, and paddlewheel liveness
+    (a dead paddle and a stationary boat both read `0.00`). The motor out takes
+    the slow menu items 30 minutes cannot hold; the pre-start warm-up takes the
+    ⭐ measurement deliberately rather than hoping the race supplies it.
+  - **`16`'s blocker moved from `04` to `21`.** Dockside data cannot serve it:
+    no boat speed means no polar points to weigh.
+  - **`04` is a phone-only trip — no laptop** (Termux on the Zenfone 10, Android
+    15). The phone is better evidence than a laptop anyway, being the actual
+    target device. One consequence, decided rather than deferred: **`01` item 11,
+    multicast GoFree discovery, goes unverified.** Termux cannot hold a
+    `MulticastLock`, so a negative result would be uninterpretable. Manual mode
+    — already a first-class path in `11`, and needed regardless — gets built
+    first, and `21` becomes the real discovery test using app code that *can*
+    hold a lock. This decides whether the user ever types an IP, not whether the
+    feature works.
+  - **`13`'s device assumption was wrong in our favour.** It expected the
+    Zenfone 10 to top out at Android 13 (API 33), making the emulator the only
+    place the target API level got tested; it is on **Android 15 (API 35)**, so
+    the Android 15 `dataSync` 6 h/24 h cap is now testable on real hardware.
+    Ticket corrected. Open thread: `app.config.js` sets no explicit
+    `targetSdkVersion`, so whether Expo SDK 55 targets 35 or 36 is a
+    prebuild-time check.
+  - **Neither ticket blocks building.** `04` was always a confirmation step and
+    after `14` the boat left the critical path entirely; `16` is a promotion
+    decision that wants the race data anyway. The real gate on recording a race
+    is `13` — founding decision 6 rests on inference until the foreground
+    service is proven on hardware, and that is a desk/emulator problem.
+  - **A raw log is lossless** (FD2 + `05`: samples are derived from the sentence
+    stream), so the minimum useful build is connect → timestamped raw file →
+    survive screen-off. Everything downstream can be built later and replayed.
+    An independent third-party TCP logger carried as a fallback makes a failed
+    first outing cost nothing.
