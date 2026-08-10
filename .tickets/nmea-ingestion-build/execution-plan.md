@@ -8,6 +8,10 @@ Source of truth for *what* to build is
 [`../nmea-ingestion/spec.md`](../nmea-ingestion/spec.md). This file is only about
 *order*.
 
+**One-page visual board** — tickets, waves, hardware checks and review clusters
+on a single chart:
+<https://claude.ai/code/artifact/942ef2a8-cc2f-4f03-87f7-26c9f2869006>
+
 **Prerequisite:** tech-debt
 [`02`](../tech-debt/issues/02-duplicate-polar-points-zero-confidence.md) — the
 grid-builder duplicate invariant — lands before ticket `01`.
