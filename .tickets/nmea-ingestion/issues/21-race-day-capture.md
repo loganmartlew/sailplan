@@ -100,10 +100,11 @@ hardware, on a boat, in a race. `13` (the device spike) is unresolved, so
 founding decision 6 — the foreground service surviving screen-off — still rests
 on inference.
 
-**Carry a second, independent capture.** A third-party Android TCP-logging app,
-or Termux running `nc`, writing to a file. It costs nothing, it means a failed
-foreground service is not a lost race, and it gives a known-good stream to
-diff the app's own output against — which is better evidence than either alone.
+**Carry a second, independent capture**: `termux-wake-lock` then
+[`capture.py`](../capture.py) in Termux — the same script `04` shakes out at
+the dock, so by Saturday it is proven rather than hopeful. It costs nothing, it means a failed foreground
+service is not a lost race, and it gives a known-good stream to diff the app's
+own output against, which is better evidence than either alone.
 
 Per founding decision 2 and `05`, **the raw log is lossless**: sample rows are
 derived from the sentence stream, so a raw capture alone preserves the entire

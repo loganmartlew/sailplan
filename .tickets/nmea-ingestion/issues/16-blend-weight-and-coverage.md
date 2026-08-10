@@ -2,7 +2,7 @@
 
 Type: prototype
 Status: open
-Blocked by: 04
+Blocked by: 21
 Map: [map.md](../map.md)
 
 ## Question
@@ -39,10 +39,16 @@ across the boundary. A soft edge is probably right — a hard cliff at the band
 edge would be worse — but its width is a choice, and TWA coverage was not
 modelled at all (only TWS).
 
-**Blocked by `04`** — this needs a real capture with real instrument noise
-against a real imported table for the same boat, so that "which source is
-closer to the truth" is an observation rather than an assumption. Per the map's
-boat-access constraint, nothing else waits on this.
+**Blocked by [`21`](21-race-day-capture.md)** — this needs a real capture with
+real instrument noise against a real imported table for the same boat, so that
+"which source is closer to the truth" is an observation rather than an
+assumption. Per the map's boat-access constraint, nothing else waits on this.
+
+The dependency moved from `04` to `21` when `04` was re-cut into a dockside
+visit and a race-day capture. Dockside data cannot serve this ticket at all:
+with the boat tied up there is no boat speed, so there are no polar points to
+weigh. It needs sailing, and it needs the race data to have been through the
+`07` → `10` pipeline into actual captured points — not just raw sentences.
 
 Reuse `sailplan-app/features/sailPolar/eval/mixed-provenance.prototype.ts` on
 branch `prototype/03-mixed-provenance` — the blend sweep is already built
