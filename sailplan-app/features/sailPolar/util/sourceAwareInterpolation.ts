@@ -31,6 +31,17 @@ export const CAPTURE_COVERAGE_RADIUS = {
 
 type Target = Pick<PolarPoint, 'tws' | 'twa'>;
 
+/** Whether one captured point is near enough to inform this wind condition. */
+export function isCaptureWithinCoverage(
+  target: Target,
+  point: PolarPoint,
+): boolean {
+  return (
+    Math.abs(target.tws - point.tws) <= CAPTURE_COVERAGE_RADIUS.tws &&
+    Math.abs(target.twa - point.twa) <= CAPTURE_COVERAGE_RADIUS.twa
+  );
+}
+
 function captureWeightAt(target: Target, capturedPoints: PolarPoint[]): number {
   const nearestRelativeDistance = capturedPoints.reduce(
     (nearest, point) =>

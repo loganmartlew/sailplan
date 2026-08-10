@@ -39,7 +39,11 @@ features/<name>/
 Import features **through the barrel**: `import { useMarks } from
 '~/features/mark'`. The one exception is a handful of cross-feature *type*
 imports that reach directly into another feature's `model/` (e.g.
-`~/features/sailPolar/model/interpolation`) to avoid pulling in components.
+`~/features/sailPolar/model/interpolation`) to avoid pulling in components. A
+cross-feature **pure utility** may also be imported directly from `util/` when
+the feature barrel re-exports native UI or database modules and would make a
+pure-domain caller untestable. Keep that exception narrow: the utility must be
+side-effect free and have its own unit tests.
 
 ## `model/` — types + schema mirror the database
 

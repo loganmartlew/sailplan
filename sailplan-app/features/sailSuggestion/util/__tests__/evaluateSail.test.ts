@@ -208,6 +208,41 @@ describe('evaluateSail — implicit coverage envelope', () => {
     expect(result.reasoning.limitUsed).toBe(false);
   });
 
+  it('does not let remote capture points widen the non-capture envelope', () => {
+    const nonCaptureBand: PolarPoint[] = [];
+    for (const twa of [125, 130, 135, 140]) {
+      nonCaptureBand.push({ tws: 12, twa, speed: 8 });
+    }
+    const remoteCaptureBand = [60, 65, 70, 75].map(twa => ({
+      tws: 14,
+      twa,
+      speed: 7,
+      sourceKind: 'capture' as const,
+    }));
+
+    const withoutCapture = evaluateSail(
+      makeSail(),
+      90,
+      12,
+      nonCaptureBand,
+      [],
+      noGuards,
+      cfg,
+    );
+    const withRemoteCapture = evaluateSail(
+      makeSail(),
+      90,
+      12,
+      [...nonCaptureBand, ...remoteCaptureBand],
+      [],
+      noGuards,
+      cfg,
+    );
+
+    expect(withRemoteCapture.limitScore).toBe(withoutCapture.limitScore);
+    expect(withRemoteCapture.confidence).toBe(withoutCapture.confidence);
+  });
+
   it('lets explicit limits take precedence over the implicit envelope', () => {
     // Explicit limits [60,120] contradict the polar band (125–140). At TWA 90 —
     // inside the explicit window but outside the polar band — the explicit

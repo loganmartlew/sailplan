@@ -1,6 +1,9 @@
 import type { Sail } from '~/features/sail';
-import type { SourceAwarePolarPoint } from '~/features/sailPolar/util/sourceAwareInterpolation';
-import { estimateSourceAwareSailSpeed } from '~/features/sailPolar/util/sourceAwareInterpolation';
+import {
+  estimateSourceAwareSailSpeed,
+  isCaptureWithinCoverage,
+  type SourceAwarePolarPoint,
+} from '~/features/sailPolar/util/sourceAwareInterpolation';
 import type { SailTwaLimit } from '~/features/sailTwaLimit/model/sailTwaLimit';
 import type {
   GuardContext,
@@ -72,7 +75,15 @@ export function evaluateSail(
 
   const implicitEnvelope = hasExplicitLimits
     ? null
-    : deriveCoverageEnvelope(tws, polars, config.coverageEnvelope);
+    : deriveCoverageEnvelope(
+        tws,
+        polars.filter(
+          point =>
+            point.sourceKind !== 'capture' ||
+            isCaptureWithinCoverage({ tws, twa }, point),
+        ),
+        config.coverageEnvelope,
+      );
   const usingImplicitEnvelope = implicitEnvelope !== null;
 
   const scoringLimits = hasExplicitLimits

@@ -29,21 +29,28 @@ describe('estimateSourceAwareSailSpeed', () => {
     );
   });
 
-  it('blends captured data at the exported weight inside capture coverage', () => {
-    const capturedSpeed = 10;
-    const result = estimateSourceAwareSailSpeed(target, [
+  it('includes captured data inside capture coverage', () => {
+    const withoutCapture = estimateSourceAwareSailSpeed(target, importedGrid);
+    const withCapture = estimateSourceAwareSailSpeed(target, [
       ...importedGrid,
-      { tws: 10, twa: 90, speed: capturedSpeed, sourceKind: 'capture' },
+      { tws: 10, twa: 90, speed: 10, sourceKind: 'capture' },
     ]);
 
-    expect(result.predictedSpeed).toBeCloseTo(
-      6 * (1 - CAPTURE_BLEND_WEIGHT) + capturedSpeed * CAPTURE_BLEND_WEIGHT,
-    );
-    expect(result.pointsUsed).toHaveLength(2);
+    expect(withCapture.predictedSpeed).toBeGreaterThan(withoutCapture.predictedSpeed);
+    expect(withCapture.predictedSpeed).toBeLessThan(10);
+    expect(withCapture.pointsUsed).toHaveLength(2);
   });
 
   it('pools captured points from separate sessions before blending', () => {
-    const result = estimateSourceAwareSailSpeed(target, [
+    const onlySlowerCapture = estimateSourceAwareSailSpeed(target, [
+      ...importedGrid,
+      { tws: 10, twa: 90, speed: 8, sourceKind: 'capture' },
+    ]);
+    const onlyFasterCapture = estimateSourceAwareSailSpeed(target, [
+      ...importedGrid,
+      { tws: 10, twa: 90, speed: 12, sourceKind: 'capture' },
+    ]);
+    const pooledCaptures = estimateSourceAwareSailSpeed(target, [
       ...importedGrid,
       // These are promoted by two different capture sessions. Source kind, not
       // session, is the partition boundary, so both must inform one estimate.
@@ -51,9 +58,43 @@ describe('estimateSourceAwareSailSpeed', () => {
       { tws: 10, twa: 90, speed: 12, sourceKind: 'capture' },
     ]);
 
-    expect(result.predictedSpeed).toBeCloseTo(
-      6 * (1 - CAPTURE_BLEND_WEIGHT) + 10 * CAPTURE_BLEND_WEIGHT,
+    expect(pooledCaptures.predictedSpeed).toBeGreaterThan(
+      onlySlowerCapture.predictedSpeed,
     );
+    expect(pooledCaptures.predictedSpeed).toBeLessThan(
+      onlyFasterCapture.predictedSpeed,
+    );
+  });
+
+  it('tapers capture influence across the outer half of its coverage', () => {
+    const capturedPoint: SourceAwarePolarPoint = {
+      tws: 10,
+      twa: 90,
+      speed: 10,
+      sourceKind: 'capture',
+    };
+    const inner = estimateSourceAwareSailSpeed(target, [
+      ...importedGrid,
+      capturedPoint,
+    ]);
+    const outer = estimateSourceAwareSailSpeed(
+      { tws: 10.75, twa: 90 },
+      [...importedGrid, capturedPoint],
+    );
+    const atEdge = estimateSourceAwareSailSpeed(
+      { tws: 11, twa: 90 },
+      [...importedGrid, capturedPoint],
+    );
+    const nonCaptureAtEdge = estimateSourceAwareSailSpeed(
+      { tws: 11, twa: 90 },
+      importedGrid,
+    );
+
+    expect(outer.predictedSpeed).toBeLessThan(inner.predictedSpeed);
+    expect(outer.predictedSpeed).toBeGreaterThan(
+      nonCaptureAtEdge.predictedSpeed,
+    );
+    expect(atEdge).toEqual(nonCaptureAtEdge);
   });
 
   it('exports the pending-calibration coverage constants', () => {

@@ -15,6 +15,7 @@ export {
   CAPTURE_BLEND_WEIGHT,
   CAPTURE_COVERAGE_RADIUS,
   estimateSourceAwareSailSpeed,
+  isCaptureWithinCoverage,
 } from './util/sourceAwareInterpolation';
 export type { SourceAwarePolarPoint } from './util/sourceAwareInterpolation';
 export {

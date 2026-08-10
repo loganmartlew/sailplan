@@ -1,6 +1,9 @@
 import { asc, eq } from 'drizzle-orm';
 import { useLiveQuery } from 'drizzle-orm/expo-sqlite';
-import type { SourceAwarePolarPoint } from '~/features/sailPolar/util/sourceAwareInterpolation';
+import type {
+  SailPolar,
+  SourceAwarePolarPoint,
+} from '~/features/sailPolar';
 import type { SailTwaLimit } from '~/features/sailTwaLimit/model/sailTwaLimit';
 import { db } from '~/lib/db';
 import { sail, sailPolar, sailTwaLimit } from '~/schema';
@@ -11,7 +14,7 @@ type SailPolarRow = {
   tws: number;
   twa: number;
   speed: number;
-  sourceKind: 'manual' | 'import' | 'capture';
+  sourceKind: SailPolar['sourceKind'];
 };
 
 type SailLimitRow = SailTwaLimit;
