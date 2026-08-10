@@ -11,6 +11,8 @@ import m0006 from './0006_busy_red_hulk.sql';
 import m0007 from './0007_majestic_hitman.sql';
 import m0008 from './0008_uneven_lilith.sql';
 import m0009 from './0009_clear_sunset_bain.sql';
+import m0010 from './0010_sailpolar_provenance_columns.sql';
+import m0011 from './0011_demonic_edwin_jarvis.sql';
 
   export default {
     journal,
@@ -24,7 +26,9 @@ m0005,
 m0006,
 m0007,
 m0008,
-m0009
+m0009,
+m0010,
+m0011
     }
   }
   
