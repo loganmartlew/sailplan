@@ -38,7 +38,7 @@ export function DirectionsCard({ fromCoords, toCoords }: DirectionsCardProps) {
   const twa = bearing != null ? getTwa({ twd, bearing }) : null;
 
   async function handlePolarSubmit(data: SailPolarSubmitValues) {
-    await createSailPolar(data);
+    await createSailPolar({ ...data, sourceKind: 'manual' });
   }
 
   if (bearing == null || twa == null) {

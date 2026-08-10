@@ -1,0 +1,1 @@
+ALTER TABLE `sailPolar` ADD `sourceKind` text DEFAULT 'manual' NOT NULL;

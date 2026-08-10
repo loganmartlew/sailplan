@@ -62,7 +62,13 @@ export async function importPolarsFromCsv(
       continue;
     }
 
-    inserts.push({ sailId: matchedSail.id, tws, twa, speed });
+    inserts.push({
+      sailId: matchedSail.id,
+      tws,
+      twa,
+      speed,
+      sourceKind: 'import',
+    });
   }
 
   await importSailPolars(inserts);

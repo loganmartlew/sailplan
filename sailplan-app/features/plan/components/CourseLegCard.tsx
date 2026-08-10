@@ -137,7 +137,7 @@ export function CourseLegCard({
   }
 
   async function handlePolarSubmit(data: SailPolarSubmitValues) {
-    await createSailPolar(data);
+    await createSailPolar({ ...data, sourceKind: 'manual' });
   }
 
   return (

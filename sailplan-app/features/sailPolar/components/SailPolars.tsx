@@ -58,6 +58,7 @@ export function SailPolars({ sail }: SailPolarsProps) {
       twa: data.twa,
       tws: data.tws,
       speed: data.speed,
+      sourceKind: 'manual',
     });
   }
 

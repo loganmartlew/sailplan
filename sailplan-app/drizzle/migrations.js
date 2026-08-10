@@ -10,6 +10,7 @@ import m0005 from './0005_calm_iron_patriot.sql';
 import m0006 from './0006_busy_red_hulk.sql';
 import m0007 from './0007_majestic_hitman.sql';
 import m0008 from './0008_uneven_lilith.sql';
+import m0009 from './0009_clear_sunset_bain.sql';
 
   export default {
     journal,
@@ -22,7 +23,8 @@ m0004,
 m0005,
 m0006,
 m0007,
-m0008
+m0008,
+m0009
     }
   }
   

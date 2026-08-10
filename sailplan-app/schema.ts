@@ -55,6 +55,9 @@ export const sailPolar = sqliteTable('sailPolar', {
   tws: real('tws').notNull(),
   twa: real('twa').notNull(),
   speed: real('speed').notNull(),
+  sourceKind: text('sourceKind', {
+    enum: ['manual', 'import', 'capture'],
+  }).notNull(),
   sailId: integer('sailId')
     .notNull()
     .references(() => sail.id),
