@@ -46,6 +46,36 @@ IDW. `strategy: 'idw'` forces the fallback path everywhere (pre-upgrade
 behaviour); `'bilinear'` forces the grid path (exact then clustered) and
 returns a zero result when both fail.
 
+### Grid invariant: one row per (TWS, TWA) node
+
+**A `PolarGrid` never holds two rows at the same (TWS, TWA) node.** Both
+builders guarantee it, collapsing colliding rows into one `PolarGridRow`
+carrying the **median** speed and `n`, the count of stored points behind it
+(duplicate count on the exact grid, bin population on the clustered one).
+
+Nothing on the write side prevents duplicates — `sailPolar` has no unique
+constraint, and CSV import bulk-inserts every parsed row — so importing the same
+CSV twice used to be quietly catastrophic: duplicates injected zero-width gaps
+into the TWA axis, `medianAxisGap` returned 0, and confidence collapsed to
+exactly 0, which makes the suggestion pipeline ignore the polar table entirely
+(`blend.lowConfidence`) while the predicted speeds still looked right. The
+invariant sits upstream of that and of two subtler defects: brackets chosen by
+SQLite's row order, and the four bilinear corners taken from different duplicate
+sets. Being a read-side rule, duplicates already in a user's database self-heal
+at the next query.
+
+Collision means **exact** equality, never a tolerance — tolerance-based merging
+is `buildClusteredPolarGrid`'s job below, and doing it at two widths in two
+places produces results nobody can explain. Median is deliberately neutral: a
+high statistic here would re-apply optimism already applied at promotion.
+
+`n` is **carried but not spent** — duplicates must never lower confidence, and
+they do not raise it either (that is
+[`nmea-ingestion 16`](../../../.tickets/nmea-ingestion/issues/16-blend-weight-and-coverage.md)'s
+question to price). `pointsUsed` therefore still counts *nodes*, not stored
+rows. Decided in
+[`nmea-ingestion 15`](../../../.tickets/nmea-ingestion/issues/15-duplicate-point-collision.md).
+
 ### Noise-tolerant clustered grid (`buildClusteredPolarGrid`)
 
 Logged instrument data is a grid buried in noise: measurement scatter gives

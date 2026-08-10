@@ -48,6 +48,41 @@ describe('buildPolarGrid', () => {
     expect(grid.byTws.get(8)!.map(r => r.twa)).toEqual([80, 120]);
     expect(grid.byTws.get(12)!.map(r => r.twa)).toEqual([60, 100]);
   });
+
+  it('carries n = 1 on rows with no duplicates', () => {
+    const grid = buildPolarGrid([{ tws: 10, twa: 90, speed: 6 }]);
+    expect(grid.byTws.get(10)).toEqual([{ tws: 10, twa: 90, speed: 6, n: 1 }]);
+  });
+
+  it('collapses rows sharing a (TWS, TWA) node to one row with the median speed', () => {
+    const points: PolarPoint[] = [
+      { tws: 10, twa: 100, speed: 6.5 },
+      { tws: 10, twa: 100, speed: 7.4 },
+      { tws: 10, twa: 100, speed: 8.0 },
+    ];
+    expect(buildPolarGrid(points).byTws.get(10)).toEqual([
+      { tws: 10, twa: 100, speed: 7.4, n: 3 },
+    ]);
+  });
+
+  it('collapses independently of row order', () => {
+    const points: PolarPoint[] = [
+      { tws: 10, twa: 90, speed: 6.0 },
+      { tws: 10, twa: 100, speed: 6.5 },
+      { tws: 10, twa: 100, speed: 8.0 },
+    ];
+    expect(buildPolarGrid([...points].reverse())).toEqual(
+      buildPolarGrid(points),
+    );
+  });
+
+  it('never emits a zero-width TWA gap (the confidence poison)', () => {
+    const grid = buildPolarGrid([...GRID, ...GRID]);
+    for (const tws of grid.twsColumns) {
+      const twaValues = grid.byTws.get(tws)!.map(r => r.twa);
+      expect(medianAxisGap(twaValues)).toBeGreaterThan(0);
+    }
+  });
 });
 
 describe('bracketAxis', () => {
@@ -164,6 +199,85 @@ describe('buildClusteredPolarGrid', () => {
       byTws: new Map(),
     });
   });
+
+  it('carries n = the bin population on each collapsed row', () => {
+    const points: PolarPoint[] = [
+      { tws: 8.0, twa: 87, speed: 5.0 },
+      { tws: 8.1, twa: 88, speed: 6.0 },
+      { tws: 7.9, twa: 89, speed: 5.5 },
+      { tws: 8.0, twa: 107, speed: 7.0 },
+    ];
+    const grid = buildClusteredPolarGrid(points, cfg);
+    const rows = grid.byTws.get(grid.twsColumns[0])!;
+    expect(rows.map(r => r.n)).toEqual([3, 1]);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Duplicate (TWS, TWA) rows — tech-debt 02
+//
+// A PolarGrid never holds two rows at the same node, so duplicated stored rows
+// cannot pick a bracket by row order, cannot mismatch the bilinear corners, and
+// cannot inject zero-width gaps that zero out confidence.
+// ---------------------------------------------------------------------------
+describe('estimateSailSpeed — duplicate stored rows', () => {
+  // The ticket's lattice: TWS 8/10 × TWA 60–120, queried between the columns.
+  const LATTICE = makeGrid([8, 10], [60, 80, 100, 120], linear);
+  const TARGET = { tws: 9, twa: 90 };
+  const clean = estimateSailSpeed(TARGET, LATTICE);
+
+  it('is unchanged by one row duplicated identically', () => {
+    const points = [...LATTICE, LATTICE[0]];
+    expect(estimateSailSpeed(TARGET, points)).toEqual(clean);
+  });
+
+  it('is unchanged by one row tripled identically', () => {
+    const points = [...LATTICE, LATTICE[0], LATTICE[0]];
+    expect(estimateSailSpeed(TARGET, points)).toEqual(clean);
+  });
+
+  it('keeps confidence at 1.0 when every row is duplicated identically', () => {
+    const result = estimateSailSpeed(TARGET, [...LATTICE, ...LATTICE]);
+    expect(result.confidence).toBe(1);
+    expect(result.predictedSpeed).toBeCloseTo(clean.predictedSpeed, 10);
+  });
+
+  it('collapses conflicting duplicates by median, keeping confidence at 1.0', () => {
+    // Every row duplicated 1.0 kn higher → each node's median is +0.5 kn.
+    const raised = LATTICE.map(p => ({ ...p, speed: p.speed + 1 }));
+    const result = estimateSailSpeed(TARGET, [...LATTICE, ...raised]);
+    expect(result.confidence).toBe(1);
+    expect(result.predictedSpeed).toBeCloseTo(clean.predictedSpeed + 0.5, 10);
+    // All four corners come from the same collapsed set — never one duplicate's
+    // row at one TWA and the other's at the next.
+    const corners = result.pointsUsed
+      .map(p => `${p.tws}/${p.twa}/${p.speed}`)
+      .sort();
+    expect(corners).toEqual(
+      [
+        [8, 80],
+        [8, 100],
+        [10, 80],
+        [10, 100],
+      ]
+        .map(([tws, twa]) => `${tws}/${twa}/${linear(tws, twa) + 0.5}`)
+        .sort(),
+    );
+  });
+
+  it('does not depend on the order stored rows come back in', () => {
+    const raised = LATTICE.map(p => ({ ...p, speed: p.speed + 1 }));
+    const points = [...LATTICE, ...raised];
+    expect(estimateSailSpeed(TARGET, [...points].reverse())).toEqual(
+      estimateSailSpeed(TARGET, points),
+    );
+  });
+
+  it('reports one node per (TWS, TWA) in pointsUsed', () => {
+    const result = estimateSailSpeed(TARGET, [...LATTICE, ...LATTICE]);
+    const nodes = result.pointsUsed.map(p => `${p.tws}/${p.twa}`);
+    expect(new Set(nodes).size).toBe(nodes.length);
+  });
 });
 
 // ---------------------------------------------------------------------------
@@ -175,7 +289,7 @@ describe('estimateSailSpeed — bilinear on a regular grid', () => {
     expect(result.predictedSpeed).toBe(linear(10, 80));
     expect(result.confidence).toBe(1);
     expect(result.pointsUsed).toEqual([
-      { tws: 10, twa: 80, speed: linear(10, 80) },
+      { tws: 10, twa: 80, speed: linear(10, 80), n: 1 },
     ]);
   });
 

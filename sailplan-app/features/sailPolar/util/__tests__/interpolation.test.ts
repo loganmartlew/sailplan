@@ -185,6 +185,25 @@ describe('interpolateSpeed', () => {
     expect(result.pointsUsed).toEqual([{ tws: 10, twa: 90, speed: 6.5 }]);
   });
 
+  it('collapses coincident twins by median instead of taking the first', () => {
+    // Three rows stored at the query point: the answer must not depend on
+    // which one SQLite handed back first (tech-debt 02).
+    const points: PolarPoint[] = [
+      { tws: 10, twa: 90, speed: 6.5 },
+      { tws: 10, twa: 90, speed: 7.4 },
+      { tws: 10, twa: 90, speed: 8.0 },
+    ];
+    const target = { tws: 10, twa: 90 };
+    const result = interpolateSpeed(scored(target, points), cfg);
+    expect(result.predictedSpeed).toBe(7.4);
+    // One collapsed node, not one entry per stored row.
+    expect(result.pointsUsed).toEqual([{ tws: 10, twa: 90, speed: 7.4 }]);
+    expect(
+      interpolateSpeed(scored(target, [...points].reverse()), cfg)
+        .predictedSpeed,
+    ).toBe(7.4);
+  });
+
   it('returns the single point speed when only one point given', () => {
     const result = interpolateSpeed(
       scored({ tws: 10, twa: 90 }, [{ tws: 12, twa: 95, speed: 7 }]),

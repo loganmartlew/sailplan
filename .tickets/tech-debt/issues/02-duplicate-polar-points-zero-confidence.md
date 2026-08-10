@@ -1,6 +1,6 @@
 # 02 — Duplicate polar points silently zero out interpolation confidence
 
-Status: ready-for-agent
+Status: resolved
 
 ## The gap
 
@@ -127,3 +127,27 @@ should not wait on the spec being finished — so the implementation is logged
 here. Prevention at the write side (warn on re-importing an identical CSV) is a
 separate question, owned by
 [nmea-ingestion 18](../../nmea-ingestion/issues/18-duplicate-import-prevention.md).
+
+## Comments
+
+**Implemented** on branch `nmea-ingestion`. `PolarGrid` now holds
+`PolarGridRow` (`PolarPoint` + `n`), and both builders enforce the one-row-per-
+node invariant: `buildPolarGrid` groups TWS → TWA and collapses each node by
+median with `n` = duplicate count; `binColumnByTwa` now emits the bin
+population it was discarding. `interpolateSpeed`'s IDW `EPSILON` shortcut
+medians all coincident points instead of returning the first, and reports them
+as the one collapsed node so the "N polar points" display keeps counting nodes.
+`InterpolationResult.pointsUsed` stays `PolarPoint[]` — `n` rides on the grid
+rows, unspent.
+
+Known live tension, left for `16`: IDW's `pointCountScore` counts stored rows in
+the window, not nodes, so duplicates still nudge *IDW* confidence up. Out of
+scope here (the invariant is on the grid builders) but it is the other half of
+D6.
+
+Tests cover all four rows of the table above (byte-identical duplication holds
+confidence at 1.0; conflicting duplicates give the median surface at
+confidence 1.0), plus row-order invariance on the builder, the engine, and the
+IDW twin path. Full suite green (190 tests); the one pre-existing assertion
+that changed is `pointsUsed` gaining `n: 1`. Feature README documents the
+invariant.

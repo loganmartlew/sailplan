@@ -6,9 +6,11 @@ import {
 } from '../model/interpolation';
 import {
   type PolarGrid,
+  type PolarGridRow,
   buildPolarGrid,
   buildClusteredPolarGrid,
   bracketAxis,
+  median,
   medianAxisGap,
 } from './polarGrid';
 
@@ -32,7 +34,7 @@ function clamp01(value: number): number {
  */
 interface ColumnSample {
   speed: number;
-  nodes: PolarPoint[];
+  nodes: PolarGridRow[];
   twaFactor: number;
   twaGapFactor: number;
 }
@@ -44,7 +46,7 @@ interface ColumnSample {
  * or a target further than `maxTwaDelta` past the column's ends.
  */
 function sampleColumn(
-  rows: PolarPoint[],
+  rows: PolarGridRow[],
   twa: number,
   config: InterpolationConfig,
 ): ColumnSample | null {
@@ -222,8 +224,9 @@ export function selectNearestPoints(
  * nearest points selected by {@link selectNearestPoints}.
  *
  * Each point's contribution is weighted by `1 / distance^p`, so closer points
- * have exponentially more influence. If a point is effectively at zero distance
- * (within EPSILON), its speed is returned directly to avoid division by zero.
+ * have exponentially more influence. Points effectively at zero distance
+ * (within EPSILON) short-circuit the blend to avoid division by zero, their
+ * speeds collapsed by median so twins at the target resolve deterministically.
  *
  * Returns `predictedSpeed = Σ(speed_i × weight_i) / Σ(weight_i)`
  */
@@ -235,13 +238,23 @@ export function interpolateSpeed(
     return { predictedSpeed: 0, pointsUsed: [] };
   }
 
+  // Points effectively at the target: their weight is unbounded, so they win
+  // outright — but taking the first would make the answer depend on the order
+  // SQLite handed the rows back. Collapse them by median, matching the grid
+  // builders' rule for a collided node.
+  const coincident = nearestPoints.filter(n => n.distance < EPSILON);
+  if (coincident.length > 0) {
+    const { tws, twa } = coincident[0].point;
+    const speed = median(coincident.map(c => c.point.speed));
+    // One collapsed node, as the grid builders would report — not one entry per
+    // stored row, which would inflate the "N polar points" display.
+    return { predictedSpeed: speed, pointsUsed: [{ tws, twa, speed }] };
+  }
+
   let weightSum = 0;
   let speedSum = 0;
 
   for (const { point, distance } of nearestPoints) {
-    if (distance < EPSILON) {
-      return { predictedSpeed: point.speed, pointsUsed: [point] };
-    }
     const weight = 1 / Math.pow(distance, config.p);
     weightSum += weight;
     speedSum += point.speed * weight;

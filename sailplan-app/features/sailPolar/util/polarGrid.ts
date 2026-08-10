@@ -4,10 +4,33 @@ import type {
 } from '../model/interpolation';
 
 /**
+ * One node of a {@link PolarGrid}: a polar point plus how many stored points
+ * collapsed into it. `n` is the duplicate count on the exact grid and the bin
+ * population on the clustered one — the same meaning ("rows behind this node")
+ * from both builders, so confidence can never mean different things depending
+ * on which builder served the query.
+ *
+ * `n` is deliberately **carried but not spent**: it must never lower confidence
+ * (that was the bug), and it does not raise it either — see
+ * `.tickets/nmea-ingestion/issues/16-blend-weight-and-coverage.md`.
+ */
+export interface PolarGridRow extends PolarPoint {
+  /** Stored points behind this node (≥ 1). */
+  n: number;
+}
+
+/**
  * A sail's polar points regrouped as a grid: TWS columns, each holding its
  * rows sorted by TWA. Grouping is by *exact* TWS value — floats are fine here
  * because rows come from user input / the CSV generator via SQLite and are
  * compared by identity within one dataset, never across arithmetic.
+ *
+ * **Invariant: a grid never holds two rows at the same (TWS, TWA) node.** Both
+ * builders guarantee it. It sits upstream of every duplicate-row defect —
+ * bracketing cannot pick a row by SQLite's ordering, the four bilinear corners
+ * cannot come from different duplicate sets, and zero-width axis gaps are
+ * structurally impossible, so {@link medianAxisGap} cannot be driven to 0 and
+ * zero out confidence.
  *
  * The structure is cheap (O(n log n)) and built per `estimateSailSpeed` call,
  * matching the stateless design of the interpolation pipeline.
@@ -15,29 +38,54 @@ import type {
 export interface PolarGrid {
   /** Sorted unique TWS column values. */
   twsColumns: number[];
-  /** Per column: rows sorted ascending by TWA. */
-  byTws: Map<number, PolarPoint[]>;
+  /** Per column: rows sorted ascending by TWA, one per TWA value. */
+  byTws: Map<number, PolarGridRow[]>;
 }
 
+/**
+ * Groups points into exact-TWS columns, collapsing rows that share a
+ * (TWS, TWA) node into one row carrying the **median** speed and its
+ * contributing count.
+ *
+ * Collision is exact equality, never a tolerance: tolerance-based merging is
+ * {@link buildClusteredPolarGrid}'s job (1 kn TWS, 4° TWA), and doing it in two
+ * places at two widths produces results nobody can explain. This path exists to
+ * reproduce hand-entered tables faithfully. Median matches the clustered path
+ * and is deliberately neutral — a high statistic here would re-apply optimism
+ * already applied when samples were promoted to points.
+ */
 export function buildPolarGrid(points: PolarPoint[]): PolarGrid {
-  const byTws = new Map<number, PolarPoint[]>();
+  // Two-level grouping: TWS column → TWA node → the speeds stored there.
+  const speedsByNode = new Map<number, Map<number, number[]>>();
   for (const point of points) {
-    const column = byTws.get(point.tws);
-    if (column) {
-      column.push(point);
+    let column = speedsByNode.get(point.tws);
+    if (!column) {
+      column = new Map();
+      speedsByNode.set(point.tws, column);
+    }
+    const speeds = column.get(point.twa);
+    if (speeds) {
+      speeds.push(point.speed);
     } else {
-      byTws.set(point.tws, [point]);
+      column.set(point.twa, [point.speed]);
     }
   }
-  for (const column of byTws.values()) {
-    column.sort((a, b) => a.twa - b.twa);
+
+  const byTws = new Map<number, PolarGridRow[]>();
+  for (const [tws, column] of speedsByNode) {
+    const rows: PolarGridRow[] = [];
+    for (const [twa, speeds] of column) {
+      rows.push({ tws, twa, speed: median(speeds), n: speeds.length });
+    }
+    rows.sort((a, b) => a.twa - b.twa);
+    byTws.set(tws, rows);
   }
   const twsColumns = [...byTws.keys()].sort((a, b) => a - b);
   return { twsColumns, byTws };
 }
 
 /** Median of a non-empty numeric list (sorts a copy). */
-function median(values: number[]): number {
+export function median(values: number[]): number {
   const sorted = [...values].sort((a, b) => a - b);
   const mid = sorted.length >> 1;
   return sorted.length % 2 === 1
@@ -73,7 +121,7 @@ export function buildClusteredPolarGrid(
   if (points.length === 0) return { twsColumns: [], byTws: new Map() };
 
   // 1. Partition points into TWS clusters by gap threshold.
-  const byTws = new Map<number, PolarPoint[]>();
+  const byTws = new Map<number, PolarGridRow[]>();
   const sorted = [...points].sort((a, b) => a.tws - b.tws);
   let cluster: PolarPoint[] = [sorted[0]];
   const flush = () => {
@@ -97,13 +145,14 @@ export function buildClusteredPolarGrid(
 /**
  * Collapses one TWS cluster's points into de-noised rows: fixed-width TWA bins
  * (`round(twa / binDeg)`), each emitting one row at the bin's mean TWA with the
- * bin's median speed, all at the column's `columnTws`. Rows sorted by TWA.
+ * bin's median speed and its population as `n`, all at the column's
+ * `columnTws`. Rows sorted by TWA.
  */
 function binColumnByTwa(
   points: PolarPoint[],
   columnTws: number,
   binDeg: number,
-): PolarPoint[] {
+): PolarGridRow[] {
   const bins = new Map<number, PolarPoint[]>();
   for (const point of points) {
     const key = Math.round(point.twa / binDeg);
@@ -111,12 +160,13 @@ function binColumnByTwa(
     if (bin) bin.push(point);
     else bins.set(key, [point]);
   }
-  const rows: PolarPoint[] = [];
+  const rows: PolarGridRow[] = [];
   for (const bin of bins.values()) {
     rows.push({
       tws: columnTws,
       twa: bin.reduce((sum, p) => sum + p.twa, 0) / bin.length,
       speed: median(bin.map(p => p.speed)),
+      n: bin.length,
     });
   }
   rows.sort((a, b) => a.twa - b.twa);
