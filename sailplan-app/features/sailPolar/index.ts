@@ -12,6 +12,12 @@ export * from './components/ScatterChart';
 export * from './util/sharing';
 export { estimateSailSpeed } from './util/interpolation';
 export {
+  CAPTURE_BLEND_WEIGHT,
+  CAPTURE_COVERAGE_RADIUS,
+  estimateSourceAwareSailSpeed,
+} from './util/sourceAwareInterpolation';
+export type { SourceAwarePolarPoint } from './util/sourceAwareInterpolation';
+export {
   INTERPOLATION_TWS_VALUES,
   getTwsInterpolationColorScale,
 } from './util/chartData';

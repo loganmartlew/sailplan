@@ -1,6 +1,6 @@
 import type { Sail } from '~/features/sail';
-import type { PolarPoint } from '~/features/sailPolar/model/interpolation';
-import { estimateSailSpeed } from '~/features/sailPolar/util/interpolation';
+import type { SourceAwarePolarPoint } from '~/features/sailPolar/util/sourceAwareInterpolation';
+import { estimateSourceAwareSailSpeed } from '~/features/sailPolar/util/sourceAwareInterpolation';
 import type { SailTwaLimit } from '~/features/sailTwaLimit/model/sailTwaLimit';
 import type {
   GuardContext,
@@ -49,7 +49,7 @@ export function evaluateSail(
   sail: Sail,
   twa: number,
   tws: number,
-  polars: PolarPoint[],
+  polars: SourceAwarePolarPoint[],
   limits: SailTwaLimit[],
   guards: SuggestionGuard[],
   config: SuggestionConfig,
@@ -59,7 +59,7 @@ export function evaluateSail(
 
   // 2. Interpolate predicted speed from the sail's polar grid.
   const { predictedSpeed, confidence: rawConfidence, pointsUsed } =
-    estimateSailSpeed({ tws, twa }, polars, config.interpolation);
+    estimateSourceAwareSailSpeed({ tws, twa }, polars, config.interpolation);
 
   // 3. Limit scoring. Explicit user limits take precedence; when none exist the
   //    sail's own polar coverage stands in as an implicit usable-range envelope
