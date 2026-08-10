@@ -1,6 +1,6 @@
 import { asc, eq } from 'drizzle-orm';
 import { useLiveQuery } from 'drizzle-orm/expo-sqlite';
-import type { PolarPoint } from '~/features/sailPolar/model/interpolation';
+import type { SourceAwarePolarPoint } from '~/features/sailPolar/util/sourceAwareInterpolation';
 import type { SailTwaLimit } from '~/features/sailTwaLimit/model/sailTwaLimit';
 import { db } from '~/lib/db';
 import { sail, sailPolar, sailTwaLimit } from '~/schema';
@@ -11,13 +11,14 @@ type SailPolarRow = {
   tws: number;
   twa: number;
   speed: number;
+  sourceKind: 'manual' | 'import' | 'capture';
 };
 
 type SailLimitRow = SailTwaLimit;
 
 export interface SailSuggestionData {
   sails: Sail[];
-  allPolars: Map<number, PolarPoint[]>;
+  allPolars: Map<number, SourceAwarePolarPoint[]>;
   allLimits: Map<number, SailTwaLimit[]>;
 }
 
@@ -26,7 +27,7 @@ function buildSailSuggestionData(
   polars: SailPolarRow[],
   limits: SailLimitRow[],
 ): SailSuggestionData {
-  const allPolars = new Map<number, PolarPoint[]>();
+  const allPolars = new Map<number, SourceAwarePolarPoint[]>();
   const allLimits = new Map<number, SailTwaLimit[]>();
 
   for (const currentSail of sails) {
@@ -39,6 +40,7 @@ function buildSailSuggestionData(
       tws: polar.tws,
       twa: polar.twa,
       speed: polar.speed,
+      sourceKind: polar.sourceKind,
     });
   }
 
@@ -67,6 +69,7 @@ export function useSailSuggestionData(boatProfileId: number | null) {
         tws: sailPolar.tws,
         twa: sailPolar.twa,
         speed: sailPolar.speed,
+        sourceKind: sailPolar.sourceKind,
       })
       .from(sailPolar)
       .innerJoin(sail, eq(sailPolar.sailId, sail.id))
