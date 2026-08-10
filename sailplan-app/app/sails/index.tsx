@@ -3,7 +3,12 @@ import { useState } from 'react';
 import { View, FlatList } from 'react-native';
 import { Badge, Button, H2, Muted, Text } from '~/components/ui';
 import { deleteSail, Sail, SailListItem, useSails } from '~/features/sail';
-import { hasSailPolars, SailPolarImportDialog } from '~/features/sailPolar';
+import { useBoatProfile } from '~/features/boatProfile';
+import {
+  hasSailPolars,
+  PolarImportBatches,
+  SailPolarImportDialog,
+} from '~/features/sailPolar';
 import { useAlert } from '~/hooks/useAlert';
 import { useConfirm } from '~/hooks/useConfirm';
 import { Plus, Sailboat, Share2 } from '~/lib/icons';
@@ -11,6 +16,7 @@ import { Plus, Sailboat, Share2 } from '~/lib/icons';
 export default function Sails() {
   const confirm = useConfirm();
   const alert = useAlert();
+  const { boatProfile } = useBoatProfile();
   const sailsQuery = useSails();
   const [importDialogOpen, setImportDialogOpen] = useState(false);
 
@@ -100,6 +106,11 @@ export default function Sails() {
             <Sailboat className='text-muted-foreground' size={32} />
             <Muted>No sails yet</Muted>
           </View>
+        }
+        ListFooterComponent={
+          boatProfile ? (
+            <PolarImportBatches boatProfileId={boatProfile.id} />
+          ) : null
         }
       />
       <SailPolarImportDialog

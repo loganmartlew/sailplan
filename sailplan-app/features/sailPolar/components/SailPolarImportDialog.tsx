@@ -9,8 +9,12 @@ import {
   Text,
 } from '~/components/ui';
 import { Sail } from '~/features/sail';
+import { useBoatProfile } from '~/features/boatProfile';
+import { useAlert } from '~/hooks/useAlert';
+import { useConfirm } from '~/hooks/useConfirm';
 import { Upload } from '~/lib/icons/Upload';
-import { importPolarsFromCsv } from '../util/sharing';
+import { createPolarImportBatch } from '../api/polarImportBatch';
+import { preparePolarCsvImport } from '../api/preparePolarCsvImport';
 
 interface SailPolarImportDialogProps {
   open: boolean;
@@ -25,13 +29,55 @@ export function SailPolarImportDialog({
   sails,
   limitedSails = false,
 }: SailPolarImportDialogProps) {
+  const { boatProfile } = useBoatProfile();
+  const alert = useAlert();
+  const confirm = useConfirm();
   const [isImporting, setIsImporting] = useState(false);
 
   const onImport = async () => {
     setIsImporting(true);
     try {
-      const result = await importPolarsFromCsv(sails, limitedSails);
-      if (!result) return;
+      if (!boatProfile) return;
+
+      const prepared = await preparePolarCsvImport(
+        sails,
+        boatProfile.id,
+        limitedSails,
+      );
+      if (!prepared) return;
+
+      if (prepared.kind === 'empty') {
+        await alert({
+          title: 'No Polars Imported',
+          message: 'The file has no valid rows for the selected sail or sails.',
+          confirmText: 'OK',
+        });
+        return;
+      }
+
+      if (prepared.kind === 'duplicate') {
+        await alert({
+          title: 'Already Imported',
+          message:
+            'These polar observations have already been imported. Remove the earlier import batch before importing a corrected export.',
+          confirmText: 'OK',
+        });
+        return;
+      }
+
+      if (prepared.result.ignored > 0) {
+        const proceed = await confirm({
+          title: 'Some Polars Already Imported',
+          message: `${prepared.result.inserted} new ${prepared.result.inserted === 1 ? 'row' : 'rows'} will be imported; ${prepared.result.ignored} previously imported ${prepared.result.ignored === 1 ? 'row' : 'rows'} will be ignored.`,
+          cancelText: 'Cancel',
+          confirmText: `Import ${prepared.result.inserted} ${prepared.result.inserted === 1 ? 'Row' : 'Rows'}`,
+        });
+        if (!proceed) return;
+      }
+
+      const { inserted } = await createPolarImportBatch(prepared.input);
+
+      const result = { ...prepared.result, inserted };
 
       onOpenChange(false);
 
@@ -40,9 +86,14 @@ export function SailPolarImportDialog({
           ? `\n\nUnrecognised sail names: ${result.unmatched.join(', ')}`
           : '';
 
+      const uncheckableNote =
+        result.uncheckable > 0
+          ? `\n\n${result.uncheckable} ${result.uncheckable === 1 ? 'row has' : 'rows have'} no valid timestamp and could not be checked for overlap.`
+          : '';
+
       Alert.alert(
         'Import Complete',
-        `${result.inserted} polar ${result.inserted === 1 ? 'row' : 'rows'} added.${unmatchedNote}`,
+        `${result.inserted} polar ${result.inserted === 1 ? 'row' : 'rows'} added.${unmatchedNote}${uncheckableNote}`,
       );
     } catch (error) {
       console.error('Import Failed:', error);
