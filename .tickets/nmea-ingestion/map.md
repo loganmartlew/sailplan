@@ -641,3 +641,19 @@ Open tickets are found by scanning `issues/`; this list is not maintained.
     recording it, and `21`'s unhurried motor-out hour already held them.
   - **Nothing on the route changed.** No decision was made or unmade here; the
     spec is unaffected, and `16` stays blocked behind `21` exactly as before.
+- **Destination reached: [`spec.md`](spec.md) is written** (`ready-for-agent`),
+  synthesised from the twelve resolved tickets. Two seams, confirmed with Logan
+  before writing: **one replay entry point** in the capture feature's `util/`
+  covering `05`/`07`/`10`/`19`/`20`, driven by `nmea-sim` output against ground
+  truth; and the **existing interpolation/suggestion seam**, extended by a blend
+  wrapper *above* `estimateSailSpeed` so the engine is untouched. `16`'s weight
+  and coverage radius ship as named interim constants (0.5 inside ±1 kn / ±10°,
+  tapering), explicitly marked pending real race data.
+  - Three things the spec decided that no ticket had, all marked **(spec call)**:
+    `11`'s five-minute auto-end softened to a named 30-minute constant for this
+    build (per the `04` re-cut's instruction), `10`'s dropout-split leg
+    continuation closed, and `16`'s interim values chosen to sit near pooling's
+    emergent ~0.45.
+  - Still open past the spec, as the map required: `16` (blocked by `21`), the
+    course-less-session question, the Plan tab's wind frame, and battery/thermal
+    behaviour. `04` and `21` remain confirmation steps, not gates.
