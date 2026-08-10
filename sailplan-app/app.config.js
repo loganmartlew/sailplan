@@ -62,6 +62,8 @@ export default {
           'Allow SailPlan to use your location.',
       },
     ],
+    // THROWAWAY — ticket `13` device spike. Remove with the spike.
+    './plugins/withNmeaSpikeForegroundService',
   ],
   experiments: {
     typedRoutes: true,

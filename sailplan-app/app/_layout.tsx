@@ -77,6 +77,9 @@ export default function RootLayout() {
                   ),
                 }}
               />
+              {/* THROWAWAY — ticket `13` device spike; reachable only by
+                  deep link (sailplan://spike), never shown as a tab. */}
+              <Tabs.Screen name='spike' options={{ href: null }} />
               <Tabs.Screen
                 name='settings'
                 options={{
