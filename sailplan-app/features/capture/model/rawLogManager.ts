@@ -16,7 +16,7 @@ export type RawLogEntry =
       id: string;
       kind: 'session';
       session: CaptureSession;
-      rawLog: RawLogFile | null;
+      rawLog: RawLogFile;
       recordedAt: number;
     }
   | {
@@ -28,8 +28,8 @@ export type RawLogEntry =
 
 /**
  * Joins the database's session records to the files that really exist on disk.
- * A missing file remains a valid session state; an unmatched file remains
- * visible as an unlinked raw log instead of silently escaping storage totals.
+ * Sessions whose raw log has been deleted do not belong in this storage list;
+ * unmatched files remain visible so they cannot escape storage totals.
  */
 export function buildRawLogEntries(
   sessions: CaptureSession[],
@@ -38,20 +38,26 @@ export function buildRawLogEntries(
   const rawLogsByPath = new Map(rawLogs.map(rawLog => [rawLog.path, rawLog]));
   const linkedPaths = new Set<string>();
 
-  const sessionEntries: RawLogEntry[] = sessions.map(session => {
+  const sessionEntries: RawLogEntry[] = sessions.flatMap(session => {
     const rawLog = session.rawLogPath
       ? rawLogsByPath.get(session.rawLogPath) ?? null
-      : rawLogs.find(file => file.fileName === getRawLogFileName(session.id)) ?? null;
+      : (rawLogs.find(
+          file => file.fileName === getRawLogFileName(session.id),
+        ) ?? null);
 
-    if (rawLog) linkedPaths.add(rawLog.path);
+    if (!rawLog) return [];
 
-    return {
-      id: `session-${session.id}`,
-      kind: 'session',
-      session,
-      rawLog,
-      recordedAt: session.startedAt,
-    };
+    linkedPaths.add(rawLog.path);
+
+    return [
+      {
+        id: `session-${session.id}`,
+        kind: 'session',
+        session,
+        rawLog,
+        recordedAt: session.startedAt,
+      },
+    ];
   });
 
   const unlinkedEntries: RawLogEntry[] = rawLogs

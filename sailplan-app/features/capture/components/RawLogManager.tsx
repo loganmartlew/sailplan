@@ -21,8 +21,7 @@ export function RawLogManager() {
     () =>
       entries
         .flatMap(entry =>
-          entry.rawLog &&
-          (entry.kind === 'unlinked' || entry.session.status !== 'active')
+          entry.kind === 'unlinked' || entry.session.status !== 'active'
             ? [entry.rawLog]
             : [],
         )
@@ -140,9 +139,7 @@ export function RawLogManager() {
           <RawLogRow
             key={entry.id}
             entry={entry}
-            selected={
-              entry.rawLog ? selectedPaths.includes(entry.rawLog.path) : false
-            }
+            selected={selectedPaths.includes(entry.rawLog.path)}
             onToggleSelection={toggleSelection}
             onShare={onShare}
             onRetryDelete={onRetryDelete}
@@ -164,19 +161,19 @@ export function RawLogManager() {
             </View>
             <View className='flex-row gap-2'>
               <Button
-                className='flex-1'
+                className='flex-1 flex-row gap-2'
                 variant='outline'
                 onPress={() => setSelectedPaths([])}
               >
-                <X size={16} />
+                <X className='text-foreground' size={16} />
                 <Text>Clear</Text>
               </Button>
               <Button
-                className='flex-1'
+                className='flex-1 flex-row gap-2'
                 variant='destructive'
                 onPress={onDeleteSelected}
               >
-                <Trash size={16} />
+                <Trash className='text-destructive-foreground' size={16} />
                 <Text>Delete logs</Text>
               </Button>
             </View>
@@ -208,7 +205,7 @@ function RawLogRow({
   const date = new Date(entry.recordedAt).toLocaleDateString();
   const isRecording =
     entry.kind === 'session' && entry.session.status === 'active';
-  const canManage = rawLog && !isRecording;
+  const canManage = !isRecording;
 
   return (
     <Card>
@@ -232,13 +229,9 @@ function RawLogRow({
           <Text numberOfLines={1} className='font-medium'>
             {title}
           </Text>
-          {rawLog ? (
-            <Muted className='text-xs'>
-              {date} · {formatRawLogBytes(rawLog.size)}
-            </Muted>
-          ) : (
-            <Muted className='text-xs'>{date} · Raw log unavailable</Muted>
-          )}
+          <Muted className='text-xs'>
+            {date} · {formatRawLogBytes(rawLog.size)}
+          </Muted>
           {isRecording && (
             <Muted className='text-xs'>
               Recording in progress · Cleanup unavailable
