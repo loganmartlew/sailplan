@@ -196,7 +196,7 @@ function RawLogRow({
             accessibilityLabel={`Select ${title}`}
             accessibilityRole='checkbox'
             accessibilityState={{ checked: selected }}
-            className={`h-7 w-7 items-center justify-center rounded-md border ${selected ? 'border-primary bg-primary' : 'border-input'}`}
+            className={`h-7 w-7 items-center justify-center rounded-md border-2 ${selected ? 'border-primary bg-primary' : 'border-primary bg-background'}`}
             onPress={() => onToggleSelection(rawLog.path)}
           >
             {selected && <Check className='text-primary-foreground' size={16} />}
@@ -222,7 +222,7 @@ function RawLogRow({
             variant='ghost'
             onPress={() => onShare(rawLog.path)}
           >
-            <Share2 size={18} />
+            <Share2 className='text-primary' size={18} />
           </Button>
         )}
         {canManage && entry.kind === 'unlinked' && (
