@@ -141,14 +141,8 @@ export default function CoursePlanResults() {
         <CourseMarkListDialog courseMarks={courseMarks} />
       </View>
       <TrueWindInputCard twd tws />
-      {boatProfile && (
-        <CaptureRecordingControl
-          boatProfileId={boatProfile.id}
-          courseId={planData.courseId}
-        />
-      )}
       <ScrollView>
-        <View className='flex gap-4 pb-4'>
+        <View className='flex gap-4 pb-24'>
           {legs.map(leg => (
             <CourseLegCard
               key={leg.key}
@@ -162,6 +156,12 @@ export default function CoursePlanResults() {
           ))}
         </View>
       </ScrollView>
+      {boatProfile && (
+        <CaptureRecordingControl
+          boatProfileId={boatProfile.id}
+          courseId={planData.courseId}
+        />
+      )}
     </View>
   );
 }

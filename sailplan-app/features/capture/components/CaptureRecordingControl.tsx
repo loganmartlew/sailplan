@@ -1,9 +1,13 @@
 import { router } from 'expo-router';
 import { useState } from 'react';
-import { Linking, View } from 'react-native';
+import { ActivityIndicator, Linking, View } from 'react-native';
 import { Button, Card, CardContent, Text } from '~/components/ui';
+import { CircleSmall, Settings } from '~/lib/icons';
 import { usePlotterSetup } from '../api/plotterSetup';
-import { beginCaptureRecording } from '../util/captureRecordingManager';
+import {
+  beginCaptureRecording,
+  stopActiveCaptureRecording,
+} from '../util/captureRecordingManager';
 
 function recordingEndpoint(setup: ReturnType<typeof usePlotterSetup>['data']) {
   if (!setup) return null;
@@ -34,6 +38,7 @@ export function CaptureRecordingControl({
   const { data: setup } = usePlotterSetup(boatProfileId);
   const endpoint = recordingEndpoint(setup);
   const [isConnecting, setIsConnecting] = useState(false);
+  const [isRecording, setIsRecording] = useState(false);
   const [failure, setFailure] = useState<string | null>(null);
 
   const openPlotterSetup = () => {
@@ -49,6 +54,7 @@ export function CaptureRecordingControl({
     setFailure(null);
     try {
       await beginCaptureRecording({ boatProfileId, courseId, endpoint });
+      setIsRecording(true);
     } catch (error) {
       setFailure(failureMessage(error));
     } finally {
@@ -56,28 +62,48 @@ export function CaptureRecordingControl({
     }
   };
 
+  const stopRecording = async () => {
+    try {
+      await stopActiveCaptureRecording();
+      setIsRecording(false);
+    } catch (error) {
+      setFailure(error instanceof Error ? error.message : 'Could not stop recording');
+    }
+  };
+
+  if (isRecording) {
+    return (
+      <View className='absolute z-20 bottom-0 left-0 right-0 flex-row items-center gap-3 border-t border-border bg-card px-4 py-3 shadow-lg shadow-foreground/20'>
+        <CircleSmall className='text-destructive' size={24} fill='currentColor' />
+        <View className='flex-1'>
+          <Text className='font-semibold'>Recording this course</Text>
+          <Text className='text-sm text-muted-foreground'>NMEA log is being saved</Text>
+        </View>
+        <Button variant='destructive' size='sm' onPress={stopRecording}>
+          <Text>Stop</Text>
+        </Button>
+      </View>
+    );
+  }
+
   if (!endpoint) {
     return (
-      <Card>
-        <CardContent className='pt-6 gap-3'>
-          <Text className='text-sm text-muted-foreground'>
-            Set up this boat&apos;s plotter connection before recording.
-          </Text>
-          <Button onPress={openPlotterSetup}>
-            <Text>Set up plotter</Text>
-          </Button>
-        </CardContent>
-      </Card>
+      <View className='absolute z-20 bottom-4 right-4'>
+        <Button
+          className='flex-row gap-2 shadow-lg shadow-foreground/20'
+          onPress={openPlotterSetup}
+        >
+          <Settings size={18} />
+          <Text>Set up plotter</Text>
+        </Button>
+      </View>
     );
   }
 
   return (
-    <View className='gap-3'>
-      <Button disabled={isConnecting} onPress={startRecording}>
-        <Text>{isConnecting ? 'Connecting to plotter…' : 'Record this course'}</Text>
-      </Button>
+    <View className='absolute z-20 bottom-4 right-4 gap-3 items-end'>
       {failure && (
-        <Card>
+        <Card className='w-80'>
           <CardContent className='pt-6 gap-3'>
             <Text>{failure}</Text>
             <View className='flex-row flex-wrap gap-2'>
@@ -97,6 +123,23 @@ export function CaptureRecordingControl({
           </CardContent>
         </Card>
       )}
+      <Button
+        accessibilityLabel='Record this course'
+        disabled={isConnecting}
+        size='icon'
+        className='w-14 h-14 shadow-lg shadow-foreground/20'
+        onPress={startRecording}
+      >
+        {isConnecting ? (
+          <ActivityIndicator color='white' />
+        ) : (
+          <CircleSmall
+            className='text-primary-foreground'
+            size={34}
+            fill='currentColor'
+          />
+        )}
+      </Button>
     </View>
   );
 }
