@@ -6,6 +6,7 @@ import {
   Info,
   PaintBucket,
   Ruler,
+  Sailboat,
   TextCursorInput,
 } from '~/lib/icons';
 
@@ -13,6 +14,12 @@ export default function SettingsIndex() {
   return (
     <View className='flex-1 w-full px-3 py-5 flex flex-col gap-2'>
       <H2 className='pb-2'>Settings</H2>
+      <SettingsNavItem
+        title='Boat Profile'
+        description='Name and plotter connection'
+        icon={<Sailboat className='text-accent-foreground' size={16} />}
+        onPress={() => router.push('/settings/boat-profile')}
+      />
       <SettingsNavItem
         title='Units'
         description='Speed, area, and distance units'

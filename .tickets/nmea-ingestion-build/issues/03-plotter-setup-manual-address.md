@@ -13,21 +13,21 @@ gate and a picker. This ticket creates one.
 
 **Blocked by:** `02`.
 
-**Status:** ready-for-agent
+**Status:** ready-for-human
 
-- [ ] A boat-profile detail screen exists and is reachable from the existing
+- [x] A boat-profile detail screen exists and is reachable from the existing
       profile UI
-- [ ] It carries a **Plotter connection** section that pins a host and a port,
+- [x] It carries a **Plotter connection** section that pins a host and a port,
       stored as a `plotterSetup` row for that profile
-- [ ] Setup saves while the plotter is switched off; nothing about saving
+- [x] Setup saves while the plotter is switched off; nothing about saving
       requires reachability
-- [ ] **Test connection** is offered and optional; the section shows `Not tested`
+- [x] **Test connection** is offered and optional; the section shows `Not tested`
       or the last successful test time
-- [ ] `lastTestedAt` sits beside the setup and is never part of what makes it
+- [x] `lastTestedAt` sits beside the setup and is never part of what makes it
       valid — **configured means the profile has a connection method, not that
       the plotter is reachable**
-- [ ] Switching the active boat profile switches which setup is shown
-- [ ] SailPlan never joins or switches WiFi, stores credentials, or mentions
+- [x] Switching the active boat profile switches which setup is shown
+- [x] SailPlan never joins or switches WiFi, stores credentials, or mentions
       mobile data
 - [ ] Verified on a device against `nmea-sim` on the desk: save with the
       simulator down, then Test connection with it up

@@ -26,6 +26,12 @@ export default function Layout() {
         }}
       />
       <Stack.Screen
+        name='boat-profile'
+        options={{
+          title: 'Boat Profile',
+        }}
+      />
+      <Stack.Screen
         name='defaults'
         options={{
           title: 'Settings',

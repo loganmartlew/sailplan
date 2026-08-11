@@ -24,7 +24,10 @@ export function BoatProfilePickerDialog({
             <DialogTitle>Select Boat Profile</DialogTitle>
           </DialogHeader>
           <GestureHandlerRootView style={{ flexShrink: 1 }}>
-            <BoatProfilePicker onProfileChange={() => onOpenChange(false)} />
+            <BoatProfilePicker
+              onProfileChange={() => onOpenChange(false)}
+              onProfileDetails={() => onOpenChange(false)}
+            />
           </GestureHandlerRootView>
         </DialogContent>
       </Dialog>

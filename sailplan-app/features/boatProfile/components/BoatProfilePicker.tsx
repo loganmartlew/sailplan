@@ -1,4 +1,5 @@
 import { Pressable, View } from 'react-native';
+import { router } from 'expo-router';
 import { Button, Muted, Text } from '~/components/ui';
 import { useBoatProfile } from '../hooks/useBoatProfile';
 import { useBoatProfiles } from '../api/getBoatProfiles';
@@ -9,7 +10,7 @@ import {
 } from './NewBoatProfileDialog';
 import { BoatProfile } from '../model/boatProfile';
 import { createBoatProfile } from '../api/createBoatProfile';
-import { FlatList, GestureHandlerRootView } from 'react-native-gesture-handler';
+import { FlatList } from 'react-native-gesture-handler';
 import { cn } from '~/lib/utils';
 import { Sailboat } from '~/lib/icons/Sailboat';
 import { Check } from '~/lib/icons/Check';
@@ -17,9 +18,13 @@ import { Plus } from '~/lib/icons/Plus';
 
 interface BoatProfilePickerProps {
   onProfileChange?: (profile: BoatProfile) => void;
+  onProfileDetails?: () => void;
 }
 
-export function BoatProfilePicker({ onProfileChange }: BoatProfilePickerProps) {
+export function BoatProfilePicker({
+  onProfileChange,
+  onProfileDetails,
+}: BoatProfilePickerProps) {
   const { boatProfile, setBoatProfile } = useBoatProfile();
   const { data: boatProfiles } = useBoatProfiles();
   const [newDialogOpen, setNewDialogOpen] = useState(false);
@@ -91,6 +96,17 @@ export function BoatProfilePicker({ onProfileChange }: BoatProfilePickerProps) {
         <Plus className='text-primary' size={16} />
         <Text>New Profile</Text>
       </Button>
+      {boatProfile && (
+        <Button
+          variant='outline'
+          onPress={() => {
+            onProfileDetails?.();
+            router.push('/settings/boat-profile');
+          }}
+        >
+          <Text>Configure {boatProfile.name}</Text>
+        </Button>
+      )}
       <NewBoatProfileDialog
         open={newDialogOpen}
         onOpenChange={setNewDialogOpen}
