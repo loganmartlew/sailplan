@@ -18,21 +18,25 @@ export function RawLogManager() {
   const [selectedPaths, setSelectedPaths] = useState<string[]>([]);
 
   const selectedRawLogs = useMemo(
-    () => entries
-      .flatMap(entry => entry.rawLog && (
-        entry.kind === 'unlinked' || entry.session.status !== 'active'
-      )
-        ? [entry.rawLog]
-        : [])
-      .filter(rawLog => selectedPaths.includes(rawLog.path)),
+    () =>
+      entries
+        .flatMap(entry =>
+          entry.rawLog &&
+          (entry.kind === 'unlinked' || entry.session.status !== 'active')
+            ? [entry.rawLog]
+            : [],
+        )
+        .filter(rawLog => selectedPaths.includes(rawLog.path)),
     [entries, selectedPaths],
   );
   const reclaimedBytes = getRawLogStorageBytes(selectedRawLogs);
 
   function toggleSelection(path: string) {
-    setSelectedPaths(paths => paths.includes(path)
-      ? paths.filter(selectedPath => selectedPath !== path)
-      : [...paths, path]);
+    setSelectedPaths(paths =>
+      paths.includes(path)
+        ? paths.filter(selectedPath => selectedPath !== path)
+        : [...paths, path],
+    );
   }
 
   async function onDeleteSelected() {
@@ -101,17 +105,22 @@ export function RawLogManager() {
     <View className='gap-4'>
       <Card>
         <CardContent className='gap-1 py-5'>
-          <Text className='text-2xl font-semibold'>{formatRawLogBytes(rawLogBytes)}</Text>
+          <Text className='text-2xl font-semibold'>
+            {formatRawLogBytes(rawLogBytes)}
+          </Text>
           <Muted>Raw NMEA storage in use</Muted>
           <Muted className='pt-2 text-xs'>
-            Raw logs are optional evidence. Deleting one never deletes its recording or polar data.
+            Raw logs are optional evidence. Deleting one never deletes its
+            recording or polar data.
           </Muted>
         </CardContent>
       </Card>
 
       <View className='gap-1'>
         <H3>Raw logs</H3>
-        <Muted>Oldest first. Select logs to preview the space you will reclaim.</Muted>
+        <Muted>
+          Oldest first. Select logs to preview the space you will reclaim.
+        </Muted>
       </View>
 
       {isLoading ? (
@@ -126,25 +135,32 @@ export function RawLogManager() {
             <Muted>No raw NMEA logs are stored on this device.</Muted>
           </CardContent>
         </Card>
-      ) : entries.map(entry => (
-        <RawLogRow
-          key={entry.id}
-          entry={entry}
-          selected={entry.rawLog ? selectedPaths.includes(entry.rawLog.path) : false}
-          onToggleSelection={toggleSelection}
-          onShare={onShare}
-          onRetryDelete={onRetryDelete}
-        />
-      ))}
+      ) : (
+        entries.map(entry => (
+          <RawLogRow
+            key={entry.id}
+            entry={entry}
+            selected={
+              entry.rawLog ? selectedPaths.includes(entry.rawLog.path) : false
+            }
+            onToggleSelection={toggleSelection}
+            onShare={onShare}
+            onRetryDelete={onRetryDelete}
+          />
+        ))
+      )}
 
       {selectedRawLogs.length > 0 && (
         <Card className='border-destructive'>
           <CardContent className='gap-3 py-4'>
             <View>
               <Text className='font-medium'>
-                {selectedRawLogs.length} selected · {formatRawLogBytes(reclaimedBytes)} reclaimed
+                {selectedRawLogs.length} selected ·{' '}
+                {formatRawLogBytes(reclaimedBytes)} reclaimed
               </Text>
-              <Muted className='text-xs'>Only the selected raw logs will be deleted.</Muted>
+              <Muted className='text-xs'>
+                Only the selected raw logs will be deleted.
+              </Muted>
             </View>
             <View className='flex-row gap-2'>
               <Button
@@ -155,7 +171,11 @@ export function RawLogManager() {
                 <X size={16} />
                 <Text>Clear</Text>
               </Button>
-              <Button className='flex-1' variant='destructive' onPress={onDeleteSelected}>
+              <Button
+                className='flex-1'
+                variant='destructive'
+                onPress={onDeleteSelected}
+              >
                 <Trash size={16} />
                 <Text>Delete logs</Text>
               </Button>
@@ -183,9 +203,11 @@ function RawLogRow({
   onRetryDelete,
 }: RawLogRowProps) {
   const rawLog = entry.rawLog;
-  const title = entry.kind === 'unlinked' ? 'Unlinked raw log' : entry.session.name;
+  const title =
+    entry.kind === 'unlinked' ? 'Unlinked raw log' : entry.session.name;
   const date = new Date(entry.recordedAt).toLocaleDateString();
-  const isRecording = entry.kind === 'session' && entry.session.status === 'active';
+  const isRecording =
+    entry.kind === 'session' && entry.session.status === 'active';
   const canManage = rawLog && !isRecording;
 
   return (
@@ -196,24 +218,32 @@ function RawLogRow({
             accessibilityLabel={`Select ${title}`}
             accessibilityRole='checkbox'
             accessibilityState={{ checked: selected }}
-            className={`h-7 w-7 items-center justify-center rounded-md border-2 ${selected ? 'border-primary bg-primary' : 'border-primary bg-background'}`}
+            className={`h-7 w-7 items-center justify-center rounded-md border-2 ${selected ? 'border-primary bg-primary' : 'border-primary-foreground opacity-70'}`}
             onPress={() => onToggleSelection(rawLog.path)}
           >
-            {selected && <Check className='text-primary-foreground' size={16} />}
+            {selected && (
+              <Check className='text-primary-foreground' size={16} />
+            )}
           </Pressable>
-        ) : <View className='w-7' />}
+        ) : (
+          <View className='w-7' />
+        )}
         <View className='flex-1 gap-1'>
-          <Text numberOfLines={1} className='font-medium'>{title}</Text>
+          <Text numberOfLines={1} className='font-medium'>
+            {title}
+          </Text>
           {rawLog ? (
             <Muted className='text-xs'>
               {date} · {formatRawLogBytes(rawLog.size)}
             </Muted>
           ) : (
+            <Muted className='text-xs'>{date} · Raw log unavailable</Muted>
+          )}
+          {isRecording && (
             <Muted className='text-xs'>
-              {date} · Raw log unavailable
+              Recording in progress · Cleanup unavailable
             </Muted>
           )}
-          {isRecording && <Muted className='text-xs'>Recording in progress · Cleanup unavailable</Muted>}
         </View>
         {canManage && (
           <Button
