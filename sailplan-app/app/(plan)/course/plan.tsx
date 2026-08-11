@@ -125,24 +125,28 @@ export default function CoursePlanResults() {
 
   return (
     <View className='py-5 px-3 flex gap-5 h-full'>
-      <H2 className='pb-0'>Course Plan</H2>
-      <View className='flex-row items-center justify-between'>
-        <View className='flex-row gap-2 items-center'>
-          {course?.courseGroup && (
-            <Badge variant='transparent'>
-              <Text className='text-sm'>
-                Course Group: {course?.courseGroup?.name}
-              </Text>
-            </Badge>
-          )}
+      <View className='flex-row gap-1'>
+        <H2 className='pb-0 grow'>Course: {course?.name || 'unknown'}</H2>
+        <CourseMarkListDialog courseMarks={courseMarks} />
+        {boatProfile && (
+          <CaptureRecordingControl
+            boatProfileId={boatProfile.id}
+            courseId={planData.courseId}
+            courseName={course?.name || 'unknown'}
+          />
+        )}
+      </View>
+      {course?.courseGroup && (
+        <View className='flex-row'>
           <Badge variant='transparent'>
-            <Text className='text-sm'>Course: {course?.name}</Text>
+            <Text className='text-sm'>
+              Course Group: {course?.courseGroup?.name}
+            </Text>
           </Badge>
         </View>
-        <CourseMarkListDialog courseMarks={courseMarks} />
-      </View>
+      )}
       <TrueWindInputCard twd tws />
-      <ScrollView contentContainerStyle={{ paddingBottom: captureInset || 96 }}>
+      <ScrollView contentContainerStyle={{ paddingBottom: captureInset }}>
         <View className='flex gap-4'>
           {legs.map(leg => (
             <CourseLegCard
@@ -157,12 +161,6 @@ export default function CoursePlanResults() {
           ))}
         </View>
       </ScrollView>
-      {boatProfile && (
-        <CaptureRecordingControl
-          boatProfileId={boatProfile.id}
-          courseId={planData.courseId}
-        />
-      )}
     </View>
   );
 }

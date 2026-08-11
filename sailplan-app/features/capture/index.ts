@@ -9,4 +9,5 @@ export * from './util/captureFailureMessage';
 export * from './components/PlotterConnectionSection';
 export * from './components/CaptureRecordingBar';
 export * from './components/CaptureRecordingControl';
+export * from './components/RecordIcon';
 export * from './hooks/useCaptureInset';
