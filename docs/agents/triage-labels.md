@@ -13,3 +13,12 @@ The skills speak in terms of five canonical triage roles. This file maps those r
 When a skill mentions a role (e.g. "apply the AFK-ready triage label"), use the corresponding label string from this table.
 
 This repo's local-markdown tracker records the label as a `Status:` line near the top of each issue file (see `issue-tracker.md`), using these same strings.
+
+## Completion
+
+The five roles above are triage states — they describe whether a ticket is
+ready to be picked up, not whether it shipped. A build ticket that has been
+implemented gets `Status: done`, and every checklist item in the ticket body
+is checked off (`- [x]`) to match. `done` is not part of the triage vocabulary
+and is never assigned by a skill doing triage — it is set by whoever finishes
+the implementation.

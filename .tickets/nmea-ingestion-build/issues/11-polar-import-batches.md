@@ -19,29 +19,29 @@ read-side; this is the write-side prevention.
 
 **Blocked by:** `02`.
 
-**Status:** ready-for-agent
+**Status:** done
 
-- [ ] Every successful CSV import creates a `polarImportBatch`; every inserted
+- [x] Every successful CSV import creates a `polarImportBatch`; every inserted
       point links to it; the batch is removable and takes its rows with it
-- [ ] A **canonical batch fingerprint** over parsed, validated, sail-matched rows
+- [x] A **canonical batch fingerprint** over parsed, validated, sail-matched rows
       — so row order, whitespace, header casing, sail-name casing and equivalent
       numeric formatting are all irrelevant
-- [ ] A **per-observation fingerprint** over normalised timestamp, mapped sail,
+- [x] A **per-observation fingerprint** over normalised timestamp, mapped sail,
       TWS, TWA and boat speed; notes excluded
-- [ ] Including the timestamp is load-bearing: **two rows with identical values
+- [x] Including the timestamp is load-bearing: **two rows with identical values
       at different times are separate observations**, not duplicates —
       collapsing them would discard exactly the repeat evidence `15` protects
-- [ ] Rows without a valid timestamp remain importable but individually
+- [x] Rows without a valid timestamp remain importable but individually
       uncheckable, and the import result says how many
-- [ ] A **wholly duplicate** import is blocked with an informational message and
+- [x] A **wholly duplicate** import is blocked with an informational message and
       creates no batch
-- [ ] A **partially overlapping** import confirms first — *N new rows will be
+- [x] A **partially overlapping** import confirms first — *N new rows will be
       imported; M previously imported rows will be ignored* — with Cancel and
       Import N rows. A partial batch owns only the rows it inserted; shared
       ownership is deliberately not modelled
-- [ ] Comparisons are scoped to **previous import batches for the same boat
+- [x] Comparisons are scoped to **previous import batches for the same boat
       profile** and never touch manual, captured or pre-migration rows
-- [ ] A corrected re-export is never auto-reconciled: remove the earlier batch,
+- [x] A corrected re-export is never auto-reconciled: remove the earlier batch,
       then import
-- [ ] Fingerprinting is pure, lives beside the existing CSV sharing logic in the
+- [x] Fingerprinting is pure, lives beside the existing CSV sharing logic in the
       sail-polar feature's `util/`, and is tested input→output

@@ -22,34 +22,34 @@ anything after `01`.
 
 **Blocked by:** `01`.
 
-**Status:** ready-for-agent
+**Status:** done
 
-- [ ] A wrapper **above** the existing interpolation entry point partitions
+- [x] A wrapper **above** the existing interpolation entry point partitions
       points by `sourceKind`, calls the existing estimator **once per source**,
       and blends the answers
-- [ ] **The existing interpolation entry point is not modified.** The existing
+- [x] **The existing interpolation entry point is not modified.** The existing
       polar-interpolation tests keeping their contract unchanged is itself the
       regression test that the engine was not touched
-- [ ] Existing callers swap one import; `suggestSails`, `evaluateSail` and
+- [x] Existing callers swap one import; `suggestSails`, `evaluateSail` and
       `rankSails` tests still pass as the top-level behavioural seam
-- [ ] The separation predicate is **`sourceKind = 'capture'`** — a plain indexed
+- [x] The separation predicate is **`sourceKind = 'capture'`** — a plain indexed
       column, not a join, so every future non-capture kind lands on the correct
       side automatically
-- [ ] **Capture sessions pool with each other** (measured strictly good:
+- [x] **Capture sessions pool with each other** (measured strictly good:
       3.33 % → 2.58 % → 2.09 % error as sessions accumulate)
-- [ ] The weight and the coverage radius are **named exported constants**, marked
+- [x] The weight and the coverage radius are **named exported constants**, marked
       in code as pending ticket `16`: measured weight **0.5** inside coverage,
       radius **±1 kn TWS and ±10° TWA**, tapering linearly to zero across the
       outer half. **Do not treat these as validated**
-- [ ] Outside coverage, imported and manual points answer alone; the imported
+- [x] Outside coverage, imported and manual points answer alone; the imported
       grid stays exact at every weight
-- [ ] **No additional knobs.** `16` moves those two numbers and nothing else — see
+- [x] **No additional knobs.** `16` moves those two numbers and nothing else — see
       the spec's note on the recurring "second implicit trust knob" failure
-- [ ] Where the stored table has no support, the read path can surface a
+- [x] Where the stored table has no support, the read path can surface a
       **confidence cue** rather than a bare number
-- [ ] New tests assert behaviours, not arithmetic: imported points alone answer
+- [x] New tests assert behaviours, not arithmetic: imported points alone answer
       outside coverage; captured points contribute inside it; capture sessions
       pool; the weight is read from the constant rather than emerging from point
       counts
-- [ ] If the opt-in accuracy sweep's locked baseline moves, it is re-ratcheted
+- [x] If the opt-in accuracy sweep's locked baseline moves, it is re-ratcheted
       **deliberately**, never silently
