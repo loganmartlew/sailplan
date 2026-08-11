@@ -36,6 +36,7 @@ type Session = { id: number };
 
 export type CaptureRecording = {
   sessionId: number;
+  startedAt: number;
   stop: () => Promise<void>;
 };
 
@@ -180,10 +181,11 @@ export function startCaptureRecording(
       socket?.on('data', onData);
       void (async () => {
         try {
+          const startedAt = dependencies.now();
           session = await dependencies.createSession({
             boatProfileId,
             courseId,
-            startedAt: dependencies.now(),
+            startedAt,
           });
           if (hasFailed()) return void (await cleanupFailedStart());
 
@@ -204,6 +206,7 @@ export function startCaptureRecording(
 
           resolve({
             sessionId: startedSession.id,
+            startedAt,
             stop: async () => {
               if (stopping) return;
               stopping = true;

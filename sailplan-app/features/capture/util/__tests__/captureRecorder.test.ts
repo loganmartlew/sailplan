@@ -104,6 +104,7 @@ describe('startCaptureRecording', () => {
 
     const recording = await started;
     expect(recording.sessionId).toBe(42);
+    expect(recording.startedAt).toBe(1_700_000_000_000);
     expect(fixture.dependencies.createSession).toHaveBeenCalledWith({
       boatProfileId: 7,
       courseId: 9,
