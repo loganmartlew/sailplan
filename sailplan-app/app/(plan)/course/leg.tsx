@@ -9,6 +9,7 @@ import {
   Text,
 } from '~/components/ui';
 import { useBoatProfile } from '~/features/boatProfile';
+import { useCaptureInset } from '~/features/capture';
 import {
   deserializeCourseLegData,
   TackDirectionBadge,
@@ -43,6 +44,7 @@ function MarkLabel({ mark }: { mark: CourseLegData['from'] }) {
 }
 
 export default function CourseLegDetails() {
+  const captureInset = useCaptureInset();
   const { legData: data } = useLocalSearchParams<{ legData: string }>();
   const legData = deserializeCourseLegData(data);
 
@@ -55,7 +57,7 @@ export default function CourseLegDetails() {
   );
 
   return (
-    <ScrollView>
+    <ScrollView contentContainerStyle={{ paddingBottom: captureInset }}>
       <View className='py-5 px-3 flex gap-5'>
         <H2 className='pb-0'>Leg Details</H2>
 

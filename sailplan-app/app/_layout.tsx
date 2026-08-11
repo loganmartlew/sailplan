@@ -10,6 +10,7 @@ import { AppProviders } from '~/components/AppProviders';
 import { MigrationGate } from '~/components/MigrationGate';
 import { BoatProfileGate } from '~/features/boatProfile/components/BoatProfileGate';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
+import { View } from 'react-native';
 import { BottomTabBar } from '@react-navigation/bottom-tabs';
 import { ChartGantt, MapPin, Route, Sailboat, Settings } from '~/lib/icons';
 import { CaptureRecordingBar } from '~/features/capture';
@@ -37,14 +38,14 @@ export default function RootLayout() {
         <BoatProfileGate>
           <GestureHandlerRootView style={{ flex: 1 }}>
             <Tabs
-              // The capture layer is app chrome, not a screen: it renders
-              // between content and the tab bar on every tab, and nothing at
-              // all when no recording is running.
+              // The capture layer is app chrome, not a screen: it floats over
+              // content above the tab bar on every tab, and renders nothing
+              // when no recording is running.
               tabBar={props => (
-                <>
+                <View>
                   <CaptureRecordingBar />
                   <BottomTabBar {...props} />
-                </>
+                </View>
               )}
               screenOptions={{
                 headerShown: false,

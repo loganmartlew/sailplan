@@ -11,6 +11,7 @@ import {
 } from '~/features/sailPolar';
 import { useAlert } from '~/hooks/useAlert';
 import { useConfirm } from '~/hooks/useConfirm';
+import { useCaptureInset } from '~/features/capture';
 import { Plus, Sailboat, Share2 } from '~/lib/icons';
 
 export default function Sails() {
@@ -18,6 +19,7 @@ export default function Sails() {
   const alert = useAlert();
   const { boatProfile } = useBoatProfile();
   const sailsQuery = useSails();
+  const captureInset = useCaptureInset();
   const [importDialogOpen, setImportDialogOpen] = useState(false);
 
   const onSailPress = (sail: Sail) => {
@@ -93,6 +95,7 @@ export default function Sails() {
         data={sailsQuery?.data}
         keyExtractor={item => item.id.toString()}
         contentContainerClassName='gap-3'
+        contentContainerStyle={{ paddingBottom: captureInset }}
         renderItem={({ item }) => (
           <SailListItem
             sail={item}

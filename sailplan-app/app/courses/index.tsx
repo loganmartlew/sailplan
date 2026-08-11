@@ -20,6 +20,7 @@ import { useAlert } from '~/hooks/useAlert';
 import { useMemo, useState } from 'react';
 import { useMutation } from '@tanstack/react-query';
 import { useConfirm } from '~/hooks/useConfirm';
+import { useCaptureInset } from '~/features/capture';
 
 type ListItem =
   | { type: 'group'; data: CourseGroupWithCourses }
@@ -31,6 +32,7 @@ export default function Courses() {
   const confirm = useConfirm();
   const courseGroupsQuery = useCourseGroups();
   const coursesQuery = useCourses();
+  const captureInset = useCaptureInset();
 
   const ungroupedCourses =
     coursesQuery.data?.filter(course => course.courseGroupId === null) ?? [];
@@ -160,6 +162,7 @@ export default function Courses() {
               : `course-${item.data.id}`
         }
         contentContainerClassName='gap-3'
+        contentContainerStyle={{ paddingBottom: captureInset }}
         renderItem={({ item }) => {
           if (item.type === 'separator') {
             return <Separator className='my-1' />;

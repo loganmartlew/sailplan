@@ -1,6 +1,7 @@
 import { router } from 'expo-router';
-import { Pressable, View } from 'react-native';
+import { Pressable, ScrollView, View } from 'react-native';
 import { Card, CardContent, H2, Text } from '~/components/ui';
+import { useCaptureInset } from '~/features/capture';
 import {
   ChevronRight,
   Info,
@@ -11,8 +12,14 @@ import {
 } from '~/lib/icons';
 
 export default function SettingsIndex() {
+  const captureInset = useCaptureInset();
+
   return (
-    <View className='flex-1 w-full px-3 py-5 flex flex-col gap-2'>
+    <ScrollView
+      className='flex-1'
+      contentContainerClassName='w-full px-3 py-5 flex flex-col gap-2'
+      contentContainerStyle={{ paddingBottom: captureInset }}
+    >
       <H2 className='pb-2'>Settings</H2>
       <SettingsNavItem
         title='Boat Profile'
@@ -44,7 +51,7 @@ export default function SettingsIndex() {
         icon={<Info className='text-accent-foreground' size={16} />}
         onPress={() => router.push('/settings/about')}
       />
-    </View>
+    </ScrollView>
   );
 }
 

@@ -9,10 +9,12 @@ import {
   useCourses,
 } from '~/features/course';
 import { useConfirm } from '~/hooks/useConfirm';
+import { useCaptureInset } from '~/features/capture';
 import { Plus, Route } from '~/lib/icons';
 
 export default function CourseGroupDetailsPage() {
   const confirm = useConfirm();
+  const captureInset = useCaptureInset();
   const { courseGroupId } = useLocalSearchParams<{
     courseGroupId: string;
   }>();
@@ -99,6 +101,7 @@ export default function CourseGroupDetailsPage() {
         data={coursesQuery.data}
         keyExtractor={item => item.id.toString()}
         contentContainerClassName='gap-3'
+        contentContainerStyle={{ paddingBottom: captureInset }}
         renderItem={({ item }) => (
           <CourseListItem
             course={item}

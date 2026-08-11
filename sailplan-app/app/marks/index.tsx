@@ -9,12 +9,14 @@ import {
   MarkShareDialog,
 } from '~/features/mark';
 import { useConfirm } from '~/hooks/useConfirm';
+import { useCaptureInset } from '~/features/capture';
 import { Plus, MapPin, Share2 } from '~/lib/icons';
 import { useState } from 'react';
 
 export default function Marks() {
   const confirm = useConfirm();
   const marksQuery = useMarks();
+  const captureInset = useCaptureInset();
 
   const [shareDialogOpen, setShareDialogOpen] = useState(false);
 
@@ -79,6 +81,7 @@ export default function Marks() {
         data={marksQuery.data}
         keyExtractor={item => item.id.toString()}
         contentContainerClassName='gap-3'
+        contentContainerStyle={{ paddingBottom: captureInset }}
         renderItem={({ item }) => (
           <MarkListItem
             mark={item}

@@ -27,6 +27,7 @@ import {
 } from '~/lib/format';
 import { Pencil } from '~/lib/icons';
 import { cn } from '~/lib/utils';
+import { useCaptureInset } from '~/features/capture';
 
 const twaEntrySchema = z
   .object({
@@ -200,6 +201,7 @@ function TwaDisplayField({
 }
 
 export default function TwaLimitsPage() {
+  const captureInset = useCaptureInset();
   const { sailId: sailIdParam } = useLocalSearchParams<{ sailId: string }>();
   const sailId = parseInt(sailIdParam);
   const { data: sail } = useSail(sailId);
@@ -279,7 +281,13 @@ export default function TwaLimitsPage() {
       </View>
 
       <Form className='flex-1 flex flex-col'>
-        <ScrollView className='flex-1' showsVerticalScrollIndicator={false}>
+        <ScrollView
+          className='flex-1'
+          contentContainerStyle={{
+            paddingBottom: editMode ? 0 : captureInset,
+          }}
+          showsVerticalScrollIndicator={false}
+        >
           {/* Wind range — is this wind speed on the table at all? */}
           <View className='pb-4 mb-2 border-b border-border gap-2'>
             {editMode ? (
@@ -369,7 +377,10 @@ export default function TwaLimitsPage() {
         </ScrollView>
 
         {editMode && (
-          <View className='pt-4 flex gap-3'>
+          <View
+            className='pt-4 flex gap-3'
+            style={{ paddingBottom: captureInset }}
+          >
             <Button onPress={handleSubmit(onSubmit)}>
               <Text>Save</Text>
             </Button>

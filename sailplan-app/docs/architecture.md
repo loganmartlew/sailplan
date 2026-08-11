@@ -52,9 +52,10 @@ RootLayout
 Consequences worth knowing:
 
 - **The capture layer is chrome, not a screen.** While a recording is running,
-  `CaptureRecordingBar` renders between screen content and the tab bar via the
-  `Tabs` `tabBar` prop, so it is present on every tab and belongs to no screen.
-  It renders nothing when not recording. Recording state lives in
+  `CaptureRecordingBar` floats over screen content just above the tab bar via
+  the `Tabs` `tabBar` prop, so it is present on every tab and belongs to no
+  screen. Scroll surfaces use `useCaptureInset()` so their final item can clear
+  the pill. It renders nothing when not recording. Recording state lives in
   `features/capture/store/captureRecordingStore`, never in a screen's `useState`
   — a screen-local flag disagrees with the real recording the moment the sailor
   navigates away.

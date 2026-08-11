@@ -11,8 +11,10 @@ import {
 } from '~/features/sailPolar';
 import { useSettings } from '~/features/settings';
 import type { PolarChartType } from '~/features/settings';
+import { useCaptureInset } from '~/features/capture';
 
 export default function PolarChartPage() {
+  const captureInset = useCaptureInset();
   const { sailId } = useLocalSearchParams<{ sailId: string }>();
 
   const { polarChartType } = useSettings();
@@ -36,6 +38,7 @@ export default function PolarChartPage() {
       <ScrollView
         className='flex-1'
         contentContainerClassName='gap-6 py-4 px-3'
+        contentContainerStyle={{ paddingBottom: captureInset }}
       >
         <ToggleGroup
           type='single'

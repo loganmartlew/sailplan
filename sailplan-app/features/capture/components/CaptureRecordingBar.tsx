@@ -8,11 +8,11 @@ import {
 } from '../store/captureRecordingStore';
 
 /**
- * The capture layer: app chrome sitting between screen content and the tab bar,
- * so a recording is visible and stoppable from every screen rather than only
- * the course plan it was started from. Renders nothing when not recording.
+ * The capture layer: app chrome floating over screen content just above the tab
+ * bar, so a recording is visible and stoppable from every screen rather than
+ * only the course plan it was started from. Renders nothing when not recording.
  *
- * Ticket `06` replaces this with the full strip — live TWS/TWA, the last sail
+ * Ticket `06` replaces this with the full pill — live TWS/TWA, the last sail
  * stamp and hold-to-stop. This is the `04`-sized version: status and Stop.
  */
 export function CaptureRecordingBar() {
@@ -30,7 +30,7 @@ export function CaptureRecordingBar() {
   if (!recording) return null;
 
   return (
-    <View className='flex-row items-center gap-3 border-t border-border bg-card px-4 py-3'>
+    <View className='absolute bottom-full left-3 right-3 z-20 mb-2 flex-row items-center gap-3 rounded-full border border-border bg-card px-4 py-3 shadow-lg shadow-foreground/20'>
       <CircleSmall className='text-destructive' size={24} fill='currentColor' />
       <View className='flex-1'>
         <Text className='font-semibold'>Recording this course</Text>

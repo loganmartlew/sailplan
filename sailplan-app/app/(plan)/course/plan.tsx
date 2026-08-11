@@ -17,7 +17,7 @@ import {
   usePlanState,
 } from '~/features/plan';
 import { useSailSuggestionData } from '~/features/sailSuggestion';
-import { CaptureRecordingControl } from '~/features/capture';
+import { CaptureRecordingControl, useCaptureInset } from '~/features/capture';
 
 interface Leg {
   from: CourseMarkWithMark;
@@ -32,6 +32,7 @@ export default function CoursePlanResults() {
   const planData = deserializeCoursePlanData(data);
 
   const { currentState } = usePlanState();
+  const captureInset = useCaptureInset();
   const twd = currentState?.twd ?? 0;
 
   const { boatProfile } = useBoatProfile();
@@ -141,10 +142,8 @@ export default function CoursePlanResults() {
         <CourseMarkListDialog courseMarks={courseMarks} />
       </View>
       <TrueWindInputCard twd tws />
-      <ScrollView>
-        {/* Clears the record FAB; the recording strip's inset is `06`'s
-            `useCaptureInset()`. */}
-        <View className='flex gap-4 pb-24'>
+      <ScrollView contentContainerStyle={{ paddingBottom: captureInset || 96 }}>
+        <View className='flex gap-4'>
           {legs.map(leg => (
             <CourseLegCard
               key={leg.key}
