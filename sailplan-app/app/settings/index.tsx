@@ -1,7 +1,7 @@
 import { router } from 'expo-router';
 import { Pressable, ScrollView, View } from 'react-native';
 import { Card, CardContent, H2, Text } from '~/components/ui';
-import { useCaptureInset } from '~/features/capture';
+import { RawLogStorageSummary, useCaptureInset } from '~/features/capture';
 import {
   ChevronRight,
   Info,
@@ -45,6 +45,7 @@ export default function SettingsIndex() {
         icon={<PaintBucket className='text-accent-foreground' size={16} />}
         onPress={() => router.push('/settings/appearance')}
       />
+      <RawLogStorageSummary />
       <SettingsNavItem
         title='About'
         description='Version, links, and credits'

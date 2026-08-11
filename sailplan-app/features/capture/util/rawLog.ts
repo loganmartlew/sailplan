@@ -1,4 +1,5 @@
 import { Directory, File, Paths } from 'expo-file-system';
+import { getRawLogFileName } from '../model/rawLogManager';
 
 export interface RawLog {
   path: string;
@@ -8,6 +9,10 @@ export interface RawLog {
 }
 
 const rawLogDirectory = new Directory(Paths.document, 'capture');
+
+export function getRawLogDirectory(): Directory {
+  return rawLogDirectory;
+}
 
 /**
  * Raw NMEA is evidence, not cache: keep it under the app document directory
@@ -20,7 +25,7 @@ const rawLogDirectory = new Directory(Paths.document, 'capture');
  */
 export function openRawLog(sessionId: number): RawLog {
   rawLogDirectory.create({ idempotent: true, intermediates: true });
-  const file = new File(rawLogDirectory, `session-${sessionId}.nmea`);
+  const file = new File(rawLogDirectory, getRawLogFileName(sessionId));
   // Deliberately never truncates: reopening a session's log appends to it, so
   // `08`'s resume cannot destroy the part of the race already recorded.
   if (!file.exists) file.create({ intermediates: true });

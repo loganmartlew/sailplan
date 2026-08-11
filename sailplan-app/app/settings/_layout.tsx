@@ -49,6 +49,12 @@ export default function Layout() {
           title: 'Settings',
         }}
       />
+      <Stack.Screen
+        name='raw-logs'
+        options={{
+          title: 'Manage Raw Logs',
+        }}
+      />
     </Stack>
   );
 }
