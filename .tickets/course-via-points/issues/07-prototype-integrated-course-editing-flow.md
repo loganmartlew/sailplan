@@ -39,6 +39,16 @@ editor.
   opened from Course Detail for read-only orientation or explicit editing,
   including dropping a Via Point pin on the map during placement.
 
+### Constraint — Mark-backed points, from ticket 06
+
+[06](06-decide-saved-mark-transition-behavior.md) settled that local and
+Mark-backed Via Points must be **visually distinct** wherever they appear — map
+pins, Route thread rows, and Plan results — because a Mark-backed pin is
+silently undraggable and the styling is the only thing that teaches the rule.
+The prototype must show both kinds side by side, plus the **Change Mark** action
+(there is no detach) and the **Add to saved marks** confirm sheet on a local
+point.
+
 ### Amendment — draft removed by ticket 05
 
 The brief above originally asked for "one shared edit draft and one Save/Cancel

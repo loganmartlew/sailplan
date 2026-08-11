@@ -22,6 +22,8 @@ An implementation-ready product and technical specification for durable Course V
 - [Prototype Via Points in Course Plan results](issues/04-prototype-plan-presentation.md) — Plan results group guidance beneath Mark-to-Mark Legs, use lighter Segment timeline rows, and retain a read-only Plan Map with an explicit saved-Course edit and recalculation return path.
 - [Choose the Course route-point persistence model](issues/05-choose-persistence-model.md) — A Leg-scoped `courseViaPoint` table owned by the Leg's start `courseMark` (unchanged), local-or-Mark-backed in one row under a CHECK, contiguous per-Leg ordering, and immediate durable writes with no draft, all behind one intent-based route module. Recorded as [ADR-0001](../../docs/adr/0001-course-route-point-persistence.md).
 
+- [Decide saved-Mark linking and promotion behavior](issues/06-decide-saved-mark-transition-behavior.md) — The chooser hides only the Leg's own bounding Course Marks and stays a flat name list; **Add to saved marks** opens a name-editable confirm sheet validated exactly like Mark creation (so duplicate names save silently) and commits in one transaction; linking is one-way with **Change Mark** but no detach, Mark-backed points are visually distinct and silently undraggable; blocked Mark deletion names each Course and its role, tappable.
+
 ## Not yet specified
 
 - Exact implementation acceptance criteria and implementation-ticket slicing depend on the remaining UI decisions.
