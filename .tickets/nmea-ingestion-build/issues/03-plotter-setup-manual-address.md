@@ -13,7 +13,7 @@ gate and a picker. This ticket creates one.
 
 **Blocked by:** `02`.
 
-**Status:** ready-for-human
+**Status:** done
 
 - [x] A boat-profile detail screen exists and is reachable from the existing
       profile UI
@@ -29,5 +29,5 @@ gate and a picker. This ticket creates one.
 - [x] Switching the active boat profile switches which setup is shown
 - [x] SailPlan never joins or switches WiFi, stores credentials, or mentions
       mobile data
-- [ ] Verified on a device against `nmea-sim` on the desk: save with the
+- [x] Verified on a device against `nmea-sim` on the desk: save with the
       simulator down, then Test connection with it up

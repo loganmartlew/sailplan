@@ -15,7 +15,7 @@ first race that goes wrong in every other respect still costs nothing.
 
 **Blocked by:** `02`, `03`.
 
-**Status:** ready-for-human
+**Status:** done
 
 - [x] The course-plan results screen offers `Record this course` when the active
       profile has plotter setup
@@ -37,12 +37,12 @@ first race that goes wrong in every other respect still costs nothing.
 - [x] The pipeline is driven entirely off the socket's `data` event.
       **No JS timer sits anywhere on the capture path** — the service task is a
       promise that parks until Stop, not a loop
-- [ ] Recording is implemented to survive the screen off, the phone pocketed, deep Doze and the
+- [x] Recording is implemented to survive the screen off, the phone pocketed, deep Doze and the
       restricted standby bucket for a race-length run — **built on the stack `13`
       proved, but not itself re-measured.** `13`'s Tier B adb walk is the check
 - [x] A `captureSession` row is created with the boat profile, the course link,
       `startedAt`, `rawLogPath` and `status: 'active'`
-- [~] The notification is **status-only**; Stop ends the session cleanly
+- [x] The notification is **status-only**; Stop ends the session cleanly
       (`status: 'ended'`, `endedAt` set). **Deviation:** RNBA's notification
       supports no action buttons, only a tap target. Tapping opens the app via
       `linkingURI`, where the capture layer's Stop sits above the tab bar and is
@@ -51,12 +51,12 @@ first race that goes wrong in every other respect still costs nothing.
 - [x] A failed connection leaves the sailor on the course plan with **Retry**,
       **Open Wi-Fi settings** and **Plotter setup**, and creates **no** session
       and no half-formed recording
-- [x] Failure copy distinguishes *not on boat WiFi* from *on WiFi, plotter not
-      found*, and may tell a fresh install to accept Android's **stay connected**
+- [x] Failure copy distinguishes _not on boat WiFi_ from _on WiFi, plotter not
+      found_, and may tell a fresh install to accept Android's **stay connected**
       prompt
 - [x] The ~31 s no-route failure surfaces without the UI looking hung
 - [x] `app.config.js` sets no explicit `targetSdkVersion` — Expo SDK 55 targets API 36 at build time
-- [ ] Verify on hardware over the repository's hotspot rig, including the
+- [x] Verify on hardware over the repository's hotspot rig, including the
       no-internet WiFi trap (needs a fresh install — a phone whose user once
       tapped **stay connected** permanently stops reproducing it)
 
