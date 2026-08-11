@@ -1,4 +1,4 @@
-import { File, Paths } from 'expo-file-system/next';
+import { File, Paths } from 'expo-file-system';
 import * as Sharing from 'expo-sharing';
 import * as DocumentPicker from 'expo-document-picker';
 import { getMarks } from '../api/getMarks';
@@ -48,7 +48,7 @@ export async function importFromJson() {
 
   try {
     const file = new File(asset.uri);
-    const json = file.text();
+    const json = file.textSync();
 
     const parseResult = z.array(markInsertSchema).safeParse(JSON.parse(json));
 

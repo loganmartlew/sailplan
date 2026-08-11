@@ -17,6 +17,7 @@ import {
   usePlanState,
 } from '~/features/plan';
 import { useSailSuggestionData } from '~/features/sailSuggestion';
+import { CaptureRecordingControl } from '~/features/capture';
 
 interface Leg {
   from: CourseMarkWithMark;
@@ -140,6 +141,12 @@ export default function CoursePlanResults() {
         <CourseMarkListDialog courseMarks={courseMarks} />
       </View>
       <TrueWindInputCard twd tws />
+      {boatProfile && (
+        <CaptureRecordingControl
+          boatProfileId={boatProfile.id}
+          courseId={planData.courseId}
+        />
+      )}
       <ScrollView>
         <View className='flex gap-4 pb-4'>
           {legs.map(leg => (

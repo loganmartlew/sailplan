@@ -1,5 +1,6 @@
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useEffect, useMemo, useState } from 'react';
+import { router, useLocalSearchParams } from 'expo-router';
 import { View } from 'react-native';
 import { NumberInput, TextInput } from '~/components/form';
 import {
@@ -34,6 +35,7 @@ export function PlotterConnectionSection({
 }: {
   boatProfileId: number;
 }) {
+  const { returnToPlan } = useLocalSearchParams<{ returnToPlan?: string }>();
   const { data: setup } = usePlotterSetup(boatProfileId);
   const [Form, { handleSubmit, reset }] =
     useForm<ManualPlotterSetupFormValues>({
@@ -63,6 +65,7 @@ export function PlotterConnectionSection({
     try {
       await saveManualPlotterSetup(boatProfileId, values);
       reset(values);
+      if (returnToPlan === 'true') router.back();
     } finally {
       setIsSaving(false);
     }

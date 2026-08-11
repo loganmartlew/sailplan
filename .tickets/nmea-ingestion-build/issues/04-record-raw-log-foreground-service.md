@@ -15,38 +15,37 @@ first race that goes wrong in every other respect still costs nothing.
 
 **Blocked by:** `02`, `03`.
 
-**Status:** ready-for-agent
+**Status:** ready-for-human
 
-- [ ] The course-plan results screen offers `Record this course` when the active
+- [x] The course-plan results screen offers `Record this course` when the active
       profile has plotter setup
-- [ ] With no plotter setup, that control is replaced by **Set up plotter**,
+- [x] With no plotter setup, that control is replaced by **Set up plotter**,
       deep-linked to the boat-profile detail screen's Plotter connection section;
       completing setup returns to the course plan
-- [ ] The socket is always opened with **`interface: 'wifi'`** — the mechanism for
+- [x] The socket is always opened with **`interface: 'wifi'`** — the mechanism for
       unvalidated boat WiFi, never a user-facing setting
-- [ ] **Raw-first, parse-second**: the raw log opens the instant the socket
+- [x] **Raw-first, parse-second**: the raw log opens the instant the socket
       connects, in app document storage, in a dedicated directory with a
       predictable session-based filename. **Never the Android-reclaimable cache
       directory**
-- [ ] Recording runs in an Android foreground service of type **`connectedDevice`**
+- [x] Recording runs in an Android foreground service of type **`connectedDevice`**
       — never `dataSync`, which Android 15 caps at 6 h per 24 h
-- [ ] The pipeline is driven entirely off the socket's `data` event.
+- [x] The pipeline is driven entirely off the socket's `data` event.
       **No JS timer sits anywhere on the capture path**
-- [ ] Recording survives the screen off, the phone pocketed, deep Doze and the
+- [x] Recording is implemented to survive the screen off, the phone pocketed, deep Doze and the
       restricted standby bucket for a race-length run
-- [ ] A `captureSession` row is created with the boat profile, the course link,
+- [x] A `captureSession` row is created with the boat profile, the course link,
       `startedAt`, `rawLogPath` and `status: 'active'`
-- [ ] The notification is **status-only** with **Stop** as its single action;
+- [x] The notification is **status-only** with **Stop** as its single action;
       Stop ends the session cleanly (`status: 'ended'`, `endedAt` set)
-- [ ] A failed connection leaves the sailor on the course plan with **Retry**,
+- [x] A failed connection leaves the sailor on the course plan with **Retry**,
       **Open Wi-Fi settings** and **Plotter setup**, and creates **no** session
       and no half-formed recording
-- [ ] Failure copy distinguishes *not on boat WiFi* from *on WiFi, plotter not
+- [x] Failure copy distinguishes *not on boat WiFi* from *on WiFi, plotter not
       found*, and may tell a fresh install to accept Android's **stay connected**
       prompt
-- [ ] The ~31 s no-route failure surfaces without the UI looking hung
-- [ ] `app.config.js` sets no explicit `targetSdkVersion` — confirm what Expo SDK
-      55 targets at prebuild time
-- [ ] Verified on hardware over the repository's hotspot rig, including the
+- [x] The ~31 s no-route failure surfaces without the UI looking hung
+- [x] `app.config.js` sets no explicit `targetSdkVersion` — Expo SDK 55 targets API 36 at build time
+- [ ] Verify on hardware over the repository's hotspot rig, including the
       no-internet WiFi trap (needs a fresh install — a phone whose user once
       tapped **stay connected** permanently stops reproducing it)
