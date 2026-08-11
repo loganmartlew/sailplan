@@ -1,8 +1,8 @@
 import { router } from 'expo-router';
 import { useState } from 'react';
-import { ActivityIndicator, Linking, View } from 'react-native';
+import { ActivityIndicator, Linking, Pressable, View } from 'react-native';
 import { Button, Card, CardContent, Text } from '~/components/ui';
-import { CircleSmall, Settings } from '~/lib/icons';
+import { CircleSmall, Settings, X } from '~/lib/icons';
 import { usePlotterSetup } from '../api/plotterSetup';
 import {
   beginCaptureRecording,
@@ -101,45 +101,64 @@ export function CaptureRecordingControl({
   }
 
   return (
-    <View className='absolute z-20 bottom-4 right-4 gap-3 items-end'>
+    <>
       {failure && (
-        <Card className='w-80'>
-          <CardContent className='pt-6 gap-3'>
-            <Text>{failure}</Text>
-            <View className='flex-row flex-wrap gap-2'>
-              <Button variant='outline' disabled={isConnecting} onPress={startRecording}>
-                <Text>Retry</Text>
-              </Button>
-              <Button
-                variant='outline'
-                onPress={() => Linking.sendIntent('android.settings.WIFI_SETTINGS')}
-              >
-                <Text>Open Wi-Fi settings</Text>
-              </Button>
-              <Button variant='outline' onPress={openPlotterSetup}>
-                <Text>Plotter setup</Text>
-              </Button>
-            </View>
-          </CardContent>
-        </Card>
-      )}
-      <Button
-        accessibilityLabel='Record this course'
-        disabled={isConnecting}
-        size='icon'
-        className='w-14 h-14 shadow-lg shadow-foreground/20'
-        onPress={startRecording}
-      >
-        {isConnecting ? (
-          <ActivityIndicator color='white' />
-        ) : (
-          <CircleSmall
-            className='text-primary-foreground'
-            size={34}
-            fill='currentColor'
+        <View className='absolute z-30 top-0 bottom-0 left-0 right-0'>
+          <Pressable
+            accessibilityLabel='Dismiss connection failure'
+            className='absolute top-0 bottom-0 left-0 right-0'
+            onPress={() => setFailure(null)}
           />
-        )}
-      </Button>
-    </View>
+          <Card className='absolute bottom-20 right-4 w-80'>
+            <CardContent className='pt-4 gap-3'>
+              <View className='flex-row items-start gap-2'>
+                <Text className='flex-1'>{failure}</Text>
+                <Button
+                  accessibilityLabel='Dismiss connection failure'
+                  variant='ghost'
+                  size='icon'
+                  onPress={() => setFailure(null)}
+                >
+                  <X size={18} />
+                </Button>
+              </View>
+              <View className='flex-row flex-wrap gap-2'>
+                <Button variant='outline' disabled={isConnecting} onPress={startRecording}>
+                  <Text>Retry</Text>
+                </Button>
+                <Button
+                  variant='outline'
+                  onPress={() => Linking.sendIntent('android.settings.WIFI_SETTINGS')}
+                >
+                  <Text>Open Wi-Fi settings</Text>
+                </Button>
+                <Button variant='outline' onPress={openPlotterSetup}>
+                  <Text>Plotter setup</Text>
+                </Button>
+              </View>
+            </CardContent>
+          </Card>
+        </View>
+      )}
+      <View className='absolute z-20 bottom-4 right-4'>
+        <Button
+          accessibilityLabel='Record this course'
+          disabled={isConnecting}
+          size='icon'
+          className='w-14 h-14 shadow-lg shadow-foreground/20'
+          onPress={startRecording}
+        >
+          {isConnecting ? (
+            <ActivityIndicator color='white' />
+          ) : (
+            <CircleSmall
+              className='text-primary-foreground'
+              size={34}
+              fill='currentColor'
+            />
+          )}
+        </Button>
+      </View>
+    </>
   );
 }
