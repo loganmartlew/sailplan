@@ -62,6 +62,7 @@ export default {
           'Allow SailPlan to use your location.',
       },
     ],
+    './plugins/withNmeaForegroundService',
   ],
   experiments: {
     typedRoutes: true,

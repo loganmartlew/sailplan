@@ -142,6 +142,8 @@ export default function CoursePlanResults() {
       </View>
       <TrueWindInputCard twd tws />
       <ScrollView>
+        {/* Clears the record FAB; the recording strip's inset is `06`'s
+            `useCaptureInset()`. */}
         <View className='flex gap-4 pb-24'>
           {legs.map(leg => (
             <CourseLegCard

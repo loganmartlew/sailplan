@@ -61,6 +61,7 @@
     "react-dom": "19.2.0",
     "react-hook-form": "^7.53.0",
     "react-native": "0.83.2",
+    "react-native-background-actions": "4.1.0",
     "react-native-draggable-flatlist": "^4.0.3",
     "react-native-gesture-handler": "~2.30.0",
     "react-native-maps": "^1.26.20",

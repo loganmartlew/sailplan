@@ -1,6 +1,6 @@
 import { ScrollView, View } from 'react-native';
 import { H2, Muted, Text } from '~/components/ui';
-import { PlotterConnectionSection } from '~/features/capture/components/PlotterConnectionSection';
+import { PlotterConnectionSection } from '~/features/capture';
 import { useBoatProfile } from '../hooks/useBoatProfile';
 
 export function BoatProfileDetails() {

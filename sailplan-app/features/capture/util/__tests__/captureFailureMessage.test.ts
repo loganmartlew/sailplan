@@ -1,36 +1,78 @@
-import { CaptureRecordingStartError } from '../../model/captureRecordingError';
+import {
+  CaptureRecordingStartError,
+  connectFailureReason,
+  type CaptureStartReason,
+} from '../../model/captureRecordingError';
 import { captureFailureMessage } from '../captureFailureMessage';
 
+const messageFor = (reason: CaptureStartReason) =>
+  captureFailureMessage(
+    new CaptureRecordingStartError(
+      reason === 'unreachable' || reason === 'refused'
+        ? 'connecting'
+        : 'preparing',
+      reason,
+      new Error('underlying detail the sailor never sees'),
+    ),
+  );
+
 describe('captureFailureMessage', () => {
-  it('identifies a notification permission failure after TCP connected', () => {
-    expect(
-      captureFailureMessage(
-        new CaptureRecordingStartError(
-          'preparing',
-          new Error('Allow recording notifications to start capture'),
-        ),
-      ),
-    ).toBe(
-      'SailPlan connected to the plotter, but Android blocked the recording notification required to start capture. Retry and allow the Android notification permission prompt.',
-    );
+  it('tells a sailor off the boat network to join it', () => {
+    expect(messageFor('unreachable')).toMatch(/connect to the boat wi-fi/i);
+    expect(messageFor('unreachable')).toMatch(/stay connected/i);
   });
 
-  it('keeps a network timeout distinct from a connected setup failure', () => {
-    expect(captureFailureMessage(new Error('Connection timed out'))).toBe(
-      'SailPlan cannot reach the boat network. Connect to the boat Wi-Fi, then retry. On a fresh Android install, accept the system stay connected prompt.',
-    );
+  it('distinguishes being on Wi-Fi from not reaching the network at all', () => {
+    expect(messageFor('refused')).toMatch(/reached wi-fi/i);
+    expect(messageFor('refused')).not.toBe(messageFor('unreachable'));
   });
 
-  it('explains an unrecognised failure after TCP connected', () => {
-    expect(
-      captureFailureMessage(
-        new CaptureRecordingStartError(
-          'preparing',
-          new Error('Database unavailable'),
-        ),
-      ),
-    ).toBe(
-      'SailPlan connected to the plotter, but could not prepare local recording. Database unavailable',
+  it('never presents a local failure as a bad plotter address', () => {
+    for (const reason of [
+      'notification-permission-denied',
+      'service-unavailable',
+      'storage',
+    ] as const) {
+      expect(messageFor(reason)).toMatch(/connected to the plotter/i);
+    }
+  });
+
+  it('gives every reason its own message', () => {
+    const reasons: CaptureStartReason[] = [
+      'unreachable',
+      'refused',
+      'notification-permission-denied',
+      'service-unavailable',
+      'storage',
+    ];
+    expect(new Set(reasons.map(messageFor)).size).toBe(reasons.length);
+  });
+
+  it('never leaks the underlying error text to the sailor', () => {
+    expect(messageFor('storage')).not.toMatch(/underlying detail/);
+  });
+
+  it('falls back to the plotter-not-found message for an unknown error', () => {
+    expect(captureFailureMessage(new Error('something else'))).toBe(
+      messageFor('refused'),
     );
   });
+});
+
+describe('connectFailureReason', () => {
+  it.each([
+    'Connection timed out',
+    'connect EHOSTUNREACH 10.0.0.1:10110',
+    'connect ENETUNREACH 10.0.0.1:10110',
+    'no route to host',
+  ])('reads %s as unreachable', message => {
+    expect(connectFailureReason(new Error(message))).toBe('unreachable');
+  });
+
+  it.each(['connect ECONNREFUSED 10.0.0.1:10110', 'socket hang up'])(
+    'reads %s as refused',
+    message => {
+      expect(connectFailureReason(new Error(message))).toBe('refused');
+    },
+  );
 });

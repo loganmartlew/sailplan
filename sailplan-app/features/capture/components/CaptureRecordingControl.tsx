@@ -4,10 +4,7 @@ import { ActivityIndicator, Linking, Pressable, View } from 'react-native';
 import { Button, Card, CardContent, Text } from '~/components/ui';
 import { CircleSmall, Settings, X } from '~/lib/icons';
 import { usePlotterSetup } from '../api/plotterSetup';
-import {
-  beginCaptureRecording,
-  stopActiveCaptureRecording,
-} from '../util/captureRecordingManager';
+import { useCaptureRecordingStore } from '../store/captureRecordingStore';
 import { captureFailureMessage } from '../util/captureFailureMessage';
 
 function recordingEndpoint(setup: ReturnType<typeof usePlotterSetup>['data']) {
@@ -21,6 +18,10 @@ function recordingEndpoint(setup: ReturnType<typeof usePlotterSetup>['data']) {
   return null;
 }
 
+/**
+ * The course plan's entry point into recording. Once recording starts the
+ * capture layer above the tab bar owns the UI, so this renders nothing.
+ */
 export function CaptureRecordingControl({
   boatProfileId,
   courseId,
@@ -30,8 +31,9 @@ export function CaptureRecordingControl({
 }) {
   const { data: setup } = usePlotterSetup(boatProfileId);
   const endpoint = recordingEndpoint(setup);
-  const [isConnecting, setIsConnecting] = useState(false);
-  const [isRecording, setIsRecording] = useState(false);
+  const recording = useCaptureRecordingStore(s => s.recording);
+  const isConnecting = useCaptureRecordingStore(s => s.isConnecting);
+  const start = useCaptureRecordingStore(s => s.start);
   const [failure, setFailure] = useState<string | null>(null);
 
   const openPlotterSetup = () => {
@@ -43,49 +45,15 @@ export function CaptureRecordingControl({
 
   const startRecording = async () => {
     if (!endpoint) return;
-    setIsConnecting(true);
     setFailure(null);
     try {
-      await beginCaptureRecording({ boatProfileId, courseId, endpoint });
-      setIsRecording(true);
+      await start({ boatProfileId, courseId, endpoint });
     } catch (error) {
       setFailure(captureFailureMessage(error));
-    } finally {
-      setIsConnecting(false);
     }
   };
 
-  const stopRecording = async () => {
-    try {
-      await stopActiveCaptureRecording();
-      setIsRecording(false);
-    } catch (error) {
-      setFailure(
-        error instanceof Error ? error.message : 'Could not stop recording',
-      );
-    }
-  };
-
-  if (isRecording) {
-    return (
-      <View className='absolute z-20 bottom-0 left-0 right-0 flex-row items-center gap-3 border-t border-border bg-card px-4 py-3 shadow-lg shadow-foreground/20'>
-        <CircleSmall
-          className='text-destructive'
-          size={24}
-          fill='currentColor'
-        />
-        <View className='flex-1'>
-          <Text className='font-semibold'>Recording this course</Text>
-          <Text className='text-sm text-muted-foreground'>
-            NMEA log is being saved
-          </Text>
-        </View>
-        <Button variant='destructive' size='sm' onPress={stopRecording}>
-          <Text>Stop</Text>
-        </Button>
-      </View>
-    );
-  }
+  if (recording) return null;
 
   if (!endpoint) {
     return (
@@ -94,7 +62,7 @@ export function CaptureRecordingControl({
           className='flex-row gap-2 shadow-lg shadow-foreground/20'
           onPress={openPlotterSetup}
         >
-          <Settings className='text-muted-foreground' size={18} />
+          <Settings className='text-primary-foreground' size={18} />
           <Text>Set up plotter</Text>
         </Button>
       </View>
@@ -110,7 +78,7 @@ export function CaptureRecordingControl({
             className='absolute top-0 bottom-0 left-0 right-0'
             onPress={() => setFailure(null)}
           />
-          <Card className='absolute bottom-20 right-4 w-80'>
+          <Card className='absolute bottom-20 left-4 right-4'>
             <CardContent className='pt-4 gap-3'>
               <View className='flex-row items-start gap-2'>
                 <Text className='flex-1'>{failure}</Text>
@@ -127,7 +95,7 @@ export function CaptureRecordingControl({
                 <Button
                   variant='outline'
                   disabled={isConnecting}
-                  onPress={startRecording}
+                  onPress={() => void startRecording()}
                 >
                   <Text>Retry</Text>
                 </Button>
@@ -153,7 +121,7 @@ export function CaptureRecordingControl({
           disabled={isConnecting}
           size='icon'
           className='w-14 h-14 shadow-lg shadow-foreground/20'
-          onPress={startRecording}
+          onPress={() => void startRecording()}
         >
           {isConnecting ? (
             <ActivityIndicator color='white' />

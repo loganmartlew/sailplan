@@ -1,31 +1,68 @@
-import { NativeModules, PermissionsAndroid, Platform } from 'react-native';
+import { PermissionsAndroid, Platform } from 'react-native';
+import BackgroundService from 'react-native-background-actions';
+import { CaptureRecordingStartError } from '../model/captureRecordingError';
 
-type CaptureForegroundServiceModule = {
-  start: (sessionId: number) => Promise<void>;
-  stop: () => Promise<void>;
-};
+/**
+ * `connectedDevice`, never `dataSync` — Android 15 caps `dataSync` at 6 h per
+ * 24 h, which is inside a race-length run. The manifest attribute is merged on
+ * by `plugins/withNmeaForegroundService.js` and the two must agree, or Android
+ * throws `InvalidForegroundServiceTypeException` at start.
+ */
+const FOREGROUND_SERVICE_TYPE = ['connectedDevice'] as const;
 
-const nativeService = NativeModules.CaptureForegroundService as
-  | CaptureForegroundServiceModule
-  | undefined;
+/**
+ * The service keeps the process alive for exactly as long as its task promise
+ * is pending. Recording itself hangs off socket `data` events, so the task has
+ * no work of its own: it parks until {@link stopCaptureForegroundService}
+ * releases it. Deliberately not a loop or a timer — `JavaTimerManager` drops
+ * timer callbacks while backgrounded, which is the whole reason for this
+ * design.
+ */
+let releaseTask: (() => void) | undefined;
+
+/**
+ * Asked *before* the socket is opened. Prompting afterwards would spend the
+ * ~31 s connect budget only to tear a working connection down over a dialog the
+ * sailor could have answered up front.
+ */
+export async function requestCaptureNotificationPermission(): Promise<boolean> {
+  if (Platform.OS !== 'android' || Number(Platform.Version) < 33) return true;
+  const granted = await PermissionsAndroid.request(
+    PermissionsAndroid.PERMISSIONS.POST_NOTIFICATIONS,
+  );
+  return granted === PermissionsAndroid.RESULTS.GRANTED;
+}
 
 export async function startCaptureForegroundService(sessionId: number) {
   if (Platform.OS !== 'android') return;
-  if (Number(Platform.Version) >= 33) {
-    const granted = await PermissionsAndroid.request(
-      PermissionsAndroid.PERMISSIONS.POST_NOTIFICATIONS,
-    );
-    if (granted !== PermissionsAndroid.RESULTS.GRANTED) {
-      throw new Error('Allow recording notifications to start capture');
-    }
-  }
-  if (!nativeService) {
-    throw new Error('Capture foreground service is unavailable in this build');
-  }
-  await nativeService.start(sessionId);
+
+  await BackgroundService.start(
+    () =>
+      new Promise<void>(resolve => {
+        releaseTask = resolve;
+      }),
+    {
+      taskName: 'NmeaCapture',
+      taskTitle: 'Recording this course',
+      taskDesc: 'SailPlan is recording NMEA data',
+      taskIcon: { name: 'ic_launcher', type: 'mipmap' },
+      // RNBA's notification carries no action buttons — only a tap target.
+      // Tapping opens the app, where the capture layer's Stop sits above the
+      // tab navigator and is reachable from any screen.
+      linkingURI: `sailplan://?captureSessionId=${sessionId}`,
+      foregroundServiceType: [...FOREGROUND_SERVICE_TYPE],
+    },
+  );
 }
 
 export async function stopCaptureForegroundService() {
-  if (Platform.OS !== 'android' || !nativeService) return;
-  await nativeService.stop();
+  if (Platform.OS !== 'android') return;
+
+  releaseTask?.();
+  releaseTask = undefined;
+  if (BackgroundService.isRunning()) await BackgroundService.stop();
+}
+
+export function isCaptureForegroundServiceRunning() {
+  return Platform.OS === 'android' && BackgroundService.isRunning();
 }
