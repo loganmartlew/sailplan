@@ -7,6 +7,10 @@ import {
 } from '../api/captureSession';
 import { startCaptureForegroundService, stopCaptureForegroundService } from './captureForegroundService';
 import { openRawLog, type RawLog } from './rawLog';
+import {
+  CaptureRecordingStartError,
+  type CaptureStartStage,
+} from '../model/captureRecordingError';
 
 export const CAPTURE_CONNECTION_TIMEOUT_MS = 31_000;
 
@@ -106,10 +110,11 @@ export function startCaptureRecording(
       }
     };
 
-    const fail = (error: Error) => {
+    const fail = (error: Error, stage: CaptureStartStage) => {
       if (phase === 'started' || phase === 'failed') return;
       phase = 'failed';
-      void cleanupFailedStart().finally(() => reject(error));
+      const startError = new CaptureRecordingStartError(stage, error);
+      void cleanupFailedStart().finally(() => reject(startError));
     };
 
     const onData = (chunk: string | Buffer) => {
@@ -172,7 +177,12 @@ export function startCaptureRecording(
           });
         } catch (error) {
           if (!hasFailed()) {
-            fail(error instanceof Error ? error : new Error('Could not start recording'));
+            fail(
+              error instanceof Error
+                ? error
+                : new Error('Could not start recording'),
+              'preparing',
+            );
           }
         }
       })();
@@ -185,7 +195,11 @@ export function startCaptureRecording(
       connectTimeout: CAPTURE_CONNECTION_TIMEOUT_MS,
     });
     socket.once('connect', onConnect);
-    socket.once('error', error => fail(error ?? new Error('Connection failed')));
-    socket.once('timeout', () => fail(new Error('Connection timed out')));
+    socket.once('error', error =>
+      fail(error ?? new Error('Connection failed'), 'connecting'),
+    );
+    socket.once('timeout', () =>
+      fail(new Error('Connection timed out'), 'connecting'),
+    );
   });
 }

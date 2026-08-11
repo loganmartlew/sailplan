@@ -8,6 +8,7 @@ import {
   beginCaptureRecording,
   stopActiveCaptureRecording,
 } from '../util/captureRecordingManager';
+import { captureFailureMessage } from '../util/captureFailureMessage';
 
 function recordingEndpoint(setup: ReturnType<typeof usePlotterSetup>['data']) {
   if (!setup) return null;
@@ -18,14 +19,6 @@ function recordingEndpoint(setup: ReturnType<typeof usePlotterSetup>['data']) {
     return { host: setup.cachedHost, port: setup.cachedPort };
   }
   return null;
-}
-
-function failureMessage(error: unknown) {
-  const detail = error instanceof Error ? error.message : 'Connection failed';
-  if (/timed out|timeout|no route|network is unreachable/i.test(detail)) {
-    return 'SailPlan cannot reach the boat network. Connect to the boat Wi-Fi, then retry. On a fresh Android install, accept the system stay connected prompt.';
-  }
-  return `You are on Wi-Fi, but the plotter was not found at the saved address. ${detail}`;
 }
 
 export function CaptureRecordingControl({
@@ -56,7 +49,7 @@ export function CaptureRecordingControl({
       await beginCaptureRecording({ boatProfileId, courseId, endpoint });
       setIsRecording(true);
     } catch (error) {
-      setFailure(failureMessage(error));
+      setFailure(captureFailureMessage(error));
     } finally {
       setIsConnecting(false);
     }
