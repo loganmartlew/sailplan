@@ -1,0 +1,421 @@
+<!doctype html>
+<!--
+  THROWAWAY PROTOTYPE — Route point notes on Via Points and Course Marks.
+  Four variants switchable via ?variant=thread-note|thread-compact|thread-stacked|plan-note.
+  Renders decisions already made in ticket 08; the open question is phone row crowding.
+  Not production app code. All state is in memory.
+-->
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Route point notes — prototype</title>
+    <style>
+      :root { --ink:#10233c; --muted:#65758b; --line:#d9e2ec; --paper:#f7fafc; --card:#fff; --navy:#0b2447; --blue:#146cbe; --aqua:#0e9f9a; --green:#0f766e; --slate:#5b7794; --gold:#f2b84b; --red:#c0392f; }
+      * { box-sizing:border-box; }
+      body { margin:0; background:#e9f0f6; color:var(--ink); font:15px/1.4 Inter,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif; }
+      button { font:inherit; cursor:pointer; }
+      button:focus-visible, [role="button"]:focus-visible { outline:3px solid var(--gold); outline-offset:2px; }
+      .prototype-note { max-width:760px; margin:16px auto 10px; padding:0 16px; color:#36516f; font-size:13px; }
+      /* 390pt phone frame — this decision lives or dies at this width. */
+      .phone { width:min(100%,390px); min-height:100vh; margin:auto; background:var(--paper); padding-bottom:104px; box-shadow:0 0 40px rgba(8,28,50,.14); }
+      header.top { color:#fff; background:linear-gradient(135deg,#0b2447,#124b78); padding:18px 16px 14px; }
+      .eyebrow { color:#b9def1; font-size:11px; font-weight:800; letter-spacing:.11em; text-transform:uppercase; }
+      header.top h1 { margin:4px 0 3px; font-size:23px; line-height:1.1; }
+      header.top .sub { color:#d7e8f3; font-size:12.5px; }
+      main { padding:12px; }
+      .variant-heading { display:flex; gap:9px; align-items:flex-start; margin:2px 2px 12px; }
+      .number { display:grid; place-items:center; flex:none; width:25px; height:25px; border-radius:7px; background:#dff5ff; color:var(--navy); font-weight:900; font-size:12px; }
+      .variant-heading h2 { margin:0; font-size:16px; }
+      .variant-heading p { margin:2px 0 0; color:var(--muted); font-size:12px; }
+      .toolbar { display:flex; flex-wrap:wrap; gap:6px; margin:0 0 12px; }
+      .chip { padding:6px 9px; border:1px solid var(--line); border-radius:99px; background:#fff; color:#35506e; font-size:11.5px; font-weight:700; }
+      .chip.on { border-color:var(--navy); background:#e0f2fe; color:#075985; }
+      .feedback { margin:0 0 12px; padding:8px 10px; border-left:3px solid var(--gold); background:#fffbeb; color:#754308; font-size:12px; }
+      .feedback[hidden] { display:none; }
+
+      /* ---- Route thread ---- */
+      .thread { position:relative; margin-left:8px; border-left:2px solid #c8dcec; padding-left:16px; }
+      .anchor { position:relative; padding:2px 0 14px; }
+      .anchor:before { content:""; position:absolute; left:-23px; top:14px; width:11px; height:11px; border:3px solid var(--navy); border-radius:50%; background:#fff; }
+      .leg-box { margin:8px 0 2px; border:1px solid var(--line); border-radius:11px; overflow:hidden; background:#fff; }
+      .leg-title { display:flex; align-items:center; justify-content:space-between; gap:8px; padding:8px 10px; background:#f4f8fc; color:#47627c; font-size:11px; font-weight:800; }
+      .leg-title small { display:block; margin-top:1px; color:var(--muted); font-weight:600; }
+      .leg-count { color:var(--green); white-space:nowrap; }
+      .seg { display:flex; gap:8px; align-items:center; padding:8px 10px; border-top:1px solid #eef2f7; color:#47627c; font-size:11.5px; }
+      .seg-key { display:grid; place-items:center; flex:none; width:26px; height:24px; border-radius:6px; background:#eef4fa; color:#45617b; font-size:10px; font-weight:900; }
+      .leg-foot { padding:8px 10px; border-top:1px solid #eef2f7; background:#fbfdff; color:var(--muted); font-size:11px; }
+
+      /* the row under test */
+      .row { display:flex; gap:9px; align-items:flex-start; width:100%; padding:9px 10px; border-top:1px dashed #cfe0d6; background:#f5fbf7; color:var(--ink); text-align:left; }
+      .row.linked { border-top-color:#cddcec; background:#f4f8fd; }
+      .row.markrow { border-top:0; background:#fff; padding:8px 0; }
+      .glyph { display:grid; place-items:center; flex:none; width:22px; height:22px; margin-top:1px; border-radius:6px; font-size:13px; font-weight:900; color:var(--green); background:#dff3e9; }
+      .row.linked .glyph { color:#1f5f96; background:#dbeafe; box-shadow:inset 0 0 0 1.5px #1f5f96; }
+      .row.markrow .glyph { color:var(--navy); background:transparent; box-shadow:none; font-size:15px; }
+      .body { flex:1; min-width:0; }
+      .name { display:flex; align-items:center; gap:5px; font-size:13.5px; font-weight:800; }
+      .name .txt { overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+      .role { display:block; margin-top:1px; color:var(--muted); font-size:10.5px; font-weight:700; }
+      .badge { flex:none; padding:1px 5px; border-radius:5px; font-size:9.5px; font-weight:900; letter-spacing:.03em; }
+      .badge.saved { background:#dbeafe; color:#1f5f96; }
+      .badge.local { background:#dff3e9; color:var(--green); }
+      .badge.dir { background:#fee9e6; color:#a13226; }
+      .badge.dir.s { background:#e3f6ee; color:#116348; }
+      /* the note line — muted second line, clamped to exactly one line */
+      .note { margin-top:2px; overflow:hidden; color:var(--muted); font-size:12px; text-overflow:ellipsis; white-space:nowrap; }
+      .note:before { content:"✎ "; color:#93a6ba; }
+      .ctrls { display:flex; flex:none; gap:3px; align-items:center; }
+      .tiny { display:grid; place-items:center; width:28px; height:28px; padding:0; border:1px solid #c6d6e4; border-radius:7px; background:#fff; color:#3b5d7d; font-size:13px; font-weight:900; }
+      .tiny.more { border-color:#b7c7d6; font-size:16px; letter-spacing:1px; }
+      .tiny:disabled { opacity:.3; cursor:not-allowed; }
+
+      /* compact variant tweaks */
+      .row.compact { align-items:center; padding:7px 10px; }
+      .row.compact .oneline { display:flex; gap:6px; align-items:baseline; min-width:0; }
+      .row.compact .oneline .txt { flex:none; max-width:52%; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; font-size:13.5px; font-weight:800; }
+      .row.compact .oneline .inline-note { flex:1; min-width:0; overflow:hidden; color:var(--muted); font-size:11.5px; text-overflow:ellipsis; white-space:nowrap; }
+      .stackctrl { display:flex; flex-direction:column; gap:1px; }
+      .stackctrl .tiny { width:26px; height:15px; border-radius:5px; font-size:9px; line-height:1; }
+
+      /* stacked variant tweaks */
+      .row.stacked { flex-wrap:wrap; }
+      .row.stacked .fullnote { flex-basis:100%; margin:5px 0 0 31px; padding:4px 7px; border-left:2px solid #b6cbdd; border-radius:0 6px 6px 0; overflow:hidden; background:#fff; color:#4a637b; font-size:12px; text-overflow:ellipsis; white-space:nowrap; }
+
+      /* ---- Plan results ---- */
+      .overview { display:grid; grid-template-columns:1fr auto; gap:10px; align-items:center; margin-bottom:12px; padding:11px; border:1px solid var(--line); border-radius:14px; background:var(--card); }
+      .overview strong { display:block; font-size:13.5px; } .overview span { color:var(--muted); font-size:12px; }
+      .leg-card { margin-bottom:13px; overflow:hidden; border:1px solid #cad9e5; border-radius:15px; background:#fff; }
+      .leg-head { padding:12px; background:#f3f8fc; border-bottom:1px solid #dce7ef; }
+      .leg-head h3 { margin:3px 0 1px; font-size:16px; }
+      .leg-head p { margin:0; color:var(--muted); font-size:12px; }
+      .kicker { color:var(--blue); font-size:11px; font-weight:800; letter-spacing:.07em; text-transform:uppercase; }
+      .leg-summary { display:flex; align-items:center; justify-content:space-between; gap:8px; }
+      .head-note { margin:7px 0 0; padding:5px 8px; border-left:2px solid #9dc0d8; border-radius:0 7px 7px 0; overflow:hidden; background:#fff; color:#4a637b; font-size:12px; text-overflow:ellipsis; white-space:nowrap; }
+      .head-note b { color:#2c4a66; font-weight:800; }
+      .leg-body { padding:8px 8px 4px; }
+      .segrow { position:relative; padding:11px 6px 12px 26px; }
+      .segrow:before { content:""; position:absolute; left:12px; top:20px; bottom:-14px; width:2px; background:#bdd1df; }
+      .segrow:last-child:before { display:none; }
+      .segrow:after { content:""; position:absolute; left:8px; top:18px; width:8px; height:8px; border-radius:50%; background:var(--blue); box-shadow:0 0 0 3px #e5f1f8; }
+      .segrow.via-end:after { background:var(--aqua); }
+      .segmeta { display:flex; align-items:center; justify-content:space-between; gap:8px; color:var(--muted); font-size:11px; }
+      .segname { margin:3px 0 0; font-weight:800; font-size:14.5px; }
+      .segnote { margin-top:3px; overflow:hidden; color:var(--muted); font-size:12px; text-overflow:ellipsis; white-space:nowrap; }
+      .segnote:before { content:"✎ "; color:#93a6ba; }
+      .metrics { display:flex; align-items:center; justify-content:space-between; gap:8px; margin-top:8px; padding-top:8px; border-top:1px solid #edf1f5; }
+      .metric small { display:block; color:var(--muted); font-size:10.5px; } .metric b { display:block; font-size:17px; }
+      .sail { display:inline-flex; align-items:center; gap:5px; padding:4px 8px; border-radius:99px; background:#dff6ef; color:#12694f; font-size:12px; font-weight:800; }
+      .tack { display:inline-block; margin-left:4px; padding:2px 5px; border-radius:5px; background:#e8f1ff; color:#245e9a; font-size:10px; font-weight:800; vertical-align:2px; }
+      .tack.port { background:#fff0ef; color:#b33f3a; }
+
+      /* ---- sheets ---- */
+      .backdrop { position:fixed; z-index:20; inset:0; display:flex; align-items:flex-end; justify-content:center; background:rgba(4,22,39,.54); }
+      .backdrop[hidden] { display:none; }
+      .sheet { width:min(100%,390px); max-height:88vh; overflow:auto; padding:16px 15px 24px; border-radius:20px 20px 0 0; background:var(--card); }
+      .sheet h2 { margin:0 0 2px; font-size:19px; }
+      .sheet .lead { margin:0 0 12px; color:var(--muted); font-size:12.5px; }
+      .field { display:block; margin-bottom:12px; }
+      .field > span { display:block; margin-bottom:4px; color:#3d5772; font-size:11.5px; font-weight:800; }
+      .field input, .field textarea { width:100%; padding:9px 10px; border:1px solid #b6c8d8; border-radius:9px; color:var(--ink); font:inherit; }
+      .field textarea { min-height:74px; resize:vertical; }
+      .field.ro input { background:#eef2f6; color:#5b7290; }
+      .lock { display:inline-block; margin-left:6px; padding:1px 5px; border-radius:5px; background:#e6edf3; color:#5b7290; font-size:9.5px; font-weight:900; }
+      .counter { margin-top:4px; color:var(--muted); font-size:11px; text-align:right; }
+      .counter.max { color:var(--red); font-weight:800; }
+      .seg-toggle { display:flex; gap:6px; }
+      .seg-toggle button { flex:1; padding:8px; border:1px solid #b6c8d8; border-radius:9px; background:#fff; color:#3d5772; font-size:12px; font-weight:800; }
+      .seg-toggle button.on { border-color:var(--navy); background:var(--navy); color:#fff; }
+      .menu { display:flex; flex-direction:column; gap:1px; margin-top:6px; }
+      .menu button { padding:13px 12px; border:0; border-radius:10px; background:#f2f6fa; color:#1d3a58; font-size:14px; font-weight:700; text-align:left; }
+      .menu button.danger { background:#fdf1f0; color:#a5342a; }
+      .actions { display:flex; gap:8px; margin-top:14px; }
+      .actions button { flex:1; padding:11px; border:1px solid var(--line); border-radius:10px; background:#fff; color:#113b5d; font-weight:800; }
+      .actions .primary { border-color:var(--blue); background:var(--blue); color:#fff; }
+
+      .state { margin-top:14px; padding:10px; border:1px dashed #afc4d5; border-radius:10px; background:#f1f7fb; color:#3f5c72; font:11px/1.5 ui-monospace,SFMono-Regular,Menlo,monospace; white-space:pre-wrap; }
+      .prototype-bar { position:fixed; z-index:10; bottom:16px; left:50%; display:flex; align-items:center; gap:7px; width:min(calc(100% - 28px),402px); padding:8px; border:1px solid #1e4f78; border-radius:999px; background:#09233c; color:#fff; box-shadow:0 12px 28px rgba(5,25,45,.35); transform:translateX(-50%); }
+      .prototype-bar button { width:34px; height:34px; border:0; border-radius:50%; background:#1a507a; color:#fff; font-size:20px; }
+      .prototype-bar .label { flex:1; text-align:center; font-size:12px; font-weight:800; }
+      @media (min-width:650px) { body { padding:18px 0 0; } .phone { min-height:calc(100vh - 36px); border-radius:20px; overflow:hidden; } }
+    </style>
+  </head>
+  <body>
+    <div class="prototype-note"><strong>THROWAWAY PROTOTYPE.</strong> Route point notes on Via Points and Course Marks, at 390pt. Tap any route point row to open its editor; tap <b>⋯</b> for its other actions. Notes are capped at 200 characters and clamped to one line. Edits are in memory and shared across variants.</div>
+    <div class="phone">
+      <header class="top">
+        <div class="eyebrow">Course detail · prototype</div>
+        <h1 id="course-title">Winter Series — Harbour Loop</h1>
+        <div class="sub" id="course-sub"></div>
+      </header>
+      <main>
+        <div id="feedback" class="feedback" hidden></div>
+        <section id="content" aria-live="polite"></section>
+        <div class="state" id="state"></div>
+      </main>
+    </div>
+    <nav class="prototype-bar" aria-label="Prototype variant switcher">
+      <button id="prev" aria-label="Previous variant">←</button><div class="label" id="variant-label"></div><button id="next" aria-label="Next variant">→</button>
+    </nav>
+    <div id="sheet" class="backdrop" hidden></div>
+    <script>
+      const LONG = 'Stay well outside the reef shelf on this approach — it dries at low water and the chart is optimistic here. If the ebb is running hold up at least fifty metres and expect a hard set onto the rocks.';
+
+      // ---- in-memory model -------------------------------------------------
+      // A Course Mark bounds a Leg. A Via Point sits inside one Leg. Both carry
+      // a course-scoped note; the saved `mark` table carries none.
+      const marks = [
+        { id:'m1', name:'Start',        direction:null, note:'Committee-boat end unless the line is obviously pin-favoured.', lat:'36° 50.1\' S', lon:'174° 47.6\' E' },
+        { id:'m2', name:'Windward',     direction:'P',  note:'Room is never given here — come in on starboard and protect your lane.', lat:'36° 48.4\' S', lon:'174° 49.2\' E' },
+        { id:'m3', name:'Leeward Gate', direction:'S',  note:null, lat:'36° 51.0\' S', lon:'174° 48.8\' E' },
+        { id:'m4', name:'Finish Mark',  direction:null, note:null, lat:'36° 50.6\' S', lon:'174° 46.9\' E' },
+      ];
+      const legs = [
+        { n:1, from:'m1', to:'m2', vias:[] },
+        { n:2, from:'m2', to:'m3', vias:[
+          { id:'v1', name:'Headland clearance', markBacked:false, note:LONG, lat:'36° 49.3\' S', lon:'174° 50.4\' E' },
+        ] },
+        { n:3, from:'m3', to:'m4', vias:[
+          { id:'v2', name:'Mole End',      markBacked:true,  note:'Only cut inside above half tide.', lat:'36° 50.9\' S', lon:'174° 47.9\' E' },
+          { id:'v3', name:'Channel North', markBacked:true,  note:null, lat:'36° 50.8\' S', lon:'174° 47.4\' E' },
+          { id:'v4', name:'Shoal edge',    markBacked:false, note:null, lat:'36° 50.7\' S', lon:'174° 47.1\' E' },
+        ] },
+      ];
+      const guidance = { // per Leg Segment, keyed by leg number then index
+        1:[['028°','168°','Port','A2']],
+        2:[['154°','066°','Starboard','J2'],['212°','008°','—','No suggestion']],
+        3:[['272°','052°','Port','J2'],['318°','098°','Starboard','A2'],['006°','146°','Port','Code 0'],['341°','120°','Port','J2']],
+      };
+      const CAP = 200;
+      const state = { customPlanStart:true, feedback:'', sheet:null, draft:null };
+
+      const mark = id => marks.find(m => m.id === id);
+      const leg  = n  => legs.find(l => l.n === n);
+      const points = l => [mark(l.from), ...l.vias, mark(l.to)];
+      const isVia = p => 'markBacked' in p;
+      const totalVias = () => legs.reduce((a,l)=>a+l.vias.length,0);
+      const esc = s => String(s ?? '').replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+      const key = p => isVia(p) ? `v:${legs.find(l=>l.vias.includes(p)).n}:${legs.find(l=>l.vias.includes(p)).vias.indexOf(p)}` : `m:${p.id}`;
+      function fromKey(k){ const [t,a,b]=k.split(':'); return t==='m' ? mark(a) : leg(+a).vias[+b]; }
+      function say(msg){ state.feedback = msg; render(); }
+
+      // ---- shared row pieces ----------------------------------------------
+      function dirBadge(m){ return m.direction ? `<span class="badge dir ${m.direction==='S'?'s':''}">${m.direction}</span>` : ''; }
+      function viaBadge(v){ return v.markBacked ? '<span class="badge saved">SAVED MARK</span>' : '<span class="badge local">LOCAL</span>'; }
+      function ctrls(p, i, count){
+        const k = key(p);
+        const reorder = isVia(p)
+          ? `<button class="tiny" data-move="${k}:-1" ${i===0?'disabled':''} aria-label="Move up">↑</button>
+             <button class="tiny" data-move="${k}:1" ${i===count-1?'disabled':''} aria-label="Move down">↓</button>` : '';
+        return `<span class="ctrls">${reorder}<button class="tiny more" data-menu="${k}" aria-label="More actions">⋯</button></span>`;
+      }
+      function stackedCtrls(p, i, count){
+        const k = key(p);
+        const reorder = isVia(p)
+          ? `<span class="stackctrl"><button class="tiny" data-move="${k}:-1" ${i===0?'disabled':''} aria-label="Move up">▲</button><button class="tiny" data-move="${k}:1" ${i===count-1?'disabled':''} aria-label="Move down">▼</button></span>` : '';
+        return `<span class="ctrls">${reorder}<button class="tiny more" data-menu="${k}" aria-label="More actions">⋯</button></span>`;
+      }
+
+      // ---- variant 1: thread-note (the decided design) ---------------------
+      function rowNote(p, i, count, mode){
+        const via = isVia(p);
+        const cls = via ? (p.markBacked ? 'row linked' : 'row') : 'row markrow';
+        const glyph = via ? (p.markBacked ? '◆' : '◇') : '●';
+        const role = via ? (p.markBacked ? 'Via Point · Mark-backed' : 'Via Point · course-local') : 'Course Mark';
+        const badges = via ? viaBadge(p) : dirBadge(p);
+        const note = p.note ? `<div class="note">${esc(p.note)}</div>` : '';
+        return `<div class="${cls}" role="button" tabindex="0" data-open="${key(p)}">
+          <span class="glyph">${glyph}</span>
+          <span class="body"><span class="name"><span class="txt">${esc(p.name)}</span>${badges}</span><span class="role">${role}</span>${note}</span>
+          ${mode==='stacked'?'':ctrls(p,i,count)}
+        </div>`;
+      }
+      // ---- variant 2: thread-compact --------------------------------------
+      function rowCompact(p, i, count){
+        const via = isVia(p);
+        const cls = (via ? (p.markBacked ? 'row linked' : 'row') : 'row markrow') + ' compact';
+        const glyph = via ? (p.markBacked ? '◆' : '◇') : '●';
+        const badges = via ? viaBadge(p) : dirBadge(p);
+        const note = p.note ? `<span class="inline-note">✎ ${esc(p.note)}</span>` : '';
+        return `<div class="${cls}" role="button" tabindex="0" data-open="${key(p)}">
+          <span class="glyph">${glyph}</span>
+          <span class="body"><span class="oneline"><span class="txt">${esc(p.name)}</span>${badges}${note}</span></span>
+          ${stackedCtrls(p,i,count)}
+        </div>`;
+      }
+      // ---- variant 3: thread-stacked --------------------------------------
+      function rowStacked(p, i, count){
+        const via = isVia(p);
+        const cls = (via ? (p.markBacked ? 'row linked' : 'row') : 'row markrow') + ' stacked';
+        const glyph = via ? (p.markBacked ? '◆' : '◇') : '●';
+        const role = via ? (p.markBacked ? 'Via Point · Mark-backed' : 'Via Point · course-local') : 'Course Mark';
+        const badges = via ? viaBadge(p) : dirBadge(p);
+        return `<div class="${cls}" role="button" tabindex="0" data-open="${key(p)}">
+          <span class="glyph">${glyph}</span>
+          <span class="body"><span class="name"><span class="txt">${esc(p.name)}</span>${badges}</span><span class="role">${role}</span></span>
+          ${ctrls(p,i,count)}
+          ${p.note ? `<span class="fullnote">✎ ${esc(p.note)}</span>` : ''}
+        </div>`;
+      }
+
+      function threadVariant(row, n, title, blurb){
+        let html = `<div class="variant-heading"><div class="number">${n}</div><div><h2>${title}</h2><p>${blurb}</p></div></div><div class="thread">`;
+        marks.forEach((m, mi) => {
+          html += `<div class="anchor">${row(m, mi, marks.length)}`;
+          const l = legs.find(x => x.from === m.id);
+          if (l) {
+            const segs = points(l);
+            html += `<div class="leg-box"><div class="leg-title"><span>LEG ${l.n}<small>${esc(mark(l.from).name)} → ${esc(mark(l.to).name)}</small></span><span class="leg-count">${l.vias.length ? l.vias.length + ' Via Point' + (l.vias.length===1?'':'s') : 'Direct'}</span></div>`;
+            for (let i = 0; i < segs.length - 1; i++) {
+              html += `<div class="seg"><span class="seg-key">${l.n}.${i+1}</span><span>${esc(segs[i].name)} → ${esc(segs[i+1].name)}</span></div>`;
+              if (i < l.vias.length) html += row(l.vias[i], i, l.vias.length);
+            }
+            html += `<div class="leg-foot">Select a Leg Segment to add a Via Point. Reordering stays inside Leg ${l.n}.</div></div>`;
+          }
+          html += `</div>`;
+        });
+        return html + '</div>';
+      }
+
+      // ---- variant 4: plan-note -------------------------------------------
+      function tack(v){ return v === '—' ? '' : `<span class="tack ${v==='Port'?'port':''}">${v}</span>`; }
+      function planVariant(){
+        const first = mark(legs[0].from);
+        let html = `<div class="variant-heading"><div class="number">4</div><div><h2>Plan results · notes on Segment rows</h2><p>Each note rides the Leg Segment that <b>ends at</b> its point, under the from → to line. The course's first point falls back to the Leg 1 header when the Plan has no custom start.</p></div></div>`;
+        html += `<div class="toolbar"><button class="chip ${state.customPlanStart?'on':''}" data-plan-start="1">Custom Plan start (Committee boat)</button><button class="chip ${state.customPlanStart?'':'on'}" data-plan-start="0">No custom start — header fallback</button></div>`;
+        html += `<div class="overview"><div><strong>${legs.reduce((a,l)=>a+l.vias.length+1,0) + (state.customPlanStart?1:0)} guidance segments</strong><span>3 Legs · ${totalVias()} Via Points · ${[...marks,...legs.flatMap(l=>l.vias)].filter(p=>p.note).length} notes</span></div></div>`;
+        legs.forEach(l => {
+          const pts = points(l);
+          const g = guidance[l.n];
+          const headFallback = (l.n === 1 && !state.customPlanStart && first.note)
+            ? `<div class="head-note"><b>${esc(first.name)}:</b> ✎ ${esc(first.note)}</div>` : '';
+          html += `<section class="leg-card"><div class="leg-head"><div class="leg-summary"><span class="kicker">Leg ${l.n}</span><span class="kicker" style="color:var(--muted)">${pts.length-1 + (l.n===1&&state.customPlanStart?1:0)} segment${pts.length-1+(l.n===1&&state.customPlanStart?1:0)===1?'':'s'}</span></div><h3>${esc(mark(l.from).name)} → ${esc(mark(l.to).name)}</h3><p>${l.vias.length ? 'Via ' + l.vias.map(v=>esc(v.name)).join(' → ') : 'Direct — no Via Points'}</p>${headFallback}</div><div class="leg-body">`;
+          let idx = 0;
+          if (l.n === 1 && state.customPlanStart) {
+            html += segRow('Committee boat', first, idx++, pts.length-1+1, ['341°','120°','Port','J2'], 'plan start → Course Mark');
+          }
+          for (let i = 0; i < pts.length - 1; i++) {
+            html += segRow(pts[i].name, pts[i+1], idx++, pts.length-1 + (l.n===1&&state.customPlanStart?1:0), g[i], isVia(pts[i+1]) ? 'ends at Via Point' : 'ends at Course Mark');
+          }
+          html += `</div></section>`;
+        });
+        return html;
+      }
+      function segRow(fromName, toPoint, i, count, g, label){
+        const [bearing, twa, tk, sail] = g;
+        return `<article class="segrow ${isVia(toPoint)?'via-end':''}">
+          <div class="segmeta"><span>Segment ${i+1} of ${count}</span><span>${label}</span></div>
+          <div class="segname">${esc(fromName)} <span aria-hidden="true">→</span> ${esc(toPoint.name)}</div>
+          ${toPoint.note ? `<div class="segnote">${esc(toPoint.note)}</div>` : ''}
+          <div class="metrics"><div class="metric"><small>TWA</small><b>${twa}${tack(tk)}</b></div><div class="metric"><small>Bearing</small><b>${bearing}</b></div><span class="sail">⛵ ${sail}</span></div>
+        </article>`;
+      }
+
+      // ---- sheets: editors + overflow menus --------------------------------
+      function openEditor(k){ const p = fromKey(k); state.sheet = { kind:'edit', k }; state.draft = { name:p.name, note:p.note ?? '', direction:p.direction ?? null }; render(); }
+      function openMenu(k){ state.sheet = { kind:'menu', k }; render(); }
+      function closeSheet(){ state.sheet = null; state.draft = null; render(); }
+      function commit(){
+        const p = fromKey(state.sheet.k), d = state.draft;
+        if (isVia(p) && !p.markBacked) p.name = d.name.trim() || p.name;
+        if (!isVia(p)) p.direction = d.direction;
+        p.note = d.note.trim() ? d.note.trim().slice(0, CAP) : null;
+        state.sheet = null; state.draft = null;
+        say(`Saved “${p.name}”. Note is ${p.note ? p.note.length + ' of ' + CAP + ' characters' : 'empty — the row shows no note line at all'}.`);
+      }
+      function sheetHTML(){
+        if (!state.sheet) return '';
+        const p = fromKey(state.sheet.k), via = isVia(p);
+        if (state.sheet.kind === 'menu') {
+          const items = via
+            ? (p.markBacked
+                ? [['Change Mark','change'],['Remove Via Point','remove']]
+                : [['Relocate on map','relocate'],['Add to saved marks','promote'],['Remove Via Point','remove']])
+            : [['Remove Course Mark','remove']];
+          return `<section class="sheet" role="dialog" aria-modal="true"><h2>${esc(p.name)}</h2><p class="lead">${via ? (p.markBacked ? 'Mark-backed Via Point — relocation is unavailable; linking is one-way.' : 'Course-local Via Point.') : 'Course Mark.'} Tapping the row itself opens the editor; these are the rest.</p>
+            <div class="menu">${items.map(([label,act]) => `<button class="${act==='remove'?'danger':''}" data-act="${act}">${label}</button>`).join('')}</div>
+            <div class="actions"><button data-close>Cancel</button></div></section>`;
+        }
+        const d = state.draft, len = d.note.length, ro = via && p.markBacked;
+        const nameField = via
+          ? `<label class="field ${ro?'ro':''}"><span>Name ${ro?'<i class="lock">FROM SAVED MARK</i>':''}</span><input id="f-name" value="${esc(d.name)}" ${ro?'readonly':''} /></label>`
+          : `<label class="field ro"><span>Mark <i class="lock">COURSE MARK</i></span><input value="${esc(p.name)}" readonly /></label>`;
+        const dirField = via ? '' : `<div class="field"><span>Course direction</span><div class="seg-toggle">${[[null,'None'],['P','Port'],['S','Starboard']].map(([v,l]) => `<button class="${d.direction===v?'on':''}" data-dir="${v}">${l}</button>`).join('')}</div></div>`;
+        const coordField = via
+          ? `<div class="field ${ro?'ro':''}"><span>Coordinates ${ro?'<i class="lock">FROM SAVED MARK</i>':''}</span><input value="${esc(p.lat)}  ${esc(p.lon)}" ${ro?'readonly':''} /></div>` : '';
+        return `<section class="sheet" role="dialog" aria-modal="true">
+          <h2>${via ? 'Via Point' : 'Course Mark'}</h2>
+          <p class="lead">${via ? (p.markBacked ? 'Name and coordinates come from the saved Mark. The note is course-scoped and stays editable here.' : 'Course-local point. Name, note, and coordinates all live on this Course.') : 'The note is course-scoped — the saved Mark keeps none.'}</p>
+          ${nameField}${dirField}
+          <label class="field"><span>Note</span><textarea id="f-note" maxlength="${CAP}" placeholder="Why this point is here — e.g. stay outside the reef">${esc(d.note)}</textarea>
+            <div class="counter ${len>=CAP?'max':''}" id="f-count">${len} / ${CAP}</div></label>
+          ${coordField}
+          <div class="actions"><button data-close>Cancel</button><button class="primary" data-save>Save</button></div>
+        </section>`;
+      }
+
+      // ---- variants + wiring ----------------------------------------------
+      const variants = [
+        { key:'thread-note',    name:'1 — thread-note (decided)', render:() => threadVariant(rowNote, 1, 'Route thread · note as second line', 'The decided design: point name, one badge, a muted clamped note line, explicit reorder arrows, and a ⋯ overflow menu on the same row.') },
+        { key:'thread-compact', name:'2 — thread-compact',        render:() => threadVariant(rowCompact, 2, 'Route thread · note shares the name line', 'Tighter alternative: name and note share one line, reorder arrows collapse into a half-height stack. Same information, roughly 40% less row height — at the cost of note legibility.') },
+        { key:'thread-stacked', name:'3 — thread-stacked',        render:() => threadVariant(rowStacked, 3, 'Route thread · note on its own full-width line', 'The note drops below the controls and gets the full row width, so it competes with nothing. Taller than 1, but the clamp truncates far later.') },
+        { key:'plan-note',      name:'4 — plan-note',             render:planVariant },
+      ];
+      function currentKey(){ const k = new URLSearchParams(location.search).get('variant'); return variants.some(v=>v.key===k) ? k : 'thread-note'; }
+      function switchVariant(delta){ const i = variants.findIndex(v=>v.key===currentKey()); const t = variants[(i+delta+variants.length)%variants.length]; const url = new URL(location); url.searchParams.set('variant', t.key); history.replaceState({}, '', url); render(); }
+
+      function render(){
+        const v = variants.find(x => x.key === currentKey());
+        document.querySelector('#content').innerHTML = v.render();
+        document.querySelector('#variant-label').textContent = v.name;
+        document.querySelector('#course-sub').textContent = `4 Course Marks · 3 Legs · ${totalVias()} Via Points`;
+        const fb = document.querySelector('#feedback');
+        fb.textContent = state.feedback; fb.hidden = !state.feedback;
+        const all = [...marks.map(m=>['Course Mark',m]), ...legs.flatMap(l=>l.vias.map(x=>['Via Point',x]))];
+        document.querySelector('#state').textContent =
+          `VISIBLE STATE\nvariant: ${v.key}\nnote cap: ${CAP} chars\ncustom plan start: ${state.customPlanStart}\nsheet: ${state.sheet ? state.sheet.kind + ' · ' + state.sheet.k : 'closed'}\n\nnotes (length / clamped?)\n` +
+          all.map(([t,p]) => `  ${t.padEnd(11)} ${p.name.padEnd(20)} ${p.note ? String(p.note.length).padStart(3) + ' chars' + (p.note.length > 42 ? ' · clamped' : '') : '  — no note line rendered'}`).join('\n');
+        const sh = document.querySelector('#sheet');
+        sh.innerHTML = sheetHTML(); sh.hidden = !state.sheet;
+        const ta = document.querySelector('#f-note');
+        if (ta) { ta.oninput = () => { state.draft.note = ta.value; const c = document.querySelector('#f-count'); c.textContent = `${ta.value.length} / ${CAP}`; c.classList.toggle('max', ta.value.length >= CAP); }; }
+        const nm = document.querySelector('#f-name');
+        if (nm) nm.oninput = () => { state.draft.name = nm.value; };
+      }
+
+      document.addEventListener('click', e => {
+        const t = e.target.closest('[data-open],[data-menu],[data-move],[data-act],[data-close],[data-save],[data-dir],[data-plan-start]');
+        if (!t) { if (e.target.id === 'sheet') closeSheet(); return; }
+        if (t.dataset.planStart !== undefined) { state.customPlanStart = t.dataset.planStart === '1'; return say(state.customPlanStart ? 'Plan has a custom start: the first Course Mark is now the `to` of a real Leg Segment, so its note rides that row.' : 'No custom start: nothing ends at the first Course Mark, so its note falls back to the Leg 1 group header.'); }
+        if (t.dataset.move) { e.stopPropagation(); const [type,ln,vi,delta] = t.dataset.move.split(':'); const l = leg(+ln), i = +vi, j = i + Number(delta); if (j<0 || j>=l.vias.length) return; [l.vias[i], l.vias[j]] = [l.vias[j], l.vias[i]]; return say(`Reordered “${l.vias[j].name}” inside Leg ${l.n}. Via Points never cross a Course Mark from this control.`); }
+        if (t.dataset.menu) { e.stopPropagation(); return openMenu(t.dataset.menu); }
+        if (t.dataset.open) return openEditor(t.dataset.open);
+        if (t.dataset.dir !== undefined) { state.draft.direction = t.dataset.dir === 'null' ? null : t.dataset.dir; return render(); }
+        if (t.dataset.save !== undefined) return commit();
+        if (t.dataset.close !== undefined) return closeSheet();
+        if (t.dataset.act) {
+          const p = fromKey(state.sheet.k), act = t.dataset.act;
+          if (act === 'remove') {
+            if (isVia(p)) { const l = legs.find(x => x.vias.includes(p)); l.vias.splice(l.vias.indexOf(p), 1); state.sheet = null; return say(`Removed Via Point “${p.name}” and its note. Any saved Mark behind it is untouched.`); }
+            state.sheet = null; return say(`Removing a Course Mark restructures the Course and merges Legs — out of scope for this prototype.`);
+          }
+          state.sheet = null;
+          return say(act === 'promote' ? `“${p.name}” would open the Add-to-saved-marks confirm sheet (ticket 06). The note stays on the route point either way.`
+                   : act === 'change' ? `“${p.name}” would open the Mark chooser. Change Mark keeps row id, Leg, order, and note.`
+                   : `“${p.name}” would open the map to relocate this local pin.`);
+        }
+      });
+      document.addEventListener('keydown', e => {
+        const tag = document.activeElement?.tagName;
+        if (['INPUT','TEXTAREA','SELECT'].includes(tag) || document.activeElement?.isContentEditable) { if (e.key === 'Escape') closeSheet(); return; }
+        if (e.key === 'Escape' && state.sheet) return closeSheet();
+        if (e.key === 'ArrowLeft') switchVariant(-1);
+        if (e.key === 'ArrowRight') switchVariant(1);
+        if ((e.key === 'Enter' || e.key === ' ') && document.activeElement?.dataset?.open) { e.preventDefault(); openEditor(document.activeElement.dataset.open); }
+      });
+      document.querySelector('#prev').onclick = () => switchVariant(-1);
+      document.querySelector('#next').onclick = () => switchVariant(1);
+      render();
+    </script>
+  </body>
+</html>

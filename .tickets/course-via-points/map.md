@@ -24,6 +24,10 @@ An implementation-ready product and technical specification for durable Course V
 
 - [Decide saved-Mark linking and promotion behavior](issues/06-decide-saved-mark-transition-behavior.md) — The chooser hides only the Leg's own bounding Course Marks and stays a flat name list; **Add to saved marks** opens a name-editable confirm sheet validated exactly like Mark creation (so duplicate names save silently) and commits in one transaction; linking is one-way with **Change Mark** but no detach, Mark-backed points are visually distinct and silently undraggable; blocked Mark deletion names each Course and its role, tappable.
 
+- [Specify the route read model, Plan calculation, and leg-data serialization](issues/09-specify-route-query-and-plan-calculation.md) — `useCourseRoute` returns a mapped `CourseRoute` (union route points, Legs, derived Segments, flat `points`); `useCourseMarks` survives for the count badge and the location picker; the `id: -1` start/finish trick is replaced by `buildPlanRoute` with `planEndpoint` points and `legId: null` Legs; pure `computeRouteGuidance({ route, twd })` puts bearing/TWA on Segments only, sail suggestion stays at the row; Leg detail takes `{ planData, legRef, segmentIndex }` instead of a serialized snapshot, so `courseLegDataSchema` is replaced; direction renders only on Course Mark endpoints.
+
+- [Decide Via Point and Course Mark notes](issues/08-decide-route-point-notes.md) — Both route point kinds carry a Course-scoped `note` (capped at 200 chars) on the course-point row, following the `courseMark.direction` precedent; the saved `mark` gets none. It renders clamped to one line under the point name in the Route thread, on the selected Course Map pin, and on the Leg Segment row that *ends* at that point in Plan results (Leg 1 header for the course's first point), and in full on Leg detail. Both row types move to tap-to-edit plus a `⋯` menu holding remove.
+
 ## Not yet specified
 
 - Exact implementation acceptance criteria and implementation-ticket slicing depend on the remaining UI decisions.
@@ -37,3 +41,4 @@ Stale drafts and concurrent edits are no longer fog: ticket 05 made writes immed
 - Inferring, validating, or advertising a route as navigable or safe.
 - Automatic route generation around land, depth, weather, or exclusion zones.
 - Production implementation as part of this wayfinding map.
+- A note on the saved `mark` itself — global, true in every Course ("hard to see against the trees"). Ruled out while deciding [route point notes](issues/08-decide-route-point-notes.md): it is a separate feature with its own surfaces (Mark editor, Mark list) and its own merge rule against the Course-scoped note. Route point notes stay Course-scoped, on the course-point row.
