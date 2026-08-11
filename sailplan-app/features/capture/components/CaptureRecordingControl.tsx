@@ -67,17 +67,25 @@ export function CaptureRecordingControl({
       await stopActiveCaptureRecording();
       setIsRecording(false);
     } catch (error) {
-      setFailure(error instanceof Error ? error.message : 'Could not stop recording');
+      setFailure(
+        error instanceof Error ? error.message : 'Could not stop recording',
+      );
     }
   };
 
   if (isRecording) {
     return (
       <View className='absolute z-20 bottom-0 left-0 right-0 flex-row items-center gap-3 border-t border-border bg-card px-4 py-3 shadow-lg shadow-foreground/20'>
-        <CircleSmall className='text-destructive' size={24} fill='currentColor' />
+        <CircleSmall
+          className='text-destructive'
+          size={24}
+          fill='currentColor'
+        />
         <View className='flex-1'>
           <Text className='font-semibold'>Recording this course</Text>
-          <Text className='text-sm text-muted-foreground'>NMEA log is being saved</Text>
+          <Text className='text-sm text-muted-foreground'>
+            NMEA log is being saved
+          </Text>
         </View>
         <Button variant='destructive' size='sm' onPress={stopRecording}>
           <Text>Stop</Text>
@@ -93,7 +101,7 @@ export function CaptureRecordingControl({
           className='flex-row gap-2 shadow-lg shadow-foreground/20'
           onPress={openPlotterSetup}
         >
-          <Settings size={18} />
+          <Settings className='text-muted-foreground' size={18} />
           <Text>Set up plotter</Text>
         </Button>
       </View>
@@ -119,16 +127,22 @@ export function CaptureRecordingControl({
                   size='icon'
                   onPress={() => setFailure(null)}
                 >
-                  <X size={18} />
+                  <X className='text-muted-foreground' size={18} />
                 </Button>
               </View>
               <View className='flex-row flex-wrap gap-2'>
-                <Button variant='outline' disabled={isConnecting} onPress={startRecording}>
+                <Button
+                  variant='outline'
+                  disabled={isConnecting}
+                  onPress={startRecording}
+                >
                   <Text>Retry</Text>
                 </Button>
                 <Button
                   variant='outline'
-                  onPress={() => Linking.sendIntent('android.settings.WIFI_SETTINGS')}
+                  onPress={() =>
+                    Linking.sendIntent('android.settings.WIFI_SETTINGS')
+                  }
                 >
                   <Text>Open Wi-Fi settings</Text>
                 </Button>
