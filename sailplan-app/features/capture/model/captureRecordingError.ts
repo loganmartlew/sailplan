@@ -37,7 +37,13 @@ export class CaptureRecordingStartError extends Error {
  * the plotter is not at that address".
  */
 export function connectFailureReason(error: Error): CaptureStartReason {
-  return /timed out|timeout|no route|network is unreachable|EHOSTUNREACH|ENETUNREACH/i.test(
+  // `ETIMEDOUT` is listed separately and deliberately: it is the message the
+  // socket actually produces on the no-route path (ticket `13` measured it at
+  // ~31 s), and it matches neither `timed out` nor `timeout` — no space, and a
+  // `D` between `TIME` and `OUT`. Manual test MT5/B7 caught this misclassifying
+  // every real timeout as `refused`, which told a sailor who was not on the
+  // boat's Wi-Fi to go and check the plotter's address.
+  return /timed out|timeout|ETIMEDOUT|no route|network is unreachable|EHOSTUNREACH|ENETUNREACH/i.test(
     error.message,
   )
     ? 'unreachable'

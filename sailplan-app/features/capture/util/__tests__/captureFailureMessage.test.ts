@@ -62,6 +62,11 @@ describe('captureFailureMessage', () => {
 describe('connectFailureReason', () => {
   it.each([
     'Connection timed out',
+    // The message the socket really emits on the no-route path. The suite used
+    // to assert only on the string this module generates itself, so a regex
+    // that missed every real timeout still passed. MT5/B7 found it on device.
+    'connect ETIMEDOUT 10.0.0.1:10110',
+    'ETIMEDOUT',
     'connect EHOSTUNREACH 10.0.0.1:10110',
     'connect ENETUNREACH 10.0.0.1:10110',
     'no route to host',
