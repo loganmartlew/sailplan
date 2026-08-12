@@ -100,6 +100,33 @@ async function reasonOf(promise: Promise<unknown>): Promise<CaptureStartReason> 
 }
 
 describe('startCaptureRecording', () => {
+  it('publishes the latest live wind and cumulative sample count', async () => {
+    const fixture = makeDependencies();
+    const onLiveData = jest.fn();
+    const started = startCaptureRecording(
+      { ...input, onLiveData },
+      fixture.dependencies,
+    );
+
+    connectWithAnchor(fixture);
+    const recording = await started;
+    fixture.dependencies.monotonicNow.mockReturnValue(2_000);
+    fixture.listeners.data?.(validAnchor);
+
+    expect(onLiveData).toHaveBeenLastCalledWith({
+      tws: 5.6,
+      twa: -62.5,
+      sampleCount: 1,
+      lastSampleAt: 1_700_000_000_000,
+    });
+    expect(recording.live).toEqual({
+      tws: 5.6,
+      twa: -62.5,
+      sampleCount: 1,
+      lastSampleAt: 1_700_000_000_000,
+    });
+  });
+
   beforeEach(() => jest.clearAllMocks());
 
   it('opens the raw log on connect and gates session creation on valid anchor data', async () => {

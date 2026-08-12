@@ -13,7 +13,13 @@
 // eas-cli#2556 reports this exact attribute being silently blanked in EAS
 // builds. Verify it survived in the merged manifest after any prebuild.
 
-const { withAndroidManifest, AndroidConfig } = require('expo/config-plugins');
+const fs = require('fs');
+const path = require('path');
+const {
+  withAndroidManifest,
+  withDangerousMod,
+  AndroidConfig,
+} = require('expo/config-plugins');
 
 const PERMISSIONS = [
   'android.permission.FOREGROUND_SERVICE',
@@ -50,7 +56,7 @@ const TOOLS_NS = 'http://schemas.android.com/tools';
 module.exports = function withNmeaForegroundService(config) {
   config = AndroidConfig.Permissions.withPermissions(config, PERMISSIONS);
 
-  return withAndroidManifest(config, cfg => {
+  config = withAndroidManifest(config, cfg => {
     const manifest = cfg.modResults.manifest;
     manifest.$ = manifest.$ ?? {};
     if (!manifest.$['xmlns:tools']) {
@@ -77,4 +83,59 @@ module.exports = function withNmeaForegroundService(config) {
 
     return cfg;
   });
+
+  // RNBA owns the foreground notification but exposes no action-button API.
+  // Add the one action the capture design permits: a deep link back into the
+  // running JS recorder, which closes the raw log and session through the same
+  // stop path as the deliberate hold in-app. This runs on every prebuild, is
+  // idempotent, and fails loudly if an RNBA upgrade changes the source seam.
+  return withDangerousMod(config, [
+    'android',
+    async cfg => {
+      const sourcePath = path.join(
+        cfg.modRequest.projectRoot,
+        'node_modules/react-native-background-actions/android/src/main/java/com/asterinet/react/bgactions/RNBackgroundActionsTask.java',
+      );
+      const marker = 'SAILPLAN_CAPTURE_STOP_ACTION';
+      let source = fs.readFileSync(sourcePath, 'utf8');
+      if (source.includes(marker)) return cfg;
+
+      const builderNeedle = '                .setColor(color);';
+      const builderReplacement = `                .setColor(color)
+                // ${marker}
+                .addAction(0, "Stop", buildCaptureStopIntent(context, linkingURI, contentIntent));`;
+      const methodNeedle = '\n    @Override\n    protected @Nullable\n    HeadlessJsTaskConfig getTaskConfig(Intent intent) {';
+      const methodReplacement = `
+    private static PendingIntent buildCaptureStopIntent(
+            @NonNull Context context,
+            @Nullable String linkingURI,
+            @NonNull PendingIntent fallbackIntent) {
+        if (linkingURI == null) return fallbackIntent;
+        final String separator = linkingURI.contains("?") ? "&" : "?";
+        final Intent stopIntent = new Intent(
+                Intent.ACTION_VIEW,
+                Uri.parse(linkingURI + separator + "stopCapture=true"));
+        int flags = PendingIntent.FLAG_UPDATE_CURRENT;
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+            flags |= PendingIntent.FLAG_IMMUTABLE;
+        }
+        return PendingIntent.getActivity(context, 92902, stopIntent, flags);
+    }
+
+    @Override
+    protected @Nullable
+    HeadlessJsTaskConfig getTaskConfig(Intent intent) {`;
+
+      if (!source.includes(builderNeedle) || !source.includes(methodNeedle)) {
+        throw new Error(
+          'react-native-background-actions changed; update the SailPlan Stop action patch',
+        );
+      }
+      source = source
+        .replace(builderNeedle, builderReplacement)
+        .replace(methodNeedle, methodReplacement);
+      fs.writeFileSync(sourcePath, source);
+      return cfg;
+    },
+  ]);
 };

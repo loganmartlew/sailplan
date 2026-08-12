@@ -6,6 +6,7 @@ import { endCaptureSession } from '../api/captureSession';
 import {
   requestCaptureNotificationPermission,
   stopCaptureForegroundService,
+  updateCaptureForegroundService,
 } from '../util/captureForegroundService';
 import {
   hasAskedBatteryExemption,
@@ -18,6 +19,14 @@ import {
 
 type StartInput = Parameters<typeof startCaptureRecording>[0];
 
+export type CaptureStampHistory = {
+  id: number;
+  sailId: number;
+  sailName: string;
+  sailColor: string;
+  timestamp: number;
+};
+
 /**
  * Recording is app-wide, not screen-local: the capture layer sits above the tab
  * navigator and any screen may show it. Holding this in a screen's `useState`
@@ -27,15 +36,27 @@ type StartInput = Parameters<typeof startCaptureRecording>[0];
 interface CaptureRecordingStore {
   /** The live recording handle. `null` whenever nothing is being recorded. */
   recording: CaptureRecording | null;
+  live: CaptureRecording['live'];
+  lastStamp: CaptureStampHistory | null;
   isConnecting: boolean;
   isStopping: boolean;
   start: (input: StartInput) => Promise<void>;
   stop: () => Promise<void>;
+  setLastStamp: (stamp: CaptureStampHistory | null) => void;
 }
+
+const EMPTY_LIVE: CaptureRecording['live'] = {
+  tws: null,
+  twa: null,
+  sampleCount: 0,
+  lastSampleAt: null,
+};
 
 export const useCaptureRecordingStore = create<CaptureRecordingStore>(
   (set, get) => ({
     recording: null,
+    live: EMPTY_LIVE,
+    lastStamp: null,
     isConnecting: false,
     isStopping: false,
 
@@ -60,8 +81,18 @@ export const useCaptureRecordingStore = create<CaptureRecordingStore>(
         // and MT5 showed the degradation is invisible until `08` adds
         // detection.
         if (!hasAskedBatteryExemption()) await requestBatteryExemption();
-        const recording = await startCaptureRecording(input);
-        set({ recording });
+        const recording = await startCaptureRecording({
+          ...input,
+          onLiveData: live => {
+            set({ live });
+            void updateCaptureForegroundService(
+              live,
+              get().lastStamp?.timestamp ?? null,
+            );
+          },
+        });
+        set({ recording, live: { ...recording.live }, lastStamp: null });
+        void updateCaptureForegroundService(recording.live, null);
       } finally {
         set({ isConnecting: false });
       }
@@ -76,9 +107,17 @@ export const useCaptureRecordingStore = create<CaptureRecordingStore>(
         // handle first would strand a failed stop with no way to retry it and
         // leave the session row `active` forever.
         await recording.stop();
-        set({ recording: null });
+        set({ recording: null, live: EMPTY_LIVE, lastStamp: null });
       } finally {
         set({ isStopping: false });
+      }
+    },
+
+    setLastStamp: lastStamp => {
+      set({ lastStamp });
+      const { recording, live } = get();
+      if (recording) {
+        void updateCaptureForegroundService(live, lastStamp?.timestamp ?? null);
       }
     },
   }),

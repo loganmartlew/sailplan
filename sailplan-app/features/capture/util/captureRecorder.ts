@@ -62,7 +62,22 @@ function chunkByteLength(chunk: RawChunk): number {
 export type CaptureRecording = {
   sessionId: number;
   startedAt: number;
+  live: CaptureLiveData;
   stop: () => Promise<void>;
+};
+
+export type CaptureLiveData = {
+  tws: number | null;
+  twa: number | null;
+  sampleCount: number;
+  lastSampleAt: number | null;
+};
+
+type CaptureRecordingInput = {
+  boatProfileId: number;
+  courseId: number;
+  endpoint: { host: string; port: number };
+  onLiveData?: (live: CaptureLiveData) => void;
 };
 
 export type RecordingDependencies = {
@@ -113,15 +128,7 @@ const productionDependencies: RecordingDependencies = {
  * by socket data events; backgrounding cannot suspend a timer on this path.
  */
 export function startCaptureRecording(
-  {
-    boatProfileId,
-    courseId,
-    endpoint,
-  }: {
-    boatProfileId: number;
-    courseId: number;
-    endpoint: { host: string; port: number };
-  },
+  { boatProfileId, courseId, endpoint, onLiveData }: CaptureRecordingInput,
   dependencies: RecordingDependencies = productionDependencies,
 ): Promise<CaptureRecording> {
   return new Promise((resolve, reject) => {
@@ -146,6 +153,12 @@ export function startCaptureRecording(
     let queuedSamples: ReplayCaptureSample[] = [];
     let persistence = Promise.resolve();
     let preserveRawEvidence = false;
+    const live: CaptureLiveData = {
+      tws: null,
+      twa: null,
+      sampleCount: 0,
+      lastSampleAt: null,
+    };
     const hasFailed = () => phase === 'failed';
 
     /**
@@ -239,6 +252,19 @@ export function startCaptureRecording(
     };
 
     const queuePersistence = (newSamples: ReplayCaptureSample[]) => {
+      if (newSamples.length > 0) {
+        const latest = newSamples[newSamples.length - 1];
+        live.tws = latest.tws;
+        live.twa = latest.twa;
+        live.sampleCount += newSamples.length;
+        live.lastSampleAt = latest.timestamp;
+        try {
+          onLiveData?.({ ...live });
+        } catch {
+          // Live chrome is informational. A rendering or notification callback
+          // must never throw through the socket event and interrupt capture.
+        }
+      }
       if (newSamples.length > 0) queuedSamples.push(...newSamples);
       if (!session || queuedSamples.length === 0 || !parser) return;
       const batch = queuedSamples;
@@ -280,6 +306,7 @@ export function startCaptureRecording(
           resolve({
             sessionId: startedSession.id,
             startedAt,
+            live,
             stop: () => {
               stopInFlight ??= runStop(startedSession.id).catch(error => {
                 stopInFlight = undefined;

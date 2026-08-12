@@ -2,6 +2,8 @@ import { PermissionsAndroid, Platform } from 'react-native';
 import BackgroundService from 'react-native-background-actions';
 import Constants from 'expo-constants';
 import * as IntentLauncher from 'expo-intent-launcher';
+import type { CaptureLiveData } from './captureRecorder';
+import { formatCaptureNotification } from '../model/captureLayerState';
 
 /**
  * `connectedDevice`, never `dataSync` — Android 15 caps `dataSync` at 6 h per
@@ -60,6 +62,23 @@ export async function startCaptureForegroundService(sessionId: number) {
       foregroundServiceType: [...FOREGROUND_SERVICE_TYPE],
     },
   );
+}
+
+export async function updateCaptureForegroundService(
+  live: CaptureLiveData,
+  lastStampAt: number | null,
+): Promise<void> {
+  if (Platform.OS !== 'android' || !BackgroundService.isRunning()) return;
+  const notification = formatCaptureNotification(live, lastStampAt, Date.now());
+  try {
+    await BackgroundService.updateNotification({
+      taskTitle: notification.title,
+      taskDesc: notification.description,
+    });
+  } catch {
+    // The drawer is informational. A notification refresh must never interrupt
+    // the socket, raw log, sample persistence, or the in-app capture layer.
+  }
 }
 
 export async function stopCaptureForegroundService() {

@@ -3,6 +3,7 @@ import 'react-native-gesture-handler';
 
 import { SplashScreen, Tabs } from 'expo-router';
 import * as React from 'react';
+import { Linking, View } from 'react-native';
 import { DARK_THEME, LIGHT_THEME } from '~/lib/constants';
 import { useColorScheme } from '~/lib/useColorScheme';
 import { useAppTheme } from '~/hooks/useAppTheme';
@@ -10,10 +11,13 @@ import { AppProviders } from '~/components/AppProviders';
 import { MigrationGate } from '~/components/MigrationGate';
 import { BoatProfileGate } from '~/features/boatProfile/components/BoatProfileGate';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
-import { View } from 'react-native';
 import { BottomTabBar } from '@react-navigation/bottom-tabs';
 import { ChartGantt, MapPin, Route, Sailboat, Settings } from '~/lib/icons';
-import { CaptureRecordingBar } from '~/features/capture';
+import {
+  CaptureRecordingBar,
+  captureStopSessionId,
+  useCaptureRecordingStore,
+} from '~/features/capture';
 
 export {
   // Catch any errors thrown by the Layout component.
@@ -27,6 +31,21 @@ export default function RootLayout() {
   const { isColorSchemeLoaded } = useAppTheme();
   const { isDarkColorScheme } = useColorScheme();
   const theme = isDarkColorScheme ? DARK_THEME : LIGHT_THEME;
+
+  React.useEffect(() => {
+    const handleUrl = ({ url }: { url: string }) => {
+      const sessionId = captureStopSessionId(url);
+      const state = useCaptureRecordingStore.getState();
+      if (sessionId !== null && state.recording?.sessionId === sessionId) {
+        void state.stop();
+      }
+    };
+    const subscription = Linking.addEventListener('url', handleUrl);
+    void Linking.getInitialURL().then(url => {
+      if (url) handleUrl({ url });
+    });
+    return () => subscription.remove();
+  }, []);
 
   if (!isColorSchemeLoaded) {
     return null;

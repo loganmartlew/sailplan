@@ -5,6 +5,8 @@ export * from './model/rawLogManager';
 export * from './api/plotterSetup';
 export * from './api/captureSession';
 export * from './api/rawLogs';
+export * from './api/sailStamp';
+export * from './model/captureLayerState';
 export * from './store/captureRecordingStore';
 export * from './util/testPlotterConnection';
 export * from './util/captureFailureMessage';
