@@ -7,6 +7,10 @@ import {
   requestCaptureNotificationPermission,
   stopCaptureForegroundService,
 } from '../util/captureForegroundService';
+import {
+  hasAskedBatteryExemption,
+  requestBatteryExemption,
+} from '../util/batteryOptimization';
 import { CaptureRecordingStartError } from '../model/captureRecordingError';
 import {
   startCaptureRecording,
@@ -47,6 +51,14 @@ export const useCaptureRecordingStore = create<CaptureRecordingStore>(
             new Error('POST_NOTIFICATIONS was not granted'),
           );
         }
+
+        // Asked once, before the socket opens, for the same reason the
+        // notification permission is: spending the ~31 s connect budget only
+        // to interrupt a working recording with a dialog is worse than asking
+        // up front. Never blocks the start — a declined exemption degrades the
+        // recording, it does not prevent it, and MT5 showed the degradation is
+        // invisible until `08` adds detection.
+        if (!hasAskedBatteryExemption()) await requestBatteryExemption();
         const recording = await startCaptureRecording(input);
         set({ recording });
       } finally {

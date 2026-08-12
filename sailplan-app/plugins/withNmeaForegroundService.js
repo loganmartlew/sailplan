@@ -18,9 +18,22 @@ const { withAndroidManifest, AndroidConfig } = require('expo/config-plugins');
 const PERMISSIONS = [
   'android.permission.FOREGROUND_SERVICE',
   'android.permission.FOREGROUND_SERVICE_CONNECTED_DEVICE',
-  // Keeps the CPU alive with the screen off. Without it a race-length capture
-  // is at the mercy of Doze.
+  // Keeps the CPU alive with the screen off.
+  //
+  // **This is not sufficient on its own, and it was once assumed to be.** MT5
+  // measured a phone in deep Doze with this permission held and the
+  // `connectedDevice` service running: the process survived, the service
+  // survived, and Android destroyed the TCP socket anyway at 2 m 43 s
+  // (`Destroyed live tcp sockets for uids={[10000, 2147483647]}`), with the UI
+  // still showing a healthy recording 35 minutes later. A wake lock keeps the
+  // CPU running; it does not exempt the app from Doze's *network* rules.
+  // That needs the battery-optimisation exemption below.
   'android.permission.WAKE_LOCK',
+  // Lets the app ask, in one tap, to be exempted from Doze. The same run
+  // showed the socket surviving 13.7 minutes of deep Doze with the exemption
+  // granted and dying at 2 m 43 s without it. Requesting it still shows a
+  // system dialog the sailor must accept — an app cannot exempt itself.
+  'android.permission.REQUEST_IGNORE_BATTERY_OPTIMIZATIONS',
   // The runtime prerequisite that legitimises the `connectedDevice` type.
   // Normal (install-time) permission — no runtime prompt.
   'android.permission.CHANGE_WIFI_STATE',
