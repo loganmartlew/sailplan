@@ -1,7 +1,7 @@
 # Prototype the Leg detail screen under multi-Segment Legs
 
 Type: prototype
-Status: open
+Status: resolved
 Blocked by:
 
 ## Question
@@ -63,3 +63,61 @@ was deliberately left untouched.
 
 Compare variants at zero, one, and several Via Points, with wind uncertainty
 both off and on, since the off case must stay byte-for-byte today's screen.
+
+## Answer
+
+**Leg detail is the detail of one Leg Segment**, not the whole Mark-to-Mark
+Leg. Settled against a five-variant prototype, in two passes — the first
+three read as crowded and not felt-friendly; a per-Segment screen with a
+small addition, below, is what survived.
+
+- **The Leg-bounds banner is part of the decision, not optional polish.** A
+  slim header — `LEG 2  Windward P → Leeward Gate S` — names the Leg's two
+  actual bounding Course Marks above the focused Segment's own endpoint pair,
+  carrying the same P/S badges the rounding-direction rule already reserves
+  for them. Without it, a sailor drilled into `Windward → Headland clearance`
+  has no way to see they're still inside `Leg 2: Windward → Leeward Gate`; a
+  Segment-only screen isn't the right shape without it.
+- **Navigation**: reached from a Segment row in Plan results (ticket
+  [04](04-prototype-plan-presentation.md)), not from the Leg group header —
+  there is no per-Leg screen to reach. The group header stays a
+  non-interactive heading.
+- **Route point notes** (ticket [08](08-decide-route-point-notes.md)): the
+  Segment-screen branch of that unit-agnostic rule applies — two endpoints'
+  notes only, unchanged from what's shown today.
+- **Data contract** (ticket [09](09-specify-route-query-and-plan-calculation.md)):
+  unaffected. `legRef` + `segmentIndex` was deliberately kept generic enough
+  for either answer; this ticket confirms `segmentIndex` names the focused
+  Segment and `legRef` supplies the Leg-bounds banner plus the enclosing Leg's
+  other Segments for moving between them.
+- **Not decided here**: the control for moving to another Segment in the
+  same Leg. A prev/next stepper and a tappable position-dot strip both read
+  fine once the Leg-bounds banner is in place — the stepper is the current
+  pick, cheap to swap for the dot strip later; that choice belongs at
+  implementation time, not this ticket.
+
+### Rejected
+
+- **Whole-Leg, every Segment expanded** — confirmed the crowding risk this
+  ticket called out: four complete TWA/case-cards/breakdown blocks stacked on
+  one screen at Leg 3 with wind on.
+- **Whole-Leg, one Segment focused** — better than the above, but still
+  carries a route thread and a stacked list of collapsed Segment rows a
+  Segment-only screen doesn't need.
+- **Whole-Leg, tab strip** — the strongest of the whole-Leg attempts, and not
+  disliked. Rejected anyway: a whole-Leg screen answers "what does this Leg
+  look like end to end", which Plan results (ticket 04) already answers one
+  level up with its Mark-to-Mark Leg groups. A Segment-only Leg detail avoids
+  building a second screen for the same overview.
+
+## Comments
+
+- **Prototype asset**: [leg detail multi-Segment mockup](../prototypes/leg-detail-multi-segment/index.html?variant=segment)
+  — run `python3 -m http.server 8000 --directory .tickets/course-via-points/prototypes/leg-detail-multi-segment`;
+  see its [README](../prototypes/leg-detail-multi-segment/README.md). Five
+  variants (two passes) across Legs with zero, one, and three Via Points, wind
+  uncertainty off through ±30°.
+- **Human verdict**: `segment` accepted, with the Leg-bounds banner added in
+  the second pass. `segment-lean` (dot-strip swap control) is an accepted
+  alternate for the same unit, not chosen only because the call between the
+  two was a coin flip.

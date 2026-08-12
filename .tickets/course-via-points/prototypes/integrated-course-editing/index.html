@@ -1,0 +1,805 @@
+<!doctype html>
+<!--
+  THROWAWAY PROTOTYPE — the integrated Course Detail / Course Map / Course Plan
+  flow for ticket 07. Combines the accepted decisions from tickets 03 (Route
+  thread + map sheet), 04 (Mark-to-Mark Plan groups), 05 (no draft, immediate
+  durable writes), and 06 (Mark-backed styling, Change Mark, promotion).
+  Compares three transition-and-reversal models via ?variant=sheet-toast|
+  full-log|inline-row. Not production app code. All state is in memory.
+-->
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Integrated Course editing flow — prototype</title>
+    <style>
+      :root { --ink:#10233c; --muted:#65758b; --line:#d9e2ec; --paper:#f7fafc; --card:#fff; --navy:#0b2447; --blue:#146cbe; --aqua:#0e9f9a; --green:#0f766e; --gold:#f2b84b; --red:#c0392f; --amber:#8a4d0d; }
+      * { box-sizing:border-box; }
+      body { margin:0; background:#e9f0f6; color:var(--ink); font:15px/1.4 Inter,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif; }
+      button { font:inherit; cursor:pointer; }
+      button:focus-visible, [role="button"]:focus-visible { outline:3px solid var(--gold); outline-offset:2px; }
+      .prototype-note { max-width:760px; margin:16px auto 10px; padding:0 16px; color:#36516f; font-size:13px; }
+      .phone { position:relative; width:min(100%,390px); min-height:100vh; margin:auto; background:var(--paper); padding-bottom:150px; box-shadow:0 0 40px rgba(8,28,50,.14); overflow-x:hidden; }
+      header.top { position:relative; display:flex; align-items:flex-start; justify-content:space-between; gap:10px; color:#fff; background:linear-gradient(135deg,#0b2447,#124b78); padding:18px 16px 14px; }
+      .eyebrow { color:#b9def1; font-size:11px; font-weight:800; letter-spacing:.11em; text-transform:uppercase; }
+      header.top h1 { margin:4px 0 3px; font-size:22px; line-height:1.1; }
+      header.top .sub { color:#d7e8f3; font-size:12.5px; }
+      #nav-btn { flex:none; margin-top:2px; padding:7px 10px; border:1px solid rgba(255,255,255,.4); border-radius:9px; background:rgba(255,255,255,.1); color:#fff; font-size:12px; font-weight:800; }
+      main { padding:12px; }
+      .variant-blurb { margin:0 0 12px; padding:10px 11px; border:1px solid #c7dcec; border-radius:11px; background:#f2f8fd; color:#2c4a66; font-size:12.5px; }
+      .feedback { margin:0 0 12px; padding:8px 10px; border-left:3px solid var(--gold); background:#fffbeb; color:#754308; font-size:12px; }
+      .feedback[hidden] { display:none; }
+
+      /* ---- inline map preview / expansion ---- */
+      .inline-map { display:block; position:relative; width:100%; height:118px; margin:0 0 14px; overflow:hidden; padding:0; border:1px solid #9bc9df; border-radius:12px; background:linear-gradient(135deg,#bce8f7,#e9f8f7 57%,#d5efd4 57%); text-align:left; }
+      .inline-map svg { position:absolute; inset:0; width:100%; height:100%; }
+      .inline-map span { position:absolute; left:10px; bottom:9px; padding:5px 7px; border-radius:7px; background:#10233edc; color:#fff; font-size:11px; font-weight:800; }
+      .map-inline { margin:0 0 14px; border:1px solid #9bc9df; border-radius:12px; overflow:hidden; background:#fff; }
+      .inline-head { display:flex; align-items:center; justify-content:space-between; padding:9px 11px; background:#eef7fc; color:#175077; font-size:12px; font-weight:800; }
+      .inline-head button { border:0; background:none; color:#175077; font-weight:800; font-size:12px; }
+
+      /* ---- Route thread ---- */
+      .thread { position:relative; margin-left:8px; border-left:2px solid #c8dcec; padding-left:16px; }
+      .anchor { position:relative; padding:2px 0 14px; }
+      .anchor:before { content:""; position:absolute; left:-23px; top:14px; width:11px; height:11px; border:3px solid var(--navy); border-radius:50%; background:#fff; }
+      .mark-name { display:flex; align-items:center; gap:8px; min-height:30px; }
+      .mark-glyph { display:none; }
+      .move-mark { margin-left:auto; border:0; background:none; color:var(--amber); padding:5px; font-size:11px; font-weight:800; }
+      .leg-box { margin:8px 0 2px; border:1px solid var(--line); border-radius:11px; overflow:hidden; background:#fff; }
+      .leg-title { display:flex; align-items:center; justify-content:space-between; gap:8px; padding:8px 10px; background:#f4f8fc; color:#47627c; font-size:11px; font-weight:800; }
+      .leg-title small { display:block; margin-top:1px; color:var(--muted); font-weight:600; }
+      .leg-count { color:var(--green); white-space:nowrap; }
+      /* A gap is the space between two consecutive points — the only place a new
+         Via Point can go. Tapping one starts an add scoped to it. Nothing stays
+         selected afterwards: there is no selection mode in this design. */
+      .gap { display:flex; gap:8px; align-items:center; width:100%; padding:7px 10px; border:0; border-top:1px solid #eef2f7; background:#fff; color:#8095a9; font-size:11px; text-align:left; }
+      .gap-txt { flex:1; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+      .gap-add { flex:none; padding:3px 9px; border:1px solid #bcdbf0; border-radius:99px; background:#f4fbff; color:var(--navy); font-size:10.5px; font-weight:900; }
+      .gap:hover .gap-add, .gap:active .gap-add { border-color:var(--navy); background:#e0f1ff; }
+
+      .row { display:flex; gap:9px; align-items:flex-start; width:100%; padding:9px 10px; border-top:1px dashed #cfe0d6; background:#f5fbf7; color:var(--ink); text-align:left; }
+      .row.linked { border-top-color:#cddcec; background:#f4f8fd; }
+      .glyph { display:grid; place-items:center; flex:none; width:22px; height:22px; margin-top:1px; border-radius:6px; font-size:13px; font-weight:900; color:var(--green); background:#dff3e9; }
+      .row.linked .glyph { color:#1f5f96; background:#dbeafe; box-shadow:inset 0 0 0 1.5px #1f5f96; }
+      .body { flex:1; min-width:0; }
+      .name { display:flex; align-items:center; gap:5px; flex-wrap:wrap; font-size:13.5px; font-weight:800; }
+      .name .txt { overflow:hidden; text-overflow:ellipsis; white-space:nowrap; max-width:170px; }
+      .name .txt[role="button"] { cursor:text; border-bottom:1px dashed #9db3c8; }
+      .role { display:block; margin-top:1px; color:var(--muted); font-size:10.5px; font-weight:700; }
+      .badge { flex:none; padding:1px 5px; border-radius:5px; font-size:9.5px; font-weight:900; letter-spacing:.03em; }
+      .badge.saved { background:#dbeafe; color:#1f5f96; }
+      .badge.local { background:#dff3e9; color:var(--green); }
+      .badge.dir { background:#fee9e6; color:#a13226; }
+      .badge.dir.s { background:#e3f6ee; color:#116348; }
+      .badge.sm { font-size:8.5px; vertical-align:1px; }
+      .ctrls { display:flex; flex:none; gap:3px; align-items:center; }
+      .tiny { display:grid; place-items:center; width:26px; height:26px; padding:0; border:1px solid #c6d6e4; border-radius:7px; background:#fff; color:#3b5d7d; font-size:12px; font-weight:900; }
+      .tiny.more { border-color:#b7c7d6; font-size:15px; letter-spacing:1px; }
+      .tiny:disabled { opacity:.3; cursor:not-allowed; }
+      .rename-input { width:100%; max-width:190px; padding:2px 5px; border:1px solid var(--blue); border-radius:5px; font:inherit; font-weight:800; font-size:13.5px; }
+      .inline-undo { margin-top:4px; padding:4px 7px; border-radius:7px; background:#fff4d6; color:#7a4a06; font-size:11px; font-weight:700; }
+      .inline-undo button { margin-left:5px; border:0; background:none; color:#1f5f96; font-weight:900; text-decoration:underline; }
+      .ghost { margin:0; padding:9px 10px; border-top:1px dashed #e6b8b8; background:#fdf3f2; color:#8a3a33; font-size:12px; }
+      .ghost button { margin-left:6px; border:0; background:none; color:#1f5f96; font-weight:900; text-decoration:underline; }
+      .popover-backdrop { position:fixed; z-index:28; inset:0; background:transparent; }
+      .popover-backdrop[hidden] { display:none; }
+      .row-popover { position:fixed; z-index:29; display:flex; flex-direction:column; gap:1px; width:190px; padding:5px; border-radius:12px; background:#fff; box-shadow:0 12px 30px rgba(10,30,55,.28); animation:popIn .12s ease; }
+      .row-popover[hidden] { display:none; }
+      .row-popover button { padding:10px 10px; border:0; border-radius:8px; background:none; color:#1d3a58; font-size:13px; font-weight:700; text-align:left; }
+      .row-popover button.danger { color:#a5342a; }
+      @keyframes popIn { from { opacity:0; transform:translateY(-4px) scale(.97); } to { opacity:1; transform:none; } }
+
+      .action { border:1px solid #b9d8ee; background:#f4fbff; color:var(--navy); border-radius:8px; padding:8px 10px; font-weight:800; font-size:12px; }
+      .action.primary { border-color:var(--navy); background:var(--navy); color:#fff; }
+      .action:disabled { opacity:.45; cursor:not-allowed; }
+      .done-btn { display:block; width:100%; margin-top:16px; padding:12px; text-align:center; }
+
+      /* ---- overlays: sheet + full screen ---- */
+      .overlay-backdrop { position:fixed; z-index:20; inset:0; display:flex; justify-content:center; }
+      .overlay-backdrop[hidden] { display:none; }
+      .overlay-backdrop.sheet { align-items:flex-end; background:rgba(4,22,39,.5); }
+      .overlay-backdrop.full { align-items:stretch; background:var(--paper); }
+      .sheet-card { width:min(100%,390px); max-height:88vh; overflow:auto; border-radius:18px 18px 0 0; background:var(--card); animation:slideUp .2s ease; }
+      .sheet-card.small { max-height:none; }
+      @keyframes slideUp { from { transform:translateY(24px); opacity:.4; } to { transform:translateY(0); opacity:1; } }
+      .sheet-head { position:sticky; top:0; display:flex; align-items:center; justify-content:space-between; padding:13px 14px; border-bottom:1px solid var(--line); background:#fff; font-weight:900; font-size:14px; }
+      .sheet-lead { margin:10px 14px 4px; color:var(--muted); font-size:12.5px; }
+      .close { border:0; background:none; color:var(--muted); font-size:22px; line-height:1; }
+      .full-screen { width:min(100%,390px); height:100vh; overflow:auto; background:var(--paper); animation:slideUp .2s ease; }
+      .full-head { position:sticky; top:0; z-index:2; display:flex; align-items:center; justify-content:space-between; padding:14px; background:linear-gradient(135deg,#0b2447,#124b78); color:#fff; font-weight:800; font-size:13px; }
+      .full-head .back { border:0; background:none; color:#fff; font-weight:800; font-size:13px; }
+      .full-body { padding:12px; }
+
+      /* ---- map surface (shared) ---- */
+      .map-surface { position:relative; width:100%; height:230px; overflow:hidden; background:linear-gradient(135deg,#bce8f7,#e9f8f7 57%,#d5efd4 57%); }
+      .sheet-card .map-surface { height:210px; }
+      .map-surface.crosshair { cursor:crosshair; }
+      .island { position:absolute; right:-40px; top:20px; width:150px; height:210px; transform:rotate(-16deg); border-radius:47% 0 0 38%; background:#a4cc91; opacity:.8; }
+      .map-route { position:absolute; inset:0; }
+      .map-route svg { width:100%; height:100%; }
+      .map-pin { position:absolute; transform:translate(-50%,-50%); padding:3px 6px; border:0; border-radius:9px; background:var(--navy); color:#fff; font-size:9.5px; font-weight:900; white-space:nowrap; }
+      .map-pin.mark-pin { background:var(--navy); }
+      .map-pin.local-via-pin { background:#dff3e9; color:var(--green); border:2px solid var(--green); font-size:12px; padding:3px 5px; }
+      .map-pin.mark-via-pin { background:#dbeafe; color:#1f5f96; border:2px solid #1f5f96; font-size:12px; padding:3px 5px; cursor:default; }
+      .map-pin.dragging { box-shadow:0 0 0 6px #fbbf247a; background:#fff7e6; color:var(--amber); border:2px dashed var(--amber); font-size:12px; padding:3px 5px; }
+      .map-note { padding:11px 13px 3px; color:#38566f; font-size:12px; }
+      .map-field { display:block; padding:8px 13px 4px; color:#3d5772; font-size:11.5px; font-weight:800; }
+      .map-field input { display:block; width:100%; margin-top:5px; padding:8px 9px; border:1px solid #9bb8d4; border-radius:8px; color:var(--ink); font:inherit; font-weight:700; }
+      .map-actions { display:flex; gap:8px; padding:10px 13px 13px; }
+      .map-actions .action { flex:1; }
+      .read-only-tag { padding:0 14px; }
+      .edit-note { margin:6px 14px 14px; padding:8px 10px; border-radius:8px; background:#eef4fa; color:#3d5772; font-size:11.5px; }
+
+      /* ---- generic dialog ---- */
+      .dialog-backdrop { position:fixed; z-index:30; inset:0; display:flex; align-items:flex-end; justify-content:center; background:rgba(4,22,39,.54); }
+      .dialog-backdrop[hidden] { display:none; }
+      .choice-actions { display:flex; gap:8px; padding:12px 14px 16px; }
+      .choice-actions .action { flex:1; padding:14px 10px; }
+      .mark-list { display:flex; flex-direction:column; gap:1px; padding:8px 10px 14px; max-height:44vh; overflow:auto; }
+      .mark-list button { padding:12px 10px; border:0; border-radius:9px; background:#f5f8fb; color:#173a58; font-weight:700; text-align:left; }
+      .field { display:block; margin:0 14px 12px; }
+      .field > span { display:block; margin-bottom:4px; color:#3d5772; font-size:11.5px; font-weight:800; }
+      .field input { width:100%; padding:9px 10px; border:1px solid #b6c8d8; border-radius:9px; color:var(--ink); font:inherit; }
+      .field.ro input { background:#eef2f6; color:#5b7290; }
+      .lock { display:inline-block; margin-left:6px; padding:1px 5px; border-radius:5px; background:#e6edf3; color:#5b7290; font-size:9.5px; font-weight:900; }
+      .actions { display:flex; gap:8px; margin:14px; }
+      .actions button { flex:1; padding:11px; border:1px solid var(--line); border-radius:10px; background:#fff; color:#113b5d; font-weight:800; }
+      .actions .primary { border-color:var(--blue); background:var(--blue); color:#fff; }
+      .blocked-list { display:flex; flex-direction:column; gap:8px; margin:0 14px 6px; }
+      .blocked-leg { padding:8px 10px; border-radius:9px; background:#fdf3f2; }
+      .blocked-leg b { display:block; font-size:12px; color:#8a3a33; }
+      .blocked-leg span { color:#a15850; font-size:11.5px; }
+
+      /* ---- reversal chrome: toast + log ---- */
+      #toast { position:fixed; z-index:25; left:50%; bottom:78px; display:flex; align-items:center; gap:10px; width:min(calc(100% - 28px),362px); padding:11px 12px; border-radius:12px; background:#10233e; color:#fff; font-size:12.5px; box-shadow:0 12px 28px rgba(5,25,45,.4); transform:translateX(-50%); }
+      #toast[hidden] { display:none; }
+      #toast span { flex:1; }
+      #toast button { border:0; background:none; color:#8fd4ff; font-weight:900; }
+      #toast button.dismiss { color:#9fb4c9; font-size:16px; font-weight:400; }
+      #log-drawer { position:fixed; z-index:15; left:50%; bottom:70px; width:min(calc(100% - 28px),362px); transform:translateX(-50%); }
+      #log-drawer[hidden] { display:none; }
+      .log-toggle { width:100%; padding:9px 12px; border:1px solid #1e4f78; border-radius:10px; background:#0e2c48; color:#dceeff; font-size:12px; font-weight:800; text-align:left; box-shadow:0 10px 24px rgba(5,25,45,.35); }
+      .log-list { max-height:36vh; overflow:auto; margin-top:5px; padding:5px; border-radius:10px; background:#0e2c48; box-shadow:0 10px 24px rgba(5,25,45,.35); }
+      .log-item { display:flex; align-items:center; justify-content:space-between; gap:8px; padding:8px 8px; border-radius:7px; color:#dceeff; font-size:11.5px; }
+      .log-item + .log-item { border-top:1px solid #1c3f60; }
+      .log-item.done { color:#7b93ab; }
+      .log-item button { flex:none; border:0; background:none; color:#8fd4ff; font-weight:900; }
+      .log-item button:disabled { color:#4c6478; }
+      .log-item i { font-style:normal; color:#5f7893; font-size:11px; }
+      .log-empty { margin:10px; color:#9fb4c9; font-size:11.5px; }
+
+      /* ---- Plan results ---- */
+      .recalc-banner { margin:0 0 12px; padding:9px 10px; border:1px solid #b9e4d5; border-radius:11px; background:#edfff8; color:#166a55; font-size:12.5px; font-weight:700; }
+      .overview { display:grid; grid-template-columns:1fr auto; gap:10px; align-items:center; margin-bottom:12px; padding:11px; border:1px solid var(--line); border-radius:14px; background:var(--card); }
+      .overview strong { display:block; font-size:13.5px; }
+      .overview span { color:var(--muted); font-size:12px; }
+      .map-link { padding:0; border:0; background:none; color:var(--blue); font-weight:750; text-decoration:underline; text-underline-offset:3px; }
+      .leg-card { margin-bottom:13px; overflow:hidden; border:1px solid #cad9e5; border-radius:15px; background:#fff; }
+      .leg-head { padding:12px; background:#f3f8fc; border-bottom:1px solid #dce7ef; }
+      .leg-head h3 { margin:3px 0 1px; font-size:16px; }
+      .leg-head p { margin:0; color:var(--muted); font-size:12px; }
+      .kicker { color:var(--blue); font-size:11px; font-weight:800; letter-spacing:.07em; text-transform:uppercase; }
+      .kicker.muted { color:var(--muted); }
+      .leg-summary { display:flex; align-items:center; justify-content:space-between; gap:8px; }
+      .leg-body { padding:8px 8px 4px; }
+      .segrow { position:relative; padding:11px 6px 12px 26px; }
+      .segrow:before { content:""; position:absolute; left:12px; top:20px; bottom:-14px; width:2px; background:#bdd1df; }
+      .segrow:last-child:before { display:none; }
+      .segrow:after { content:""; position:absolute; left:8px; top:18px; width:8px; height:8px; border-radius:50%; background:var(--blue); box-shadow:0 0 0 3px #e5f1f8; }
+      .segrow.via-end:after { background:var(--aqua); }
+      .segmeta { display:flex; align-items:center; justify-content:space-between; gap:8px; color:var(--muted); font-size:11px; }
+      .segname { margin:3px 0 0; font-weight:800; font-size:14.5px; }
+      .metrics { display:flex; align-items:center; justify-content:space-between; gap:8px; margin-top:8px; padding-top:8px; border-top:1px solid #edf1f5; }
+      .metric small { display:block; color:var(--muted); font-size:10.5px; }
+      .metric b { display:block; font-size:17px; }
+      .sail { display:inline-flex; align-items:center; gap:5px; padding:4px 8px; border-radius:99px; background:#dff6ef; color:#12694f; font-size:12px; font-weight:800; }
+      .tack { display:inline-block; margin-left:4px; padding:2px 5px; border-radius:5px; background:#e8f1ff; color:#245e9a; font-size:10px; font-weight:800; vertical-align:2px; }
+      .tack.port { background:#fff0ef; color:#b33f3a; }
+
+      .state { margin-top:14px; padding:10px; border:1px dashed #afc4d5; border-radius:10px; background:#f1f7fb; color:#3f5c72; font:11px/1.5 ui-monospace,SFMono-Regular,Menlo,monospace; white-space:pre-wrap; }
+      .prototype-bar { position:fixed; z-index:10; bottom:16px; left:50%; display:flex; align-items:center; gap:7px; width:min(calc(100% - 28px),362px); padding:8px; border:1px solid #1e4f78; border-radius:999px; background:#09233c; color:#fff; box-shadow:0 12px 28px rgba(5,25,45,.35); transform:translateX(-50%); }
+      .prototype-bar button { width:34px; height:34px; border:0; border-radius:50%; background:#1a507a; color:#fff; font-size:20px; }
+      .prototype-bar .label { flex:1; text-align:center; font-size:11.5px; font-weight:800; }
+      @media (min-width:650px) { body { padding:18px 0 0; } .phone { min-height:calc(100vh - 36px); border-radius:20px; overflow:hidden; } }
+    </style>
+  </head>
+  <body>
+    <div class="prototype-note"><strong>THROWAWAY PROTOTYPE.</strong> The integrated Course Detail → Course Map → Course Plan flow for ticket 07. There is no draft and no Save/Cancel — every action commits the instant it's unambiguous — so what's under comparison is <em>how the Course Map relates to Course Detail</em> and <em>how each committed action gets reversed</em>. The one deliberate exception: dropping or moving a map pin previews the position and waits for an explicit confirm, because a spatial tap can't be judged correct until you see it — every other action (rename, reorder, remove, promote, Change Mark) still commits on the one gesture that expresses it. Switch with the floating control or ←/→. State is in memory and shared across variants.</div>
+    <div class="phone">
+      <header class="top">
+        <div>
+          <div class="eyebrow">Course detail · prototype</div>
+          <h1>Winter Series — Harbour Loop</h1>
+          <div class="sub" id="course-sub"></div>
+        </div>
+        <button id="nav-btn"></button>
+      </header>
+      <main>
+        <div id="feedback" class="feedback" hidden></div>
+        <section id="content" aria-live="polite"></section>
+        <div class="state" id="state"></div>
+      </main>
+      <div id="toast" hidden></div>
+      <div id="log-drawer" hidden></div>
+    </div>
+    <nav class="prototype-bar" aria-label="Prototype variant switcher">
+      <button id="prev" aria-label="Previous variant">←</button><div class="label" id="variant-label"></div><button id="next" aria-label="Next variant">→</button>
+    </nav>
+    <div id="map-overlay" class="overlay-backdrop" hidden onclick="if(event.target===this) collapseMapReturn()"></div>
+    <div id="dialog" class="dialog-backdrop" hidden onclick="if(event.target===this) closeAnyDialog()"></div>
+    <div id="row-popover-backdrop" class="popover-backdrop" hidden onclick="closeRowMenu()"></div>
+    <div id="row-popover" class="row-popover" hidden></div>
+    <script>
+      // ---- in-memory route model ---------------------------------------
+      const courseMarks = ['Start', 'Windward', 'Leeward Gate', 'Finish Mark'];
+      const markMeta = { Start:{dir:null}, Windward:{dir:'P'}, 'Leeward Gate':{dir:'S'}, 'Finish Mark':{dir:null} };
+      const markPos  = { Start:{x:10,y:80}, Windward:{x:34,y:56}, 'Leeward Gate':{x:62,y:52}, 'Finish Mark':{x:88,y:22} };
+      const savedMarks = ['Start','Windward','Leeward Gate','Finish Mark','Mole End','Channel North','Fairway Buoy','Old Wreck','Beacon Four'];
+      const legs = [
+        { n:1, from:'Start', to:'Windward', vias:[] },
+        { n:2, from:'Windward', to:'Leeward Gate', vias:[
+          { id:'v1', name:'Headland clearance', markBacked:false, pos:{x:48,y:50} },
+        ] },
+        { n:3, from:'Leeward Gate', to:'Finish Mark', vias:[
+          { id:'v2', name:'Mole End',      markBacked:true,  markName:'Mole End',      pos:{x:68,y:44} },
+          { id:'v3', name:'Channel North', markBacked:true,  markName:'Channel North', pos:{x:75,y:36} },
+          { id:'v4', name:'Shoal edge',    markBacked:false, pos:{x:81,y:29} },
+        ] },
+      ];
+      const guidanceTable = [
+        ['028°','168°','Port','A2'], ['154°','066°','Starboard','J2'], ['212°','008°','—','No suggestion'],
+        ['272°','052°','Port','J2'], ['318°','098°','Starboard','A2'], ['006°','146°','Port','Code 0'], ['341°','120°','Port','J2'],
+      ];
+
+      const variantMeta = {
+        'sheet-toast': { label:'A · Sheet + snackbar', blurb:'The Course Map opens as a bottom sheet over Course Detail — a familiar, partial-height layer. Each immediate action surfaces one dismissible snackbar with Undo; a new action, or dismissing it, retires the last one for good.' },
+        'full-log':    { label:'B · Full screen + log', blurb:'The Course Map takes the whole phone, with an explicit "‹ Back to Course Detail" instead of a dim backdrop. A persistent "Recent changes" log replaces the snackbar — every immediate action stays inspectable, undoable in order, not just the last one.' },
+        'inline-row':  { label:'C · Inline + row-local undo', blurb:'The Course Map never leaves Course Detail — it expands in place, in the scroll flow. Reversal lives on the exact row that changed, right where the sailor is looking, instead of in a shared toast or log elsewhere on screen.' },
+      };
+
+      const state = {
+        variant: fromURL(),
+        screen: 'detail',
+        // Where a pending add will land. Transient — set when an add starts,
+        // cleared the moment it commits or cancels. null while placing on the
+        // map means "infer it from where the sailor taps".
+        insertAt: null,
+        inferredAt: null,
+        mapExpanded: false,
+        mapMode: 'read', // read | place | move
+        mapReturnOrigin: 'detail',
+        renamingId: null,
+        movingId: null,
+        rowMenu: null,
+        rowMenuPos: null,
+        draftVia: null,
+        pendingMovePos: null,
+        addChoice: null,
+        markChooser: null,
+        crossMove: null,
+        promote: null,
+        blockedMove: null,
+        planMapOpen: false,
+        planRecalculated: false,
+        logOpen: false,
+        feedback: '',
+        toast: null,
+        log: [],
+        inlineMarks: {},
+        ghosts: [],
+        editCount: 0,
+        planSeenAt: 0,
+      };
+
+      function fromURL(){ const v = new URLSearchParams(location.search).get('variant'); return ['sheet-toast','full-log','inline-row'].includes(v) ? v : 'sheet-toast'; }
+
+      // ---- helpers --------------------------------------------------------
+      const $ = s => document.querySelector(s);
+      const esc = s => String(s ?? '').replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+      const uid = p => `${p}-${Math.random().toString(36).slice(2,8)}`;
+      const legById = n => legs.find(l => l.n === n);
+      const allVias = () => legs.flatMap(l => l.vias);
+      const totalVias = () => allVias().length;
+      const viaById = id => allVias().find(v => v.id === id);
+      const legOfVia = id => legs.find(l => l.vias.some(v => v.id === id));
+      function points(leg){ return [leg.from, ...leg.vias.map(v => v.name), leg.to]; }
+      function segments(leg){ const p = points(leg); return p.slice(0,-1).map((from,i) => ({from, to:p[i+1], index:i})); }
+      function pointPos(leg, i){ const pts = [markPos[leg.from], ...leg.vias.map(v => v.pos), markPos[leg.to]]; return pts[i]; }
+      function hasAffectedVias(name){ return legs.some(l => (l.from===name || l.to===name) && l.vias.length); }
+      function affectedLegsFor(name){ return legs.filter(l => (l.from===name || l.to===name) && l.vias.length); }
+      function excludedMarksFor(legId){ const leg = legById(legId); return [leg.from, leg.to]; }
+      function say(msg){ state.feedback = msg; }
+      function nextPinPos(at){ const leg = legById(at.legId); const a = markPos[leg.from], b = markPos[leg.to]; const t = (at.index + 1) / (segments(leg).length + 1); return { x: Math.round(a.x + (b.x - a.x) * t), y: Math.round(a.y + (b.y - a.y) * t) }; }
+      // Label a gap by the two points it sits between — never by an index the
+      // sailor would have to have selected first.
+      function gapLabel(at){ const leg = legById(at.legId), p = points(leg); return `${p[at.index]} → ${p[at.index + 1]}`; }
+      // Perpendicular distance from a point to a line segment, used to decide
+      // which gap a free map tap belongs to.
+      function distToSeg(p, a, b){
+        const dx = b.x - a.x, dy = b.y - a.y, len = dx*dx + dy*dy;
+        const t = len ? Math.max(0, Math.min(1, ((p.x - a.x)*dx + (p.y - a.y)*dy) / len)) : 0;
+        return Math.hypot(p.x - (a.x + t*dx), p.y - (a.y + t*dy));
+      }
+      function nearestGap(pos){
+        let best = null;
+        legs.forEach(leg => segments(leg).forEach((s, i) => {
+          const d = distToSeg(pos, pointPos(leg, i), pointPos(leg, i + 1));
+          if (!best || d < best.d) best = { legId: leg.n, index: i, d };
+        }));
+        return best && { legId: best.legId, index: best.index };
+      }
+      function pendingAt(){ return state.insertAt || state.inferredAt; }
+
+      // ---- reversal system: three different presentations of "undo" ------
+      function record({ message, undo, subjectId = null, ghost = null }) {
+        state.editCount++;
+        if (state.variant === 'sheet-toast') { state.toast = { message, undo }; }
+        else if (state.variant === 'full-log') { state.log.unshift({ id: uid('log'), message, undo, done:false }); }
+        else if (state.variant === 'inline-row') {
+          if (ghost) state.ghosts.unshift({ id: uid('ghost'), message, undo, ...ghost });
+          else if (subjectId) state.inlineMarks[subjectId] = { message, undo };
+        }
+      }
+      function undoToast(){ if (!state.toast) return; state.toast.undo(); state.toast = null; say('Undone.'); render(); }
+      function dismissToast(){ state.toast = null; render(); }
+      function undoLog(id){ const first = state.log.find(e => !e.done); if (!first || first.id !== id) return; first.undo(); first.done = true; say(`Undone: ${first.message}`); render(); }
+      function toggleLog(){ state.logOpen = !state.logOpen; render(); }
+      function undoInline(key){ const m = state.inlineMarks[key]; if (!m) return; m.undo(); delete state.inlineMarks[key]; say(`Undone: ${m.message}`); render(); }
+      function undoGhost(id){ const i = state.ghosts.findIndex(g => g.id === id); if (i < 0) return; state.ghosts[i].undo(); say(`Undone: restored "${state.ghosts[i].via.name}".`); state.ghosts.splice(i,1); render(); }
+
+      // ---- Course Detail actions (all immediate + durable) ----------------
+      function toggleMap(){
+        state.mapExpanded = !state.mapExpanded;
+        if (!state.mapExpanded) clearPending();
+        render();
+      }
+      function collapseMapReturn(){ state.mapExpanded = false; clearPending(); render(); }
+      function clearPending(){
+        state.mapMode = 'read'; state.movingId = null; state.draftVia = null;
+        state.pendingMovePos = null; state.insertAt = null; state.inferredAt = null;
+      }
+
+      // Started from a gap in the list: the target is already known and fixed.
+      function openAddChoice(origin, legId, index){ state.insertAt = { legId, index }; state.addChoice = { origin }; render(); }
+      function closeAddChoice(){ state.addChoice = null; state.insertAt = null; render(); }
+      function chooseAddKind(kind){
+        const origin = state.addChoice.origin; state.addChoice = null;
+        if (kind === 'pin') { state.mapReturnOrigin = origin; state.mapExpanded = true; state.mapMode = 'place'; state.draftVia = { name:`Via point ${totalVias() + 1}`, pos:null }; render(); }
+        else { openMarkChooser({ mode:'add', legId: state.insertAt.legId, index: state.insertAt.index, returnTo: origin }); }
+      }
+      // Started from the map with no gap in mind: the tap position picks the gap.
+      function startFreePlacement(){
+        state.insertAt = null; state.inferredAt = null; state.mapReturnOrigin = 'map';
+        state.mapMode = 'place'; state.draftVia = { name:`Via point ${totalVias() + 1}`, pos:null };
+        render();
+      }
+
+      function openMarkChooser(opts){ state.markChooser = opts; render(); }
+      function closeMarkChooser(){ state.markChooser = null; state.insertAt = null; render(); }
+      function chooseMark(name){
+        const mc = state.markChooser; state.markChooser = null;
+        if (mc.mode === 'add') {
+          const leg = legById(mc.legId);
+          const via = { id: uid('mark'), name, markBacked:true, markName:name, pos: nextPinPos(mc) };
+          leg.vias.splice(mc.index, 0, via);
+          state.insertAt = null;
+          record({ message:`Added Mark-backed Via Point "${name}"`, undo:() => { const i = leg.vias.indexOf(via); if (i > -1) leg.vias.splice(i,1); }, subjectId: via.id });
+          say(`Added "${name}" as a Mark-backed Via Point in Leg ${leg.n}. Its name and coordinates are read-only here.`);
+          if (mc.returnTo !== 'map') state.mapExpanded = false;
+        } else {
+          const via = viaById(mc.viaId); const old = via.markName;
+          via.markName = name; via.name = name;
+          record({ message:`Changed Mark to "${name}"`, undo:() => { via.markName = old; via.name = old; }, subjectId: via.id });
+          say(`Changed Mark for this Via Point to "${name}". Row id, Leg, and order stay the same.`);
+        }
+        render();
+      }
+
+      function startRename(id){ const via = viaById(id); if (via.markBacked) { say('Mark-backed — its name comes from the saved Mark editor.'); render(); return; } state.renamingId = id; render(); focusRename(); }
+      function focusRename(){ requestAnimationFrame(() => { const el = document.querySelector('[data-rename]'); if (el) { el.focus(); el.select(); } }); }
+      function commitRename(id, value){
+        const via = viaById(id); state.renamingId = null;
+        if (!via) { render(); return; }
+        const old = via.name, next = value.trim() || old;
+        if (next !== old) { via.name = next; record({ message:`Renamed to "${next}"`, undo:() => { via.name = old; }, subjectId: id }); say(`Renamed to "${next}".`); }
+        render();
+      }
+
+      function moveWithinLeg(id, delta){
+        const leg = legOfVia(id), idx = leg.vias.findIndex(v => v.id === id), to = idx + delta;
+        if (to < 0 || to >= leg.vias.length) return;
+        [leg.vias[idx], leg.vias[to]] = [leg.vias[to], leg.vias[idx]];
+        const via = leg.vias[to];
+        record({ message:`Reordered "${via.name}"`, undo:() => { const a = leg.vias.indexOf(via); const b = a === to ? idx : to; [leg.vias[a], leg.vias[b]] = [leg.vias[b], leg.vias[a]]; }, subjectId: id });
+        say(`Reordered "${via.name}" within Leg ${leg.n}. It cannot cross a Course Mark from this control.`);
+        render();
+      }
+
+      function startMove(id, origin){
+        const via = viaById(id);
+        if (via.markBacked) { say('Mark-backed pins are not draggable — use Change Mark or the saved Mark editor.'); render(); return; }
+        state.rowMenu = null; state.movingId = id; state.pendingMovePos = null; state.mapReturnOrigin = origin; state.mapExpanded = true; state.mapMode = 'move'; render();
+      }
+      function startMoveAcrossMark(id){ state.rowMenu = null; const fromLeg = legOfVia(id); state.crossMove = { viaId:id, options: legs.filter(l => l.n !== fromLeg.n).map(l => l.n) }; render(); }
+      function closeCrossMove(){ state.crossMove = null; render(); }
+      function commitCrossMove(targetLegId){
+        const via = viaById(state.crossMove.viaId), fromLeg = legOfVia(via.id), idx = fromLeg.vias.indexOf(via), targetLeg = legById(targetLegId);
+        fromLeg.vias.splice(idx,1); targetLeg.vias.push(via); state.crossMove = null;
+        record({ message:`Moved "${via.name}" into Leg ${targetLegId}`, undo:() => { const i = targetLeg.vias.indexOf(via); if (i > -1) targetLeg.vias.splice(i,1); fromLeg.vias.splice(idx,0,via); }, subjectId: via.id });
+        say(`Explicitly moved "${via.name}" across a Course Mark into Leg ${targetLegId}.`);
+        render();
+      }
+
+      function placeOnMap(evt){
+        const rect = evt.currentTarget.getBoundingClientRect();
+        const pos = { x: Math.round((evt.clientX - rect.left) / rect.width * 100), y: Math.round((evt.clientY - rect.top) / rect.height * 100) };
+        if (state.mapMode === 'place') {
+          state.draftVia.pos = pos;
+          if (!state.insertAt) state.inferredAt = nearestGap(pos);
+          say(`Position set — it lands in Leg ${pendingAt().legId}, between ${gapLabel(pendingAt())}. Check it, then confirm.`);
+          render(); focusDraftName();
+        } else if (state.mapMode === 'move') {
+          state.pendingMovePos = pos;
+          say('New position set — confirm to keep it, or tap elsewhere to adjust.');
+          render();
+        }
+      }
+      function focusDraftName(){ requestAnimationFrame(() => { const el = document.querySelector('[data-draft-name]'); if (el) el.select(); }); }
+      function confirmPlacement(){
+        const at = pendingAt();
+        if (!state.draftVia?.pos || !at) return;
+        const leg = legById(at.legId);
+        const name = (state.draftVia.name || '').trim() || `Via point ${totalVias() + 1}`;
+        const via = { id: uid('local'), name, markBacked:false, pos: state.draftVia.pos };
+        leg.vias.splice(at.index, 0, via);
+        record({ message:`Added "${via.name}"`, undo:() => { const i = leg.vias.indexOf(via); if (i > -1) leg.vias.splice(i,1); }, subjectId: via.id });
+        say(`Added "${via.name}" to Leg ${leg.n}.`);
+        state.draftVia = null; state.mapMode = 'read'; state.insertAt = null; state.inferredAt = null;
+        if (state.mapReturnOrigin === 'detail') state.mapExpanded = false;
+        render();
+      }
+      function cancelPlacement(){
+        state.draftVia = null; state.mapMode = 'read'; state.insertAt = null; state.inferredAt = null;
+        if (state.mapReturnOrigin === 'detail') state.mapExpanded = false;
+        say('Cancelled — nothing was added.');
+        render();
+      }
+      function confirmMove(){
+        if (!state.pendingMovePos) return;
+        const via = viaById(state.movingId), old = via.pos;
+        via.pos = state.pendingMovePos;
+        record({ message:`Moved "${via.name}" on the map`, undo:() => { via.pos = old; }, subjectId: via.id });
+        say(`Moved "${via.name}" on the map.`);
+        state.movingId = null; state.pendingMovePos = null; state.mapMode = 'read';
+        if (state.mapReturnOrigin === 'detail') state.mapExpanded = false;
+        render();
+      }
+      function cancelMove(){
+        state.movingId = null; state.pendingMovePos = null; state.mapMode = 'read';
+        if (state.mapReturnOrigin === 'detail') state.mapExpanded = false;
+        say('Cancelled — location unchanged.');
+        render();
+      }
+
+      function openRowMenu(id, evt){
+        const rect = evt.currentTarget.getBoundingClientRect();
+        state.rowMenuPos = { top: Math.round(rect.bottom + 6), right: Math.round((window.innerWidth || 390) - rect.right) };
+        state.rowMenu = id;
+        render();
+      }
+      function closeRowMenu(){ state.rowMenu = null; state.rowMenuPos = null; render(); }
+
+      function deleteVia(id){
+        const leg = legOfVia(id), idx = leg.vias.findIndex(v => v.id === id), [via] = leg.vias.splice(idx,1);
+        record({ message:`Removed "${via.name}"`, undo:() => { leg.vias.splice(idx,0,via); }, ghost:{ legId: leg.n, via } });
+        say(`Removed "${via.name}" from Leg ${leg.n}. Any saved Mark behind it is untouched.`);
+        render();
+      }
+
+      function openPromote(id){ state.rowMenu = null; const via = viaById(id); state.promote = { viaId:id, name: via.name }; render(); requestAnimationFrame(() => document.querySelector('[data-promote-name]')?.select()); }
+      function closePromote(){ state.promote = null; render(); }
+      function commitPromote(){
+        const via = viaById(state.promote.viaId), oldName = via.name, newName = (state.promote.name || via.name).trim() || via.name;
+        via.markBacked = true; via.markName = newName; via.name = newName; state.promote = null;
+        record({ message:`Added "${newName}" to saved marks`, undo:() => { via.markBacked = false; via.markName = undefined; via.name = oldName; }, subjectId: via.id });
+        say(`"${newName}" is now a saved Mark. It keeps its Via Point role and position in Leg ${legOfVia(via.id).n}.`);
+        render();
+      }
+
+      function tryMoveMark(name){
+        if (hasAffectedVias(name)) state.blockedMove = { markName:name, legs: affectedLegsFor(name).map(l => ({ label:`Leg ${l.n} · ${l.from} → ${l.to}`, vias: l.vias.map(v => v.name) })) };
+        else say(`"${name}" has no affected Via Points; Course Mark reordering itself is out of this prototype's scope.`);
+        render();
+      }
+      function closeBlockedMove(){ state.blockedMove = null; render(); }
+
+      function closeAnyDialog(){
+        if (state.addChoice) closeAddChoice();
+        else if (state.markChooser) closeMarkChooser();
+        else if (state.promote) closePromote();
+        else if (state.blockedMove) closeBlockedMove();
+        else if (state.crossMove) closeCrossMove();
+        else if (state.planMapOpen) closePlanMap();
+      }
+
+      // ---- screen navigation ----------------------------------------------
+      function goToPlan(){
+        state.mapExpanded = false; state.mapMode = 'read';
+        state.planRecalculated = state.editCount > state.planSeenAt;
+        state.planSeenAt = state.editCount;
+        state.screen = 'plan';
+        say(state.planRecalculated ? 'Course updated since you last viewed the Plan — guidance recalculated below.' : 'No Course changes since you last viewed the Plan.');
+        render();
+      }
+      function backToDetail(){ state.screen = 'detail'; render(); }
+      function openPlanMap(){ state.planMapOpen = true; render(); }
+      function closePlanMap(){ state.planMapOpen = false; render(); }
+      function editSavedCourse(){
+        state.planMapOpen = false; state.screen = 'detail';
+        say('Back in Course Detail — the same editor Plan pointed to, not a separate one.');
+        render();
+      }
+
+      function setVariant(v){
+        state.variant = v; state.mapExpanded = false; state.mapMode = 'read'; state.addChoice = null; state.markChooser = null;
+        state.promote = null; state.blockedMove = null; state.crossMove = null; state.rowMenu = null; state.rowMenuPos = null;
+        state.renamingId = null; state.movingId = null; state.draftVia = null; state.pendingMovePos = null;
+        const url = new URL(location); url.searchParams.set('variant', v); history.replaceState({}, '', url);
+        render();
+      }
+      function cycleVariant(delta){ const order = ['sheet-toast','full-log','inline-row']; const i = order.indexOf(state.variant); setVariant(order[(i + delta + order.length) % order.length]); }
+
+      // ---- templates: Course Detail ----------------------------------------
+      function renderDetail(){
+        let html = `<div class="variant-blurb">${variantMeta[state.variant].blurb}</div>`;
+        html += mapPreviewOrInline();
+        html += `<div class="thread">`;
+        courseMarks.forEach((name, i) => {
+          html += `<div class="anchor">${markRow(name, i)}`;
+          const leg = legs.find(l => l.from === name);
+          if (leg) html += legBox(leg);
+          html += `</div>`;
+        });
+        html += `</div>`;
+        html += `<button class="action primary done-btn" onclick="goToPlan()">Done · View Plan →</button>`;
+        return html;
+      }
+      function markRow(name, i){
+        const meta = markMeta[name] || {};
+        const badge = meta.dir ? `<span class="badge dir ${meta.dir === 'S' ? 's' : ''}">${meta.dir}</span>` : '';
+        const reorder = (i > 0 && i < courseMarks.length - 1) ? `<button class="move-mark" onclick="tryMoveMark('${name}')">↕ Reorder</button>` : '';
+        return `<div class="mark-name"><span class="body"><span class="name"><span class="txt">${esc(name)}</span>${badge}</span><span class="role">Course Mark</span></span>${reorder}</div>`;
+      }
+      function legBox(leg){
+        const segs = segments(leg);
+        let html = `<div class="leg-box"><div class="leg-title"><span>LEG ${leg.n}<small>${esc(leg.from)} → ${esc(leg.to)}</small></span><span class="leg-count">${leg.vias.length ? leg.vias.length + ' Via Point' + (leg.vias.length === 1 ? '' : 's') : 'Direct'}</span></div>`;
+        segs.forEach((s, i) => {
+          html += `<button class="gap" onclick="openAddChoice('detail',${leg.n},${i})" aria-label="Insert a Via Point between ${esc(s.from)} and ${esc(s.to)}"><span class="gap-txt">${esc(s.from)} → ${esc(s.to)}</span><span class="gap-add">⊕ Insert</span></button>`;
+          if (i < leg.vias.length) html += viaRow(leg.vias[i], i, leg.vias.length);
+        });
+        state.ghosts.filter(g => g.legId === leg.n).forEach(g => { html += ghostRow(g); });
+        html += `</div>`;
+        return html;
+      }
+      function viaRow(via, i, count){
+        const glyph = via.markBacked ? '◆' : '◇';
+        const cls = via.markBacked ? 'row linked' : 'row';
+        const badge = via.markBacked ? '<span class="badge saved">SAVED MARK</span>' : '<span class="badge local">LOCAL</span>';
+        const role = via.markBacked ? 'Via Point · Mark-backed' : 'Via Point · course-local';
+        const nameHtml = (state.renamingId === via.id)
+          ? `<input class="rename-input" data-rename="${via.id}" value="${esc(via.name)}">`
+          : `<span class="txt" ${via.markBacked ? '' : `role="button" tabindex="0" onclick="startRename('${via.id}')"`}>${esc(via.name)}</span>`;
+        const inline = (state.variant === 'inline-row' && state.inlineMarks[via.id])
+          ? `<div class="inline-undo">${esc(state.inlineMarks[via.id].message)}<button onclick="undoInline('${via.id}')">Undo</button></div>` : '';
+        const reorder = `<button class="tiny" onclick="moveWithinLeg('${via.id}',-1)" ${i === 0 ? 'disabled' : ''} aria-label="Move up">↑</button><button class="tiny" onclick="moveWithinLeg('${via.id}',1)" ${i === count - 1 ? 'disabled' : ''} aria-label="Move down">↓</button>`;
+        const relocate = via.markBacked ? '' : `<button class="tiny" title="Relocate on map" onclick="startMove('${via.id}','detail')">⌖</button>`;
+        const cross = `<button class="tiny" title="Move across Course Mark" onclick="startMoveAcrossMark('${via.id}')">⇆</button>`;
+        return `<div class="${cls}"><span class="glyph">${glyph}</span><span class="body"><span class="name">${nameHtml}${badge}</span><span class="role">${role}</span>${inline}</span><span class="ctrls">${relocate}${cross}${reorder}<button class="tiny more" onclick="openRowMenu('${via.id}', event)">⋯</button></span></div>`;
+      }
+      function rowMenuItems(via){
+        return via.markBacked
+          ? [['Change Mark', `openMarkChooser({mode:'change', viaId:'${via.id}', legId:${legOfVia(via.id).n}})`], ['Remove Via Point', `deleteVia('${via.id}')`, 'danger']]
+          : [['Add to saved marks', `openPromote('${via.id}')`], ['Remove Via Point', `deleteVia('${via.id}')`, 'danger']];
+      }
+      function ghostRow(g){ return `<div class="ghost">Removed "${esc(g.via.name)}"<button onclick="undoGhost('${g.id}')">Undo</button></div>`; }
+
+      function mapPreviewOrInline(){
+        if (state.variant === 'inline-row') {
+          return state.mapExpanded
+            ? `<div class="map-inline"><div class="inline-head"><span>Course Map · inline</span><button onclick="toggleMap()">Collapse ▲</button></div>${mapBody()}</div>`
+            : `<button class="inline-map" onclick="toggleMap()"><svg viewBox="0 0 100 100" preserveAspectRatio="none">${routePath(null)}</svg><span>Course Map · tap to expand inline</span></button>`;
+        }
+        const openLabel = state.variant === 'sheet-toast' ? 'open sheet' : 'open full screen';
+        return `<button class="inline-map" onclick="toggleMap()"><svg viewBox="0 0 100 100" preserveAspectRatio="none">${routePath(null)}</svg><span>Course Map · tap to ${openLabel}</span></button>`;
+      }
+
+      // ---- templates: Course Map surface (shared by all three contexts) ---
+      // `at` highlights the gap a pending add will land in. Nothing is highlighted
+      // at rest — the map has no resting selection either.
+      function routePath(at){
+        const pts = [];
+        legs.forEach((leg, li) => { [markPos[leg.from], ...leg.vias.map(v => v.pos)].forEach(p => pts.push(p)); if (li === legs.length - 1) pts.push(markPos[leg.to]); });
+        const d = pts.map((p, i) => `${i === 0 ? 'M' : 'L'}${p.x} ${p.y}`).join(' ');
+        let sel = '';
+        const leg = at && legById(at.legId);
+        if (leg) { const a = pointPos(leg, at.index), b = pointPos(leg, at.index + 1); sel = `<path d="M${a.x} ${a.y} L${b.x} ${b.y}" stroke="#f2b84b" stroke-width="3" stroke-linecap="round" fill="none" vector-effect="non-scaling-stroke"/>`; }
+        return `<path d="${d}" stroke="#0b3a5c" stroke-width="1.4" fill="none" vector-effect="non-scaling-stroke"/>${sel}`;
+      }
+      function mapBody(){
+        const placing = state.mapMode === 'place', moving = state.mapMode === 'move';
+        const at = placing ? pendingAt() : null;
+        const note = placing
+          ? (state.draftVia.pos
+              ? `Lands in Leg ${at.legId}, between ${esc(gapLabel(at))} — highlighted in amber. Rename it if you like, then confirm.`
+              : state.insertAt
+                ? `Adding between ${esc(gapLabel(state.insertAt))}, highlighted in amber. Tap the map to drop the pin.`
+                : `Tap the map where the pin goes — it joins whichever Leg Segment it lands nearest, and you'll see which before confirming.`)
+          : moving
+          ? (state.pendingMovePos ? 'New position set. Confirm to keep it, or tap elsewhere to adjust.' : `Tap the map for "${viaById(state.movingId)?.name}"'s new position.`)
+          : `Tap a local ◇ pin to move it. Mark-backed ◆ pins are read-only here. Nothing is selected — adding is a single gesture, not a selection first.`;
+        const pins = courseMarks.map(name => { const p = markPos[name]; return `<span class="map-pin mark-pin" style="left:${p.x}%;top:${p.y}%">${esc(name)}</span>`; });
+        legs.forEach(leg => leg.vias.forEach(v => {
+          if (state.movingId === v.id) return;
+          if (v.markBacked) pins.push(`<button class="map-pin mark-via-pin" style="left:${v.pos.x}%;top:${v.pos.y}%" onclick="say('Mark-backed — edit it in the saved Mark editor.');render()" title="${esc(v.name)}">◆</button>`);
+          else pins.push(`<button class="map-pin local-via-pin" style="left:${v.pos.x}%;top:${v.pos.y}%" onclick="startMove('${v.id}','map')" title="Move ${esc(v.name)}">◇</button>`);
+        }));
+        if (placing && state.draftVia.pos) pins.push(`<span class="map-pin dragging" style="left:${state.draftVia.pos.x}%;top:${state.draftVia.pos.y}%">◇ New</span>`);
+        if (moving) {
+          const v = viaById(state.movingId), p = state.pendingMovePos || v.pos;
+          pins.push(`<span class="map-pin dragging" style="left:${p.x}%;top:${p.y}%">◇ ${state.pendingMovePos ? 'New spot' : 'Tap to move'}</span>`);
+        }
+        const field = placing ? `<label class="map-field">Name (selected to replace)<input data-draft-name value="${esc(state.draftVia.name)}"></label>` : '';
+        const actions = placing
+          ? `<div class="map-actions"><button class="action" onclick="cancelPlacement()">Cancel</button><button class="action primary" onclick="confirmPlacement()" ${state.draftVia.pos ? '' : 'disabled'}>Add Via Point</button></div>`
+          : moving
+          ? `<div class="map-actions"><button class="action" onclick="cancelMove()">Cancel</button><button class="action primary" onclick="confirmMove()" ${state.pendingMovePos ? '' : 'disabled'}>Keep new location</button></div>`
+          : `<div class="map-actions"><button class="action primary" onclick="startFreePlacement()">⌖ Drop a Via Point pin</button></div>`;
+        return `<div class="map-surface ${placing || moving ? 'crosshair' : ''}" ${placing || moving ? 'onclick="placeOnMap(event)"' : ''}>
+          <div class="island"></div><div class="map-route"><svg viewBox="0 0 100 100" preserveAspectRatio="none">${routePath(at)}</svg></div>
+          ${pins.join('')}
+        </div><div class="map-note">${note}</div>${field}${actions}`;
+      }
+
+      function sheetMapHTML(){ return `<div class="sheet-card" role="dialog" aria-modal="true" aria-label="Course Map"><div class="sheet-head"><span>Course Map</span><button class="close" onclick="collapseMapReturn()">×</button></div>${mapBody()}</div>`; }
+      function fullMapHTML(){ return `<div class="full-screen"><div class="full-head"><button class="back" onclick="collapseMapReturn()">‹ Back to Course Detail</button><span>Course Map</span><span style="width:80px"></span></div><div class="full-body">${mapBody()}</div></div>`; }
+
+      // ---- templates: dialogs ----------------------------------------------
+      function dialogHTML(){
+        if (state.planMapOpen) return planMapHTML();
+        if (state.addChoice) return addChoiceHTML();
+        if (state.markChooser) return markChooserHTML();
+        if (state.crossMove) return crossMoveHTML();
+        if (state.promote) return promoteHTML();
+        if (state.blockedMove) return blockedMoveHTML();
+        return '';
+      }
+      function addChoiceHTML(){
+        const at = state.insertAt;
+        return `<div class="sheet-card small" role="dialog" aria-modal="true"><div class="sheet-head"><span>Insert Via Point</span><button class="close" onclick="closeAddChoice()">×</button></div><p class="sheet-lead">Between <b>${esc(gapLabel(at))}</b>. Choose one source — the new point splits that stretch and stays ordered within Leg ${at.legId}.</p><div class="choice-actions"><button class="action" onclick="chooseAddKind('mark')">◇ Existing Mark</button><button class="action primary" onclick="chooseAddKind('pin')">⌖ Map pin</button></div></div>`;
+      }
+      function markChooserHTML(){
+        const mc = state.markChooser, excluded = excludedMarksFor(mc.legId), options = savedMarks.filter(n => !excluded.includes(n));
+        return `<div class="sheet-card" role="dialog" aria-modal="true"><div class="sheet-head"><span>${mc.mode === 'change' ? 'Change Mark' : 'Existing Mark'}</span><button class="close" onclick="closeMarkChooser()">×</button></div><p class="sheet-lead">${excluded.join(' and ')} are excluded — using a Leg's own boundary as a Via Point inside that Leg is geometrically meaningless.</p><div class="mark-list">${options.map(n => `<button onclick="chooseMark('${esc(n)}')">${esc(n)}</button>`).join('')}</div></div>`;
+      }
+      function crossMoveHTML(){
+        const cm = state.crossMove, via = viaById(cm.viaId);
+        return `<div class="sheet-card small" role="dialog" aria-modal="true"><div class="sheet-head"><span>Move "${esc(via.name)}" across a Course Mark</span><button class="close" onclick="closeCrossMove()">×</button></div><p class="sheet-lead">Explicit and immediate — unlike ordinary in-Leg reordering, this changes which Leg the point belongs to.</p><div class="mark-list">${cm.options.map(n => `<button onclick="commitCrossMove(${n})">Leg ${n}</button>`).join('')}</div></div>`;
+      }
+      function promoteHTML(){
+        const via = viaById(state.promote.viaId);
+        return `<div class="sheet-card small" role="dialog" aria-modal="true"><div class="sheet-head"><span>Add to saved marks</span><button class="close" onclick="closePromote()">×</button></div><p class="sheet-lead">This is your only chance to fix the name — after saving, it belongs to the Mark.</p><label class="field"><span>Name</span><input data-promote-name value="${esc(state.promote.name)}"></label><div class="field ro"><span>Coordinates <i class="lock">READ-ONLY</i></span><input value="from this pin's map position" readonly></div><div class="actions"><button onclick="closePromote()">Cancel</button><button class="primary" onclick="commitPromote()">Save</button></div></div>`;
+      }
+      function blockedMoveHTML(){
+        const bm = state.blockedMove;
+        return `<div class="sheet-card small" role="dialog" aria-modal="true"><div class="sheet-head"><span>Can't reorder "${esc(bm.markName)}" yet</span><button class="close" onclick="closeBlockedMove()">×</button></div><p class="sheet-lead">Moving this Course Mark would change which Leg its Via Points belong to. Resolve each one first with its explicit ⇆ move-across-Mark control.</p><div class="blocked-list">${bm.legs.map(l => `<div class="blocked-leg"><b>${esc(l.label)}</b><span>${l.vias.map(esc).join(', ')}</span></div>`).join('')}</div><div class="actions"><button class="primary" onclick="closeBlockedMove()">Got it</button></div></div>`;
+      }
+      function planMapHTML(){
+        const pins = courseMarks.map(name => { const p = markPos[name]; return `<span class="map-pin mark-pin" style="left:${p.x}%;top:${p.y}%">${esc(name)}</span>`; });
+        legs.forEach(leg => leg.vias.forEach(v => pins.push(`<span class="map-pin ${v.markBacked ? 'mark-via-pin' : 'local-via-pin'}" style="left:${v.pos.x}%;top:${v.pos.y}%">${v.markBacked ? '◆' : '◇'}</span>`)));
+        return `<div class="sheet-card" role="dialog" aria-modal="true" aria-label="Plan map"><div class="sheet-head"><span>Plan map</span><button class="close" onclick="closePlanMap()">×</button></div><p class="sheet-lead read-only-tag">Read-only — for orientation, not in-place editing.</p><div class="map-surface"><div class="island"></div><div class="map-route"><svg viewBox="0 0 100 100" preserveAspectRatio="none">${routePath(null)}</svg></div>${pins.join('')}</div><div class="actions"><button onclick="closePlanMap()">Back to Plan</button><button class="primary" onclick="editSavedCourse()">Edit saved course</button></div><p class="edit-note">Editing opens the same Course Detail you left — Plan has no separate editor of its own.</p></div>`;
+      }
+
+      // ---- templates: Plan results (Mark-to-Mark groups, ticket 04) -------
+      function tackHtml(v){ return v === '—' ? '' : `<span class="tack ${v === 'Port' ? 'port' : ''}">${v}</span>`; }
+      function allSegmentsCount(){ return legs.reduce((a, l) => a + segments(l).length, 0); }
+      function renderPlan(){
+        let html = `<div class="variant-blurb">Course Plan · read-only results grouped beneath sailor-recognised Mark-to-Mark Legs (ticket 04's accepted design).</div>`;
+        if (state.planRecalculated) html += `<div class="recalc-banner">✓ Course updated since your last visit — guidance recalculated below.</div>`;
+        html += `<div class="overview"><div><strong>${allSegmentsCount()} guidance segments</strong><span>${legs.length} Legs · ${totalVias()} Via Points</span></div><button class="map-link" onclick="openPlanMap()">Plan map</button></div>`;
+        let gi = 0;
+        legs.forEach(leg => {
+          const segs = segments(leg);
+          html += `<section class="leg-card"><div class="leg-head"><div class="leg-summary"><span class="kicker">Leg ${leg.n}</span><span class="kicker muted">${segs.length} segment${segs.length === 1 ? '' : 's'}</span></div><h3>${esc(leg.from)} → ${esc(leg.to)}</h3><p>${leg.vias.length ? 'Via ' + leg.vias.map(v => esc(v.name)).join(' → ') : 'Direct — no Via Points'}</p></div><div class="leg-body">`;
+          segs.forEach((s, i) => {
+            const [bearing, twa, tack, sail] = guidanceTable[gi % guidanceTable.length]; gi++;
+            const endsAtVia = i < leg.vias.length, via = endsAtVia ? leg.vias[i] : null;
+            const endLabel = endsAtVia ? (via.markBacked ? 'ends at Saved-Mark Via Point' : 'ends at local Via Point') : 'ends at Course Mark';
+            const endBadge = endsAtVia ? (via.markBacked ? ' <span class="badge saved sm">SAVED MARK</span>' : ' <span class="badge local sm">LOCAL</span>') : '';
+            html += `<article class="segrow ${endsAtVia ? 'via-end' : ''}"><div class="segmeta"><span>Segment ${i+1} of ${segs.length}</span><span>${endLabel}</span></div><div class="segname">${esc(s.from)} <span aria-hidden="true">→</span> ${esc(s.to)}${endBadge}</div><div class="metrics"><div class="metric"><small>TWA</small><b>${twa}${tackHtml(tack)}</b></div><div class="metric"><small>Bearing</small><b>${bearing}</b></div><span class="sail">⛵ ${sail}</span></div></article>`;
+          });
+          html += `</div></section>`;
+        });
+        return html;
+      }
+
+      // ---- reversal chrome renderers ---------------------------------------
+      function renderReversalUI(){
+        const toastEl = $('#toast');
+        if (state.variant === 'sheet-toast' && state.toast) { toastEl.hidden = false; toastEl.innerHTML = `<span>${esc(state.toast.message)}</span><button onclick="undoToast()">Undo</button><button class="dismiss" onclick="dismissToast()" aria-label="Dismiss">×</button>`; }
+        else { toastEl.hidden = true; toastEl.innerHTML = ''; }
+
+        const logEl = $('#log-drawer');
+        if (state.variant === 'full-log') {
+          logEl.hidden = false;
+          const open = state.logOpen, undoable = state.log.filter(e => !e.done).length;
+          logEl.innerHTML = `<button class="log-toggle" onclick="toggleLog()">${open ? '▾' : '▴'} Recent changes (${undoable})</button>${open ? `<div class="log-list">${state.log.length ? state.log.map(logItem).join('') : '<p class="log-empty">No changes yet.</p>'}</div>` : ''}`;
+        } else { logEl.hidden = true; logEl.innerHTML = ''; }
+      }
+      function logItem(e){
+        const first = state.log.find(x => !x.done), canUndo = !e.done && first && first.id === e.id;
+        return `<div class="log-item ${e.done ? 'done' : ''}"><span>${esc(e.message)}</span>${e.done ? '<i>Undone</i>' : `<button ${canUndo ? '' : 'disabled title="Undo more recent changes first"'} onclick="undoLog('${e.id}')">Undo</button>`}</div>`;
+      }
+
+      // ---- render loop -------------------------------------------------------
+      function stateDebug(){
+        const pending = state.draftVia ? `draft "${state.draftVia.name}" · ${state.draftVia.pos ? 'positioned, awaiting confirm' : 'awaiting tap'}`
+          : state.pendingMovePos ? 'move pending confirm' : 'none';
+        const at = pendingAt();
+        return `VISIBLE STATE
+variant: ${state.variant}
+screen: ${state.screen}
+insert target: ${at ? `${gapLabel(at)} (${state.insertAt ? 'chosen from list gap' : 'inferred from map tap'})` : 'none — no selection is held'}
+map: ${state.variant === 'inline-row' ? (state.mapExpanded ? 'inline · expanded' : 'inline · collapsed') : (state.mapExpanded ? `overlay open (${state.mapMode})` : 'closed')}
+pending map action: ${pending}
+edits so far: ${state.editCount} · Plan last seen at edit #${state.planSeenAt}
+via order: ${legs.map(l => `L${l.n}: ${l.vias.map(v => v.name + (v.markBacked ? ' (mark)' : '')).join(' → ') || 'none'}`).join(' | ')}`;
+      }
+      function render(){
+        $('#course-sub').textContent = `${courseMarks.length} Course Marks · ${legs.length} Legs · ${totalVias()} Via Point${totalVias() === 1 ? '' : 's'}`;
+        const navBtn = $('#nav-btn');
+        navBtn.textContent = state.screen === 'plan' ? '‹ Course Detail' : 'View Plan →';
+        navBtn.onclick = state.screen === 'plan' ? backToDetail : goToPlan;
+        $('#content').innerHTML = state.screen === 'plan' ? renderPlan() : renderDetail();
+        const fb = $('#feedback'); fb.textContent = state.feedback; fb.hidden = !state.feedback;
+        renderReversalUI();
+
+        const overlay = $('#map-overlay');
+        if (state.screen === 'detail' && state.mapExpanded && state.variant !== 'inline-row') {
+          overlay.hidden = false; overlay.className = 'overlay-backdrop ' + (state.variant === 'sheet-toast' ? 'sheet' : 'full');
+          overlay.innerHTML = state.variant === 'sheet-toast' ? sheetMapHTML() : fullMapHTML();
+        } else { overlay.hidden = true; overlay.innerHTML = ''; }
+
+        const dialog = dialogHTML();
+        $('#dialog').innerHTML = dialog; $('#dialog').hidden = !dialog;
+
+        const popBackdrop = $('#row-popover-backdrop'), pop = $('#row-popover');
+        if (state.rowMenu) {
+          const via = viaById(state.rowMenu);
+          popBackdrop.hidden = false; pop.hidden = false;
+          pop.style.top = `${state.rowMenuPos?.top ?? 80}px`; pop.style.right = `${state.rowMenuPos?.right ?? 16}px`;
+          pop.innerHTML = via ? rowMenuItems(via).map(([label, fn, cls]) => `<button class="${cls || ''}" onclick="closeRowMenu();${fn}">${label}</button>`).join('') : '';
+        } else { popBackdrop.hidden = true; pop.hidden = true; pop.innerHTML = ''; }
+
+        $('#variant-label').textContent = variantMeta[state.variant].label;
+        $('#state').textContent = stateDebug();
+      }
+
+      // ---- wiring --------------------------------------------------------
+      document.addEventListener('input', e => {
+        if (e.target.matches('[data-promote-name]')) state.promote.name = e.target.value;
+        if (e.target.matches('[data-draft-name]')) state.draftVia.name = e.target.value;
+      });
+      document.addEventListener('focusout', e => { if (e.target.matches('[data-rename]')) commitRename(e.target.dataset.rename, e.target.value); });
+      document.addEventListener('keydown', e => {
+        if (e.target.matches('[data-rename],[data-promote-name],[data-draft-name]')) { if (e.key === 'Enter') e.target.blur(); return; }
+        if (['INPUT','TEXTAREA','SELECT'].includes(document.activeElement.tagName)) return;
+        if (e.key === 'ArrowLeft') cycleVariant(-1);
+        if (e.key === 'ArrowRight') cycleVariant(1);
+        if (e.key === 'Escape') { if (state.rowMenu) closeRowMenu(); else if (state.mapExpanded && state.screen === 'detail') collapseMapReturn(); else if (dialogHTML()) closeAnyDialog(); }
+      });
+      $('#prev').onclick = () => cycleVariant(-1);
+      $('#next').onclick = () => cycleVariant(1);
+      render();
+    </script>
+  </body>
+</html>

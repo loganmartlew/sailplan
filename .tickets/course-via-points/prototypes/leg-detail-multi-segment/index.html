@@ -1,0 +1,468 @@
+<!doctype html>
+<!--
+  THROWAWAY PROTOTYPE — Leg detail under multi-Segment Legs.
+  Five variants switchable via
+  ?variant=segment|segment-lean|leg-full|leg-focus|leg-tabs.
+  Answers ticket 10: is Leg detail the detail of one Leg Segment, or of the
+  whole Mark-to-Mark Leg? Route point notes (ticket 08) and the wind-shift
+  case-card treatment (wind-shifts ticket 06) are already decided elsewhere
+  and rendered here unchanged — this prototype only varies the Segment/Leg
+  question and lets you inspect it at zero, one, and several Via Points, with
+  wind uncertainty off and on. segment-lean and leg-tabs are a second pass
+  after A/B/C read as crowded and not felt-friendly on a first look. Not
+  production app code. All state is in memory.
+-->
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Leg detail — multi-Segment prototype</title>
+    <style>
+      :root { --ink:#10233c; --muted:#65758b; --line:#d9e2ec; --paper:#f7fafc; --card:#fff; --navy:#0b2447; --blue:#146cbe; --aqua:#0e9f9a; --green:#0f766e; --gold:#f2b84b; --red:#c0392f; --port:#b33f3a; --stbd:#12694f; }
+      * { box-sizing:border-box; }
+      body { margin:0; background:#e9f0f6; color:var(--ink); font:15px/1.4 Inter,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif; }
+      button { font:inherit; cursor:pointer; }
+      button:focus-visible, [role="button"]:focus-visible { outline:3px solid var(--gold); outline-offset:2px; }
+      .prototype-note { max-width:760px; margin:16px auto 10px; padding:0 16px; color:#36516f; font-size:13px; }
+      .prototype-note b { color:#1c3a58; }
+      .phone { width:min(100%,390px); min-height:100vh; margin:auto; background:var(--paper); padding-bottom:104px; box-shadow:0 0 40px rgba(8,28,50,.14); }
+      header.top { color:#fff; background:linear-gradient(135deg,#0b2447,#124b78); padding:16px 16px 13px; }
+      .eyebrow { color:#b9def1; font-size:11px; font-weight:800; letter-spacing:.11em; text-transform:uppercase; }
+      header.top h1 { margin:3px 0 8px; font-size:20px; line-height:1.15; }
+      .variant-blurb { color:#d7e8f3; font-size:12px; line-height:1.45; }
+      .picker-row { display:flex; flex-wrap:wrap; gap:6px; margin-top:11px; }
+      .picker-row.wind { margin-top:8px; }
+      .chip { padding:6px 9px; border:1px solid rgba(255,255,255,.35); border-radius:99px; background:rgba(255,255,255,.08); color:#eaf4fb; font-size:11.5px; font-weight:700; }
+      .chip.on { border-color:#fff; background:#fff; color:var(--navy); }
+      main { padding:14px 12px; }
+      .crumb { margin:0 0 8px; color:var(--muted); font-size:11.5px; font-weight:800; text-transform:uppercase; letter-spacing:.04em; }
+      .leg-bounds { display:flex; align-items:center; flex-wrap:wrap; gap:7px; margin:0 0 12px; padding:9px 11px; border:1px solid var(--line); border-radius:11px; background:#eef4fa; }
+      .lb-tag { flex:none; padding:2px 7px; border-radius:6px; background:var(--navy); color:#fff; font-size:10px; font-weight:900; letter-spacing:.03em; text-transform:uppercase; }
+      .lb-mark { font-size:13.5px; font-weight:800; color:#1d3a58; }
+      .lb-arrow { color:#8ba3ba; font-size:13px; }
+      .screen-h2 { margin:0 0 10px; font-size:21px; }
+      .leg-title { margin:0 0 10px; color:var(--muted); font-size:12px; font-weight:700; }
+
+      /* ---- endpoint pair (segment variant) ---- */
+      .endpoints { display:flex; gap:10px; margin-bottom:10px; }
+      .endpoints .dots { display:flex; flex-direction:column; align-items:center; padding-top:4px; flex:none; }
+      .dot { width:10px; height:10px; border-radius:50%; background:var(--blue); flex:none; }
+      .dotline { width:2px; flex:1; min-height:22px; background:#bcd6e8; margin:3px 0; }
+      .ep-list { flex:1; display:flex; flex-direction:column; gap:14px; }
+      .ep-row { }
+      .ep-name { font-size:16.5px; font-weight:800; }
+      .ep-note { margin-top:3px; color:var(--muted); font-size:12.5px; line-height:1.4; }
+      .ep-note:before { content:"✎ "; color:#93a6ba; }
+      .badge { display:inline-block; margin-left:5px; padding:1px 5px; border-radius:5px; font-size:10.5px; font-weight:900; letter-spacing:.03em; vertical-align:2px; }
+      .badge.dir.p { background:#fee9e6; color:var(--port); }
+      .badge.dir.s { background:#e3f6ee; color:var(--stbd); }
+      .badge.saved { background:#dbeafe; color:#1f5f96; }
+      .badge.local { background:#dff3e9; color:var(--green); }
+
+      /* ---- stepper ---- */
+      .stepper { display:flex; align-items:center; justify-content:space-between; gap:8px; margin:2px 0 14px; padding:9px 11px; border:1px solid var(--line); border-radius:11px; background:#fff; }
+      .stepper button { padding:7px 10px; border:1px solid #c6d6e4; border-radius:8px; background:#fff; color:#1d3a58; font-size:12px; font-weight:800; }
+      .stepper button:disabled { opacity:.35; cursor:not-allowed; }
+      .stepper span { color:var(--muted); font-size:11.5px; font-weight:700; }
+
+      /* ---- route thread (leg variants) ---- */
+      .thread { margin:0 0 14px; border:1px solid var(--line); border-radius:13px; overflow:hidden; background:#fff; }
+      .wp-row { display:flex; gap:9px; padding:10px 11px; border-top:1px solid #eef2f7; }
+      .wp-row:first-child { border-top:0; }
+      .wp-dot { flex:none; width:11px; height:11px; margin-top:3px; border-radius:50%; background:var(--blue); box-shadow:0 0 0 3px #e5f1f8; }
+      .wp-dot.via { background:var(--aqua); box-shadow:0 0 0 3px #dff5f2; }
+      .wp-name { font-size:13.5px; font-weight:800; }
+      .wp-role { margin-top:1px; color:var(--muted); font-size:10.5px; font-weight:700; }
+      .wp-note { margin-top:3px; color:var(--muted); font-size:12px; line-height:1.4; }
+      .wp-note:before { content:"✎ "; color:#93a6ba; }
+
+      /* ---- per-segment block ---- */
+      .seg-block { margin-bottom:18px; }
+      .seg-heading { display:flex; align-items:center; gap:7px; margin:0 0 8px; padding:6px 10px; border-radius:8px; background:#e8f1fa; color:#1d4e73; font-size:11.5px; font-weight:800; }
+      .seg-heading.focused { background:var(--navy); color:#fff; }
+      .twa-card { display:flex; gap:12px; padding:14px; margin-bottom:10px; border:1px solid var(--line); border-radius:14px; background:var(--card); }
+      .twa-col { flex:1; }
+      .bearing-col { text-align:right; }
+      .label { display:block; color:var(--muted); font-size:12px; font-weight:700; margin-bottom:4px; }
+      .twa-big { font-size:38px; font-weight:800; color:var(--blue); line-height:1; }
+      .bearing-big { font-size:26px; font-weight:800; line-height:1; margin-top:2px; }
+      .tack { display:inline-block; margin-top:6px; padding:3px 7px; border-radius:6px; background:#e8f1ff; color:#245e9a; font-size:11px; font-weight:800; }
+      .tack.port { background:#fff0ef; color:var(--port); }
+      .band { position:relative; height:20px; margin-top:10px; }
+      .track { position:absolute; inset:7px 0 auto 0; height:6px; border-radius:3px; background:#e7edf3; }
+      .fill { position:absolute; top:7px; height:6px; border-radius:3px; background:rgba(20,108,190,.35); }
+      .tick { position:absolute; top:1px; width:2px; height:18px; background:var(--navy); }
+      .possible-line { margin-top:4px; color:var(--muted); font-size:11.5px; }
+      .section-label { margin:0 0 8px; font-size:14px; font-weight:800; }
+      .section-label.all-sails { margin-top:12px; }
+      .cases { display:flex; flex-direction:column; gap:8px; margin-bottom:4px; }
+      .case-card { padding:11px 12px; border:1px solid var(--line); border-radius:12px; background:#fbfdff; }
+      .case-card.expected { border-color:#9dc3e0; background:#eef6fc; }
+      .case-head { display:flex; align-items:center; justify-content:space-between; gap:8px; }
+      .case-head strong { font-size:13px; }
+      .case-body { display:flex; align-items:baseline; justify-content:space-between; gap:8px; margin-top:6px; }
+      .case-twa { font-size:17px; font-weight:800; }
+      .case-card.expected .case-twa { color:var(--blue); }
+      .case-reason { margin-top:5px; font-size:11.5px; }
+      .qual-note { padding:9px 11px; margin-bottom:4px; border-left:3px solid #cdd9e3; background:#f4f7fa; color:var(--muted); font-size:12px; }
+      .pill { display:inline-block; padding:3px 8px; border-radius:99px; background:#dff6ef; color:#12694f; font-size:11.5px; font-weight:800; }
+      .pill.small { padding:2px 6px; font-size:10.5px; }
+      .muted { color:var(--muted); }
+      .breakdown { padding:12px; border:1px solid var(--line); border-radius:13px; background:#fff; }
+      .cond-line { color:var(--muted); font-size:12px; margin-bottom:8px; }
+      .fallback-line { margin-bottom:8px; color:#9a6b12; font-size:12.5px; }
+      .sail-row { display:flex; align-items:center; gap:8px; padding:7px 0; border-top:1px solid #f0f3f6; font-size:13px; }
+      .sail-row:first-child { border-top:0; }
+      .sail-row.suggested { font-weight:800; }
+      .sail-name { flex:none; }
+      .range-note { margin-left:auto; font-size:11px; }
+
+      /* ---- position dots (segment-lean) ---- */
+      .posdots { display:flex; gap:8px; margin:2px 0 14px; }
+      .posdot { width:30px; height:30px; border-radius:50%; border:1px solid #c6d6e4; background:#fff; color:#3b5d7d; font-size:12px; font-weight:800; display:grid; place-items:center; }
+      .posdot.active { border-color:var(--navy); background:var(--navy); color:#fff; }
+
+      /* ---- tab strip (leg-tabs) ---- */
+      .tabstrip { display:flex; gap:6px; overflow-x:auto; margin:0 0 14px; padding-bottom:2px; -webkit-overflow-scrolling:touch; }
+      .tab-btn { flex:none; min-width:58px; padding:7px 9px; border:1px solid var(--line); border-radius:10px; background:#fff; text-align:left; }
+      .tab-btn.active { border-color:var(--navy); background:var(--navy); }
+      .tab-num { display:block; color:var(--muted); font-size:10px; font-weight:800; text-transform:uppercase; letter-spacing:.03em; }
+      .tab-btn.active .tab-num { color:#bcd6ea; }
+      .tab-twa { display:block; margin-top:2px; font-size:15px; font-weight:800; color:var(--blue); }
+      .tab-btn.active .tab-twa { color:#fff; }
+      .tab-sail { display:block; margin-top:2px; font-size:10px; font-weight:700; color:var(--ink); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:76px; }
+      .tab-btn.active .tab-sail { color:#dbe9f5; }
+
+      /* ---- collapsed row (leg-focus) ---- */
+      .collapsed-row { display:flex; align-items:center; gap:9px; width:100%; margin-bottom:8px; padding:10px 11px; border:1px dashed #c6d6e4; border-radius:11px; background:#f6f9fb; color:#3b5d7d; text-align:left; }
+      .cr-num { flex:none; display:grid; place-items:center; width:20px; height:20px; border-radius:6px; background:#e3edf5; font-size:10px; font-weight:900; }
+      .cr-name { flex:1; font-size:12.5px; font-weight:700; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+      .cr-twa { font-size:12px; font-weight:800; color:var(--blue); }
+
+      .state { margin-top:14px; padding:10px; border:1px dashed #afc4d5; border-radius:10px; background:#f1f7fb; color:#3f5c72; font:11px/1.5 ui-monospace,SFMono-Regular,Menlo,monospace; white-space:pre-wrap; }
+      .prototype-bar { position:fixed; z-index:10; bottom:16px; left:50%; display:flex; align-items:center; gap:7px; width:min(calc(100% - 28px),402px); padding:8px; border:1px solid #1e4f78; border-radius:999px; background:#09233c; color:#fff; box-shadow:0 12px 28px rgba(5,25,45,.35); transform:translateX(-50%); }
+      .prototype-bar button { width:34px; height:34px; border:0; border-radius:50%; background:#1a507a; color:#fff; font-size:20px; }
+      .prototype-bar .label { flex:1; text-align:center; font-size:12px; font-weight:800; }
+      @media (min-width:650px) { body { padding:18px 0 0; } .phone { min-height:calc(100vh - 36px); border-radius:20px; overflow:hidden; } }
+    </style>
+  </head>
+  <body>
+    <div class="prototype-note"><strong>THROWAWAY PROTOTYPE.</strong> Ticket 10 — is Leg detail the detail of one <b>Leg Segment</b>, or of the whole Mark-to-Mark <b>Leg</b>? Pick a Leg (0 / 1 / 3 Via Points) and a wind-uncertainty spread, then flip variants. Route point notes and the case-card wind treatment are decided elsewhere and are rendered unchanged in every variant.</div>
+    <div class="phone">
+      <header class="top">
+        <div class="eyebrow">Leg detail · prototype</div>
+        <h1 id="variant-title"></h1>
+        <div class="variant-blurb" id="variant-blurb"></div>
+        <div class="picker-row" id="leg-picker"></div>
+        <div class="picker-row wind" id="wind-picker"></div>
+      </header>
+      <main>
+        <section id="content" aria-live="polite"></section>
+        <div class="state" id="state"></div>
+      </main>
+    </div>
+    <nav class="prototype-bar" aria-label="Prototype variant switcher">
+      <button id="prev" aria-label="Previous variant">←</button><div class="label" id="variant-label"></div><button id="next" aria-label="Next variant">→</button>
+    </nav>
+    <script>
+      const LONG = 'Stay well outside the reef shelf on this approach — it dries at low water and the chart is optimistic here. If the ebb is running hold up at least fifty metres and expect a hard set onto the rocks.';
+      const CENTRAL_TWD = 220;
+
+      // ---- domain data, shaped like ticket 09's RoutePoint / RouteSegment / RouteLeg ----
+      const m1 = { kind:'courseMark', id:'m1', name:'Start',        direction:null,       note:'Committee-boat end unless the line is obviously pin-favoured.' };
+      const m2 = { kind:'courseMark', id:'m2', name:'Windward',     direction:'port',      note:'Room is never given here — come in on starboard and protect your lane.' };
+      const m3 = { kind:'courseMark', id:'m3', name:'Leeward Gate', direction:'starboard', note:null };
+      const m4 = { kind:'courseMark', id:'m4', name:'Finish',       direction:null,        note:null };
+      const headland = { kind:'localVia',      id:'v1', name:'Headland clearance', note:LONG };
+      const moleEnd   = { kind:'markBackedVia', id:'v2', name:'Mole End',          note:'Only cut inside above half tide.' };
+      const channelN  = { kind:'markBackedVia', id:'v3', name:'Channel North',     note:null };
+      const shoalEdge = { kind:'localVia',      id:'v4', name:'Shoal edge',        note:null };
+
+      function seg(from, to, twa, bearing, tack, primary, alternates, fallback) {
+        return { from, to, twa, bearing, tack, primary, alternates, fallback: !!fallback };
+      }
+      const legs = [
+        { index:0, legId:'m1', start:m1, end:m2, viaPoints:[], segments:[
+          seg(m1, m2, 45, 175, 'starboard', 'Jib', []),
+        ] },
+        { index:1, legId:'m2', start:m2, end:m3, viaPoints:[headland], segments:[
+          seg(m2, headland, 66, 154, 'starboard', 'Code 0', [
+            { side:'lower', sail:'Jib', reason:'Code 0 below its 85° minimum TWA' },
+          ]),
+          seg(headland, m3, 150, 212, 'port', 'Genoa', [], true),
+        ] },
+        { index:2, legId:'m3', start:m3, end:m4, viaPoints:[moleEnd, channelN, shoalEdge], segments:[
+          seg(m3, moleEnd, 52, 272, 'port', 'J2', [
+            { side:'lower',  sail:'Code 0',  reason:'12% faster than J2 on this leg' },
+            { side:'higher', sail:'A2 Kite', reason:'18% faster than J2 on this leg' },
+          ]),
+          seg(moleEnd, channelN, 98, 318, 'starboard', 'Code 0', []),
+          seg(channelN, shoalEdge, 146, 6, 'port', 'A2 Kite', [
+            { side:'higher', sail:'Genoa', reason:'A2 past its 170° maximum TWA' },
+          ]),
+          seg(shoalEdge, m4, 120, 341, 'port', 'J2', []),
+        ] },
+      ];
+
+      const state = { variant:'segment', legIdx:0, segIdx:0, focusIdx:0, spread:0 };
+
+      // ---- helpers ----
+      const esc = s => String(s ?? '').replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+      const deg = n => `${Math.round(n)}°`;
+      const norm = d => ((d % 360) + 360) % 360;
+      const pct = v => (v / 180) * 100;
+      const possible = (twa, s) => ({ low: Math.max(0, twa - s), high: Math.min(180, twa + s) });
+      const twaSide = (sg, side, s) => { const p = possible(sg.twa, s); return side === 'lower'
+        ? { from:p.low, to:Math.max(p.low, sg.twa - Math.round(s * 0.5)) }
+        : { from:Math.min(p.high, sg.twa + Math.round(s * 0.5)), to:p.high }; };
+      const twdSide = (side, s) => side === 'lower'
+        ? { from:norm(CENTRAL_TWD - s), to:norm(CENTRAL_TWD - Math.round(s * 0.5)) }
+        : { from:norm(CENTRAL_TWD + Math.round(s * 0.5)), to:norm(CENTRAL_TWD + s) };
+      const rangeLabel = r => `${deg(r.from)} – ${deg(r.to)}`;
+      const alts = (sg, s) => (s >= 10 ? sg.alternates : []);
+      const windZone = twa => twa < 80 ? 'Upwind' : twa < 120 ? 'Reaching' : 'Downwind';
+      const waypoints = leg => [leg.start, ...leg.viaPoints, leg.end];
+
+      function tackBadge(tack) { return `<span class="tack ${tack === 'port' ? 'port' : ''}">${tack === 'port' ? 'Port' : 'Starboard'}</span>`; }
+      function dirBadge(m) { return m.direction ? `<span class="badge dir ${m.direction === 'starboard' ? 's' : 'p'}">${m.direction === 'starboard' ? 'S' : 'P'}</span>` : ''; }
+      function viaBadge(v) { return v.kind === 'markBackedVia' ? '<span class="badge saved">SAVED MARK</span>' : '<span class="badge local">LOCAL</span>'; }
+      function legBoundsLine(leg) {
+        return `<div class="leg-bounds">
+          <span class="lb-tag">Leg ${leg.index + 1}</span>
+          <span class="lb-mark">${esc(leg.start.name)}${dirBadge(leg.start)}</span>
+          <span class="lb-arrow">→</span>
+          <span class="lb-mark">${esc(leg.end.name)}${dirBadge(leg.end)}</span>
+        </div>`;
+      }
+
+      // ---- shared render pieces ----
+      function twaBearingCard(sg, showBand, spread) {
+        const p = possible(sg.twa, spread);
+        return `<div class="twa-card">
+          <div class="twa-col">
+            <span class="label">TWA</span>
+            <div class="twa-big">${deg(sg.twa)}</div>
+            ${tackBadge(sg.tack)}
+            ${showBand ? `<div class="band"><div class="track"></div><div class="fill" style="left:${pct(p.low)}%;width:${pct(p.high - p.low)}%"></div><div class="tick" style="left:${pct(sg.twa)}%"></div></div><div class="possible-line">${deg(p.low)} – ${deg(p.high)} possible</div>` : ''}
+          </div>
+          <div class="bearing-col">
+            <span class="label">Bearing</span>
+            <div class="bearing-big">${deg(sg.bearing)}</div>
+          </div>
+        </div>`;
+      }
+      function caseCard(label, twdLabel, twaLabel, sail, reason, isExpected) {
+        return `<div class="case-card ${isExpected ? 'expected' : ''}">
+          <div class="case-head"><strong>${label}</strong><span class="muted">wind ${twdLabel}</span></div>
+          <div class="case-body"><div class="case-twa">${twaLabel}</div><span class="pill">${esc(sail)}</span></div>
+          <div class="case-reason muted">${esc(reason)}</div>
+        </div>`;
+      }
+      function caseCards(sg, spread) {
+        const a = alts(sg, spread);
+        const lowerAlt = a.find(x => x.side === 'lower'), higherAlt = a.find(x => x.side === 'higher');
+        if (!lowerAlt && !higherAlt) return `<div class="qual-note">No alternate qualified across the possible range.</div>`;
+        const lo = twaSide(sg, 'lower', spread), hi = twaSide(sg, 'higher', spread);
+        let html = '';
+        html += lowerAlt
+          ? caseCard('Left shift', rangeLabel(twdSide('lower', spread)), rangeLabel(lo), lowerAlt.sail, lowerAlt.reason, false)
+          : `<div class="qual-note">No alternate qualified below ${deg(CENTRAL_TWD)}.</div>`;
+        html += caseCard('Expected', deg(CENTRAL_TWD), deg(sg.twa), sg.primary, 'Highest-ranked sail at the most likely wind', true);
+        html += higherAlt
+          ? caseCard('Right shift', rangeLabel(twdSide('higher', spread)), rangeLabel(hi), higherAlt.sail, higherAlt.reason, false)
+          : `<div class="qual-note">No alternate qualified above ${deg(CENTRAL_TWD)}.</div>`;
+        return html;
+      }
+      function sailRow(sail, suggested, alt, sg, showCases, spread) {
+        const range = showCases && alt ? twaSide(sg, alt.side, spread) : null;
+        return `<div class="sail-row ${suggested ? 'suggested' : ''}">
+          <span class="sail-name">${esc(sail)}</span>
+          ${suggested ? '<span class="pill small">Suggested</span>' : ''}
+          ${range ? `<span class="range-note muted">wins ${rangeLabel(range)}</span>` : ''}
+        </div>`;
+      }
+      function breakdownList(sg, showCases, spread) {
+        const rows = [sailRow(sg.primary, true, null, sg, showCases, spread)]
+          .concat(sg.alternates.map(a => sailRow(a.sail, false, a, sg, showCases, spread)));
+        return `<div class="breakdown">
+          <div class="cond-line">TWA ${deg(sg.twa)} · TWS 12 kn · ${windZone(sg.twa)}${showCases ? ' <span class="muted">· ranked at central TWA</span>' : ''}</div>
+          ${sg.fallback ? '<div class="fallback-line">⚠ Best available — all sails outside preferred range</div>' : ''}
+          ${rows.join('')}
+        </div>`;
+      }
+      function segmentBlock(sg, spread, heading) {
+        const showCases = spread > 0;
+        return `<section class="seg-block">
+          ${heading || ''}
+          ${twaBearingCard(sg, showCases, spread)}
+          <div class="section-label">Sail Suggestions</div>
+          ${showCases ? `<div class="cases">${caseCards(sg, spread)}</div>` : ''}
+          ${showCases ? '<div class="section-label all-sails">All sails</div>' : ''}
+          ${breakdownList(sg, showCases, spread)}
+        </section>`;
+      }
+      function waypointRow(p) {
+        const isMark = p.kind === 'courseMark';
+        return `<div class="wp-row">
+          <span class="wp-dot ${isMark ? '' : 'via'}"></span>
+          <div>
+            <div class="wp-name">${esc(p.name)}${isMark ? dirBadge(p) : viaBadge(p)}</div>
+            <div class="wp-role">${isMark ? 'Course Mark' : p.kind === 'markBackedVia' ? 'Via Point · Mark-backed' : 'Via Point · course-local'}</div>
+            ${p.note ? `<div class="wp-note">${esc(p.note)}</div>` : ''}
+          </div>
+        </div>`;
+      }
+      function waypointThread(leg) { return `<div class="thread">${waypoints(leg).map(waypointRow).join('')}</div>`; }
+      function endpointRow(p) {
+        const isMark = p.kind === 'courseMark';
+        return `<div class="ep-row">
+          <div class="ep-name">${esc(p.name)}${isMark ? dirBadge(p) : ''}</div>
+          ${p.note ? `<div class="ep-note">${esc(p.note)}</div>` : ''}
+        </div>`;
+      }
+
+      // ---- variant A: segment ----
+      function renderSegmentVariant() {
+        const leg = legs[state.legIdx], sg = leg.segments[state.segIdx], count = leg.segments.length;
+        return `
+          <h2 class="screen-h2">Leg Details</h2>
+          ${legBoundsLine(leg)}
+          ${count > 1 ? `<div class="crumb">Segment ${state.segIdx + 1} of ${count}</div>` : ''}
+          <div class="endpoints">
+            <div class="dots"><div class="dot"></div><div class="dotline"></div><div class="dot"></div></div>
+            <div class="ep-list">${endpointRow(sg.from)}${endpointRow(sg.to)}</div>
+          </div>
+          ${count > 1 ? `<div class="stepper">
+            <button data-step="-1" ${state.segIdx === 0 ? 'disabled' : ''}>← Previous</button>
+            <span>Segment ${state.segIdx + 1} of ${count} in this Leg</span>
+            <button data-step="1" ${state.segIdx === count - 1 ? 'disabled' : ''}>Next →</button>
+          </div>` : ''}
+          ${segmentBlock(sg, state.spread)}
+        `;
+      }
+      // ---- variant A2: segment, lean (dot position strip instead of stepper card) ----
+      function renderSegmentLeanVariant() {
+        const leg = legs[state.legIdx], sg = leg.segments[state.segIdx], count = leg.segments.length;
+        return `
+          <h2 class="screen-h2">Leg Details</h2>
+          ${legBoundsLine(leg)}
+          <div class="endpoints">
+            <div class="dots"><div class="dot"></div><div class="dotline"></div><div class="dot"></div></div>
+            <div class="ep-list">${endpointRow(sg.from)}${endpointRow(sg.to)}</div>
+          </div>
+          ${count > 1 ? `<div class="posdots" role="tablist" aria-label="Segment position in this Leg">
+            ${leg.segments.map((_, i) => `<button class="posdot ${i === state.segIdx ? 'active' : ''}" data-seg="${i}" aria-label="Segment ${i + 1} of ${count}">${i + 1}</button>`).join('')}
+          </div>` : ''}
+          ${segmentBlock(sg, state.spread)}
+        `;
+      }
+      // ---- variant B: whole Leg, every Segment expanded ----
+      function renderLegFullVariant() {
+        const leg = legs[state.legIdx];
+        return `
+          <h2 class="screen-h2">Leg Details</h2>
+          <div class="leg-title">Leg ${leg.index + 1} · ${leg.segments.length} segment${leg.segments.length === 1 ? '' : 's'}</div>
+          ${waypointThread(leg)}
+          ${leg.segments.map((sg, i) => segmentBlock(sg, state.spread,
+            `<div class="seg-heading">Segment ${i + 1} of ${leg.segments.length} · ${esc(sg.from.name)} → ${esc(sg.to.name)}</div>`)).join('')}
+        `;
+      }
+      // ---- variant C: whole Leg, one Segment focused ----
+      function collapsedRow(sg, i) {
+        return `<button class="collapsed-row" data-focus="${i}">
+          <span class="cr-num">${i + 1}</span>
+          <span class="cr-name">${esc(sg.from.name)} → ${esc(sg.to.name)}</span>
+          <span class="cr-twa">${deg(sg.twa)}</span>
+          <span class="pill small">${esc(sg.primary)}</span>
+        </button>`;
+      }
+      function renderLegFocusVariant() {
+        const leg = legs[state.legIdx];
+        return `
+          <h2 class="screen-h2">Leg Details</h2>
+          <div class="leg-title">Leg ${leg.index + 1} · ${leg.segments.length} segment${leg.segments.length === 1 ? '' : 's'}</div>
+          ${waypointThread(leg)}
+          ${leg.segments.map((sg, i) => i === state.focusIdx
+            ? segmentBlock(sg, state.spread, `<div class="seg-heading focused">Segment ${i + 1} of ${leg.segments.length} · ${esc(sg.from.name)} → ${esc(sg.to.name)}</div>`)
+            : collapsedRow(sg, i)).join('')}
+        `;
+      }
+
+      // ---- variant D: whole Leg, tab strip instead of stacked collapsed rows ----
+      function renderLegTabsVariant() {
+        const leg = legs[state.legIdx], sg = leg.segments[state.focusIdx];
+        return `
+          <h2 class="screen-h2">Leg Details</h2>
+          <div class="leg-title">Leg ${leg.index + 1} · ${leg.segments.length} segment${leg.segments.length === 1 ? '' : 's'}</div>
+          ${waypointThread(leg)}
+          <div class="tabstrip" role="tablist" aria-label="Segments in this Leg">
+            ${leg.segments.map((s, i) => `<button class="tab-btn ${i === state.focusIdx ? 'active' : ''}" data-focus="${i}">
+              <span class="tab-num">Seg ${i + 1}</span>
+              <span class="tab-twa">${deg(s.twa)}</span>
+              <span class="tab-sail">${esc(s.primary)}</span>
+            </button>`).join('')}
+          </div>
+          ${segmentBlock(sg, state.spread, `<div class="crumb">${esc(sg.from.name)} → ${esc(sg.to.name)}</div>`)}
+        `;
+      }
+
+      // ---- variants + wiring ----
+      const variants = [
+        { key:'segment',      name:'A — Segment detail',          title:'Leg Details · Segment', blurb:'The detail of one Leg Segment — reached from a Segment row. A Leg-bounds banner names the two Course Marks the Leg actually runs between; a stepper moves along the Leg’s other Segments without leaving the screen.', render:renderSegmentVariant },
+        { key:'segment-lean', name:'A2 — Segment detail, lean',   title:'Leg Details · Segment', blurb:'Same unit as A and the same Leg-bounds banner, but the stepper card is replaced by a tappable position-dot strip — every Segment in the Leg is visible and reachable at once, without the box-in-a-box feel.', render:renderSegmentLeanVariant },
+        { key:'leg-full',     name:'B — Whole Leg, all Segments', title:'Leg Details · Leg', blurb:'The detail of the whole Mark-to-Mark Leg — reached from the Leg group header. Every Segment gets the full guidance treatment, stacked in route order.', render:renderLegFullVariant },
+        { key:'leg-focus',    name:'C — Whole Leg, one focused',  title:'Leg Details · Leg', blurb:'Also the whole Leg, but only the Segment named by segmentIndex expands; its Leg-mates collapse to a tappable one-line summary.', render:renderLegFocusVariant },
+        { key:'leg-tabs',     name:'D — Whole Leg, tab strip',    title:'Leg Details · Leg', blurb:'Also the whole Leg, but the stacked collapsed rows become a horizontal tab strip (TWA + sail per tab) — a segmented control instead of a list, so switching focus costs no vertical space.', render:renderLegTabsVariant },
+      ];
+      function currentKey() { const k = new URLSearchParams(location.search).get('variant'); return variants.some(v => v.key === k) ? k : 'segment'; }
+      function switchVariant(delta) {
+        const i = variants.findIndex(v => v.key === currentKey());
+        const t = variants[(i + delta + variants.length) % variants.length];
+        const url = new URL(location); url.searchParams.set('variant', t.key); history.replaceState({}, '', url);
+        render();
+      }
+      function setLeg(i) { state.legIdx = i; state.segIdx = 0; state.focusIdx = 0; render(); }
+
+      function render() {
+        const key = currentKey(), v = variants.find(x => x.key === key), leg = legs[state.legIdx];
+        document.querySelector('#variant-title').textContent = v.title;
+        document.querySelector('#variant-blurb').textContent = v.blurb;
+        document.querySelector('#leg-picker').innerHTML = legs.map((l, i) =>
+          `<button class="chip ${i === state.legIdx ? 'on' : ''}" data-leg="${i}">Leg ${i + 1} · ${l.viaPoints.length} Via Point${l.viaPoints.length === 1 ? '' : 's'}</button>`).join('');
+        const spreads = [0, 10, 20, 30];
+        document.querySelector('#wind-picker').innerHTML = spreads.map(s =>
+          `<button class="chip ${state.spread === s ? 'on' : ''}" data-spread="${s}">${s === 0 ? 'Wind: Off' : '±' + s + '°'}</button>`).join('');
+        document.querySelector('#content').innerHTML = v.render();
+        document.querySelector('#variant-label').textContent = v.name;
+        document.querySelector('#state').textContent =
+          `VISIBLE STATE\nvariant: ${v.key}\nleg: ${leg.index + 1} (${leg.viaPoints.length} Via Points, ${leg.segments.length} Segments)\n` +
+          (v.key === 'segment' || v.key === 'segment-lean' ? `segment: ${state.segIdx + 1} of ${leg.segments.length}\n` : v.key === 'leg-focus' || v.key === 'leg-tabs' ? `focused segment: ${state.focusIdx + 1} of ${leg.segments.length}\n` : '') +
+          `wind uncertainty: ${state.spread === 0 ? 'off (byte-for-byte today’s screen per wind-shifts ticket 06)' : '±' + state.spread + '°'}\n` +
+          `central TWD: ${CENTRAL_TWD}°`;
+      }
+
+      document.addEventListener('click', e => {
+        const t = e.target.closest('[data-leg],[data-spread],[data-step],[data-seg],[data-focus]');
+        if (!t) return;
+        if (t.dataset.leg !== undefined) return setLeg(+t.dataset.leg);
+        if (t.dataset.spread !== undefined) { state.spread = +t.dataset.spread; return render(); }
+        if (t.dataset.step !== undefined) {
+          const leg = legs[state.legIdx];
+          state.segIdx = Math.min(leg.segments.length - 1, Math.max(0, state.segIdx + Number(t.dataset.step)));
+          return render();
+        }
+        if (t.dataset.seg !== undefined) { state.segIdx = +t.dataset.seg; return render(); }
+        if (t.dataset.focus !== undefined) { state.focusIdx = +t.dataset.focus; return render(); }
+      });
+      document.addEventListener('keydown', e => {
+        const tag = document.activeElement?.tagName;
+        if (['INPUT', 'TEXTAREA', 'SELECT'].includes(tag) || document.activeElement?.isContentEditable) return;
+        if (e.key === 'ArrowLeft') switchVariant(-1);
+        if (e.key === 'ArrowRight') switchVariant(1);
+      });
+      document.querySelector('#prev').onclick = () => switchVariant(-1);
+      document.querySelector('#next').onclick = () => switchVariant(1);
+      render();
+    </script>
+  </body>
+</html>

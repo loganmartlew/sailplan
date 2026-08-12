@@ -18,8 +18,10 @@ separate, purposeless editor.
 
 Course Detail owns the one saved Course. Its Course Map sheet is the
 spatial view for read-only orientation and explicit editing. Adding a Via Point
-starts from Course Detail's selected context, then places a pin on the map;
-Course Detail and its map sheet share one **selection context**. The integrated
+can start from either surface and place a pin on the map; Course Detail and its
+map sheet share **one saved Course and one pending action**, with no selection
+held between gestures ([07](07-prototype-integrated-course-editing-flow.md)).
+The integrated
 Course-Detail/map/Plan flow is specified and prototyped by
 [07 — integrated Course Detail map-editing and Plan return flow](07-prototype-integrated-course-editing-flow.md).
 
@@ -35,5 +37,10 @@ This answer originally said "Save and Cancel remain boundaries for the shared
 draft". [05](05-choose-persistence-model.md) settled that route writes are
 immediate and durable — one transaction per intent, no draft state — which is
 also what ticket 01's amendment and prototype 03 require. The shared thing
-between Course Detail and its map sheet is the **selection context**, not a
+between Course Detail and its map sheet is the **saved Course itself**, not a
 draft. The answer above has been corrected in place.
+
+(This amendment originally said the shared thing was the "selection context".
+[07](07-prototype-integrated-course-editing-flow.md) removed selection modes
+entirely; the only thing now handed across the boundary is a single pending
+action's target, and only while that action is in flight.)
