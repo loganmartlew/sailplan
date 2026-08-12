@@ -55,6 +55,18 @@ export default function Layout() {
           title: 'Manage Raw Logs',
         }}
       />
+      <Stack.Screen
+        name='capture-sessions/index'
+        options={{
+          title: 'Capture Sessions',
+        }}
+      />
+      <Stack.Screen
+        name='capture-sessions/[sessionId]'
+        options={{
+          title: 'Session',
+        }}
+      />
     </Stack>
   );
 }

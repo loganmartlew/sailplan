@@ -1,4 +1,4 @@
-import { router } from 'expo-router';
+import { router, type Href } from 'expo-router';
 import { Pressable, ScrollView, View } from 'react-native';
 import { Card, CardContent, H2, Text } from '~/components/ui';
 import { RawLogStorageSummary, useCaptureInset } from '~/features/capture';
@@ -9,6 +9,7 @@ import {
   Ruler,
   Sailboat,
   TextCursorInput,
+  Wind,
 } from '~/lib/icons';
 
 export default function SettingsIndex() {
@@ -44,6 +45,12 @@ export default function SettingsIndex() {
         description='Theme and display'
         icon={<PaintBucket className='text-accent-foreground' size={16} />}
         onPress={() => router.push('/settings/appearance')}
+      />
+      <SettingsNavItem
+        title='Capture Sessions'
+        description='Past recordings and their health'
+        icon={<Wind className='text-accent-foreground' size={16} />}
+        onPress={() => router.push('/settings/capture-sessions' as Href)}
       />
       <RawLogStorageSummary />
       <SettingsNavItem

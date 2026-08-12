@@ -1,5 +1,20 @@
-import { and, eq, isNotNull, isNull, lt } from 'drizzle-orm';
+import { useMemo } from 'react';
+import {
+  and,
+  count,
+  desc,
+  eq,
+  isNotNull,
+  isNull,
+  lt,
+  max,
+  min,
+  ne,
+  sql,
+} from 'drizzle-orm';
+import { useLiveQuery } from 'drizzle-orm/expo-sqlite';
 import type { CaptureSession } from '~/features/capture/model/capture';
+import { summarizeCaptureSessions } from '~/features/capture/model/captureSessionSummary';
 import type {
   CaptureHealth,
   ReplayCaptureSample,
@@ -7,6 +22,41 @@ import type {
 } from '~/features/capture/util/replayCaptureSession';
 import { db } from '~/lib/db';
 import { captureSample, captureSession, connectionEvent, sailedLeg } from '~/schema';
+
+export function useCaptureSessionSummaries(boatProfileId: number | null) {
+  const activeBoatProfileId = boatProfileId ?? -1;
+  const query = useLiveQuery(
+    db
+      .select({
+        session: captureSession,
+        sampleCount: count(captureSample.id),
+        usableSampleCount: sql<number>`sum(case when ${captureSample.tws} is not null and ${captureSample.twa} is not null and ${captureSample.stw} is not null and ${captureSample.hdg} is not null then 1 else 0 end)`.mapWith(Number),
+        minTws: min(captureSample.tws),
+        maxTws: max(captureSample.tws),
+      })
+      .from(captureSession)
+      .leftJoin(
+        captureSample,
+        eq(captureSample.captureSessionId, captureSession.id),
+      )
+      .where(
+        and(
+          eq(captureSession.boatProfileId, activeBoatProfileId),
+          ne(captureSession.status, 'active'),
+        ),
+      )
+      .groupBy(captureSession.id)
+      .orderBy(desc(captureSession.startedAt)),
+    [activeBoatProfileId],
+  );
+
+  const data = useMemo(
+    () => summarizeCaptureSessions(query.data),
+    [query.data],
+  );
+
+  return { ...query, data };
+}
 
 export async function createActiveCaptureSession({
   boatProfileId,

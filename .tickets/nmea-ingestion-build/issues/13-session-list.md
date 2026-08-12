@@ -12,18 +12,18 @@ session's health becomes visible.
 
 **Blocked by:** `02`, `05`.
 
-**Status:** ready-for-agent
+**Status:** done
 
-- [ ] Sessions listed by date with duration, sample count and wind range
-- [ ] Three states: **good**, **failed** (opens to a dead end explaining why
+- [x] Sessions listed by date with duration, sample count and wind range
+- [x] Three states: **good**, **failed** (opens to a dead end explaining why
       nothing is usable), and **empty**
-- [ ] The failure explanation is drawn from `05`'s per-sentence-type reject
+- [x] The failure explanation is drawn from `05`'s per-sentence-type reject
       counters and per-field stale counters — session health, not a generic
       message
-- [ ] The session's wind-frame classification is surfaced; **`ground` warns**,
+- [x] The session's wind-frame classification is surfaced; **`ground` warns**,
       because a ground-referenced true wind bakes tidal current into every polar
-- [ ] Sessions whose TWS sits below ~6 kn are flagged **low confidence** on
+- [x] Sessions whose TWS sits below ~6 kn are flagged **low confidence** on
       wind-shear grounds. This flag is **derived at read time, never stored** —
       freezing "~6 kn" into a column is the same formula-versioning trap `05`
       rejected
-- [ ] Reads sensibly with one session, and with dozens
+- [x] Reads sensibly with one session, and with dozens
