@@ -1,3 +1,7 @@
+// Hermes has no global `Buffer`; only the Jest node environment provides one,
+// which is why this is invisible to the test suite. react-native-tcp-socket
+// imports it the same way.
+import { Buffer } from 'buffer';
 import TcpSocket from 'react-native-tcp-socket';
 import {
   createActiveCaptureSession,
@@ -21,7 +25,13 @@ import {
   startCaptureForegroundService,
   stopCaptureForegroundService,
 } from './captureForegroundService';
-import { openExistingRawLog, openPendingRawLog, openRawLog, type RawLog } from './rawLog';
+import {
+  openExistingRawLog,
+  openPendingRawLog,
+  openRawLog,
+  rawLogSizeBytes,
+  type RawLog,
+} from './rawLog';
 import {
   classifyWindFrame,
   createCaptureStreamParser,
@@ -102,6 +112,8 @@ export type CaptureRecordingInput = {
   resumeSession?: {
     id: number;
     startedAt: number;
+    /** Restored verbatim if the resume fails after the row was reopened. */
+    endedAt: number | null;
     rawLogPath: string | null;
   };
 };
@@ -120,6 +132,11 @@ export type RecordingDependencies = {
   }) => Promise<Session>;
   openRawLog: (startedAt: number) => Promise<RawLog> | RawLog;
   openResumeRawLog: (sessionId: number, path: string | null) => Promise<RawLog> | RawLog;
+  /**
+   * Synchronous by design: the first `data` event can land before the log has
+   * finished opening, so the offset origin has to be known at connect time.
+   */
+  resumeRawLogSize: (path: string) => number;
   deleteSession: (sessionId: number) => Promise<void>;
   endSession: (sessionId: number, endedAt: number) => Promise<void>;
   autoEndSession: (sessionId: number, endedAt: number) => Promise<void>;
@@ -150,6 +167,7 @@ const productionDependencies: RecordingDependencies = {
   openRawLog: openPendingRawLog,
   openResumeRawLog: (sessionId, path) =>
     path ? openExistingRawLog(path) : openRawLog(sessionId),
+  resumeRawLogSize: rawLogSizeBytes,
   deleteSession: deleteCaptureSession,
   endSession: endCaptureSession,
   autoEndSession: autoEndCaptureSession,
@@ -206,6 +224,9 @@ export function startCaptureRecording(
     let queuedSamples: ReplayCaptureSample[] = [];
     let persistence = Promise.resolve();
     let preserveRawEvidence = false;
+    let reopenedSession = false;
+    /** Bytes this recording actually landed in the log, for the rule above. */
+    let rawBytesWritten = 0;
     let connectionGeneration = 0;
     let lossStartedAt: number | null = null;
     let lastValidAnchorAt: number | null = null;
@@ -252,8 +273,10 @@ export function startCaptureRecording(
       // async setup can then safely call this again and clean only what it made.
       const failedRawLog = rawLog;
       const failedSession = session;
+      const wasReopened = reopenedSession;
       rawLog = undefined;
       session = undefined;
+      reopenedSession = false;
 
       try {
         failedRawLog?.close();
@@ -271,6 +294,15 @@ export function startCaptureRecording(
       try {
         if (failedSession && !resumeSession) {
           await dependencies.deleteSession(failedSession.id);
+        } else if (failedSession && wasReopened && resumeSession) {
+          // The resume already flipped the row to `active`. Leaving it there
+          // would strip the session of the one status that makes it resumable
+          // and strand it until the next launch's orphan sweep, so put back
+          // exactly the auto-ended window the offer was made against.
+          await dependencies.autoEndSession(
+            failedSession.id,
+            resumeSession.endedAt ?? resumeSession.startedAt,
+          );
         }
       } catch {
         // Already the failure path; the original error is the one to report.
@@ -302,35 +334,54 @@ export function startCaptureRecording(
       }
     };
 
+    /**
+     * Chains a write, absorbing its failure. A rejected `persistence` skips
+     * every `.then` chained after it, so without the `catch` one transient
+     * SQLite error silently drops every remaining sample of the race — the
+     * whole rest of the recording, from one lock. Losing a batch is survivable
+     * on the same reasoning as a dropped raw chunk; `08` adds the counter that
+     * makes it visible in review.
+     */
+    const queueWrite = (chain: Promise<void>, write: () => Promise<void>) =>
+      chain.then(write).catch(() => undefined);
+
     const finishPersistence = async (sessionId: number) => {
       // Before the socket goes: the final flush is the one that carries the
       // last resume window.
       stopCaptureDiagnostics();
-      const finalSamples = parser?.finish() ?? [];
-      if (finalSamples.length > 0) {
-        const latest = finalSamples[finalSamples.length - 1];
-        live.tws = latest.tws;
-        live.twa = latest.twa;
-        live.sampleCount += finalSamples.length;
-        live.lastSampleAt = latest.timestamp;
-        queuedSamples.push(...finalSamples);
-      }
-      if (parser) {
-        const batch = queuedSamples;
-        queuedSamples = [];
-        persistence = persistence.then(() =>
-          dependencies.persistBatch(
+      try {
+        const finalSamples = parser?.finish() ?? [];
+        if (finalSamples.length > 0) {
+          const latest = finalSamples[finalSamples.length - 1];
+          live.tws = latest.tws;
+          live.twa = latest.twa;
+          live.sampleCount += finalSamples.length;
+          live.lastSampleAt = latest.timestamp;
+          queuedSamples.push(...finalSamples);
+        }
+        if (parser) {
+          const batch = queuedSamples;
+          queuedSamples = [];
+          // Drain the absorbing chain first, then write the closing batch
+          // directly: this is the one whose failure the caller must see, since
+          // it carries the final samples and the classified wind frame.
+          await persistence;
+          await dependencies.persistBatch(
             sessionId,
             batch,
-            parser!.health,
-            classifyWindFrame(parser!.samples),
-          ),
-        );
-        await persistence;
+            parser.health,
+            classifyWindFrame(parser.samples),
+          );
+        }
+        await lifecyclePersistence;
+      } finally {
+        try {
+          rawLog?.close();
+        } catch {
+          // Nothing actionable, and the socket still has to go.
+        }
+        socket?.destroy();
       }
-      await lifecyclePersistence;
-      rawLog?.close();
-      socket?.destroy();
     };
 
     const runStop = async (sessionId: number) => {
@@ -355,7 +406,14 @@ export function startCaptureRecording(
       clearConnectionTimers();
       const endedAt = live.lastSampleAt ?? lastValidAnchorAt ?? startedAt;
       try {
-        await finishPersistence(sessionId);
+        try {
+          await finishPersistence(sessionId);
+        } catch {
+          // The horizon has passed and the socket is gone, so the session is
+          // over whether or not the final flush landed. Ending the row is what
+          // matters now: an `active` row with no reachable socket produces no
+          // notification, and therefore no resume offer either.
+        }
         const finalEndedAt = live.lastSampleAt ?? endedAt;
         await dependencies.autoEndSession(sessionId, finalEndedAt);
         notifyAlert('autoEnded');
@@ -364,16 +422,28 @@ export function startCaptureRecording(
         } catch {
           // The durable auto-ended row is the source of truth on relaunch.
         }
+      } catch (error) {
+        // The row is still `active`. Restoring `terminal` keeps the handle
+        // stoppable in-app rather than leaving the store believing it records.
+        terminal = false;
+        throw error;
       } finally {
-        await dependencies.stopForegroundService();
+        try {
+          await dependencies.stopForegroundService();
+        } catch {
+          // Service teardown must not mask the auto-end outcome.
+        }
       }
     };
 
     const fail = (error: Error, reason: CaptureStartReason) => {
       if (phase === 'started' || phase === 'failed') return;
-      // Once bytes arrived but no valid anchor ever did, the unlinked raw log
-      // is the only record of the unexpected stream and must survive.
-      preserveRawEvidence = phase === 'waitingForData';
+      // Raw evidence is discarded only when the file is empty. Keying this on
+      // the phase instead would delete a log that had reached `starting` — one
+      // known to contain valid anchors, the strongest case for keeping it —
+      // and keying it on `waitingForData` alone would leave behind a
+      // zero-length file for every connect that never received a byte.
+      preserveRawEvidence = rawBytesWritten > 0;
       phase = 'failed';
       const startError = new CaptureRecordingStartError(
         reason === 'unreachable' || reason === 'refused'
@@ -411,7 +481,7 @@ export function startCaptureRecording(
         rejects: { ...parser.health.rejects },
         stale: { ...parser.health.stale },
       };
-      persistence = persistence.then(() =>
+      persistence = queueWrite(persistence, () =>
         dependencies.persistBatch(session!.id, batch, health, 'unknown'),
       );
     };
@@ -438,12 +508,17 @@ export function startCaptureRecording(
           }
           if (hasFailed()) return void (await cleanupFailedStart());
           if (resumeSession) {
+            // Reopen first. `reopenSession` is the step that can legitimately
+            // refuse — the offer may have been consumed or dismissed since —
+            // and writing the `recovered` event before it would leave a
+            // dangling event on a session that never resumed.
+            await dependencies.reopenSession(session.id);
+            reopenedSession = true;
             await dependencies.addConnectionEvent(
               session.id,
               dependencies.now(),
               'recovered',
             );
-            await dependencies.reopenSession(session.id);
           }
           if (hasFailed()) return void (await cleanupFailedStart());
           await dependencies.startForegroundService(session.id);
@@ -508,8 +583,14 @@ export function startCaptureRecording(
       lossStartedAt = lastValidAnchorAt ?? live.lastSampleAt ?? dependencies.now();
       notifyConnectionState({ status: 'retrying', gapStartedAt: lossStartedAt });
       if (session) {
-        lifecyclePersistence = lifecyclePersistence.then(() =>
-          dependencies.addConnectionEvent(session!.id, lossStartedAt!, 'lost'),
+        // Absorbing too: a dropped `lost` must not poison the chain and leave
+        // the matching `recovered` unpaired. Both values are captured now
+        // rather than read inside the callback, which runs after an awaited
+        // write and may find `lossStartedAt` already cleared by `recover`.
+        const lostSessionId = session.id;
+        const lostAt = lossStartedAt;
+        lifecyclePersistence = queueWrite(lifecyclePersistence, () =>
+          dependencies.addConnectionEvent(lostSessionId, lostAt, 'lost'),
         );
       }
       connectionGeneration += 1;
@@ -526,7 +607,13 @@ export function startCaptureRecording(
       );
       autoEndTimer = dependencies.setTimer(
         () => {
-          if (session) void runAutoEnd(session.id);
+          if (session) {
+            void runAutoEnd(session.id).catch(() => {
+              // `runAutoEnd` restored `terminal`, so the handle is still
+              // stoppable in-app and the next launch's orphan sweep ends the
+              // row if the app dies first. Nothing here can do better.
+            });
+          }
         },
         Math.max(0, AUTO_END_AFTER_MS - age),
       );
@@ -544,8 +631,13 @@ export function startCaptureRecording(
       clearTimer(reminderTimer);
       clearTimer(autoEndTimer);
       retryAnchorTimer = lostAlertTimer = reminderTimer = autoEndTimer = undefined;
-      lifecyclePersistence = lifecyclePersistence.then(() =>
-        dependencies.addConnectionEvent(session!.id, recoveredAt, 'recovered'),
+      const recoveredSessionId = session.id;
+      lifecyclePersistence = queueWrite(lifecyclePersistence, () =>
+        dependencies.addConnectionEvent(
+          recoveredSessionId,
+          recoveredAt,
+          'recovered',
+        ),
       );
       notifyConnectionState({ status: 'connected' });
       notifyAlert('recovered');
@@ -564,6 +656,10 @@ export function startCaptureRecording(
       // a half-received sentence, a proprietary sentence carrying high bytes.
       // Those are exactly the cases the raw log exists to preserve, and the
       // substitution is not reversible.
+      // Only a chunk that reached the file advances the offset. Counting a
+      // dropped write would push every later sample's `rawOffset` past its real
+      // position for the rest of the session.
+      let reachedTheLog = true;
       if (!rawLog) {
         openingData.push(chunk);
       } else {
@@ -573,6 +669,7 @@ export function startCaptureRecording(
           // measurable rather than inferred.
           const appendStartedAt = diagnosticNow();
           rawLog.append(chunk);
+          rawBytesWritten += chunkByteLength(chunk);
           recordCaptureDataEvent(
             chunkByteLength(chunk),
             diagnosticNow() - appendStartedAt,
@@ -582,10 +679,13 @@ export function startCaptureRecording(
           // and take the recording down with it. Losing a chunk is survivable;
           // losing the rest of the race is not. `08` adds the health counter that
           // makes this visible in review.
+          reachedTheLog = false;
         }
       }
+      // Opening chunks are buffered, not lost: they reach the log as soon as it
+      // opens, so they advance the offset like any other write.
       const chunkOffset = rawOffset;
-      rawOffset += chunkByteLength(chunk);
+      if (reachedTheLog) rawOffset += chunkByteLength(chunk);
       if (parser) {
         const anchorsBefore = parser.validAnchorCount;
         const emitted = parser.pushChunk({
@@ -616,6 +716,17 @@ export function startCaptureRecording(
       });
       startedAt = dependencies.now();
       connectedMonotonic = dependencies.monotonicNow();
+      // A resume appends to the session's existing log, so its offsets are
+      // measured from the end of what is already there. Starting at 0 would
+      // give one session's `rawOffset` column two different origins.
+      if (resumeSession?.rawLogPath) {
+        try {
+          rawOffset = dependencies.resumeRawLogSize(resumeSession.rawLogPath);
+        } catch {
+          // An unreadable size only costs offset accuracy, never the recording.
+          rawOffset = 0;
+        }
+      }
       parser = createCaptureStreamParser(startedAt);
       try {
         rawLogPromise = Promise.resolve(
@@ -637,7 +748,10 @@ export function startCaptureRecording(
         opened => {
           rawLog = opened;
           try {
-            for (const chunk of openingData) rawLog.append(chunk);
+            for (const chunk of openingData) {
+              rawLog.append(chunk);
+              rawBytesWritten += chunkByteLength(chunk);
+            }
             openingData.length = 0;
           } catch (error) {
             fail(

@@ -39,6 +39,16 @@ export function openExistingRawLog(path: string): RawLog {
   return openFile(new File(path));
 }
 
+/**
+ * Bytes already in an existing log. A resume appends rather than truncating, so
+ * this is the origin its `rawOffset` values have to be measured from — without
+ * it a resumed session mixes offsets from two different origins in one column.
+ */
+export function rawLogSizeBytes(path: string): number {
+  const file = new File(path);
+  return file.exists ? file.size ?? 0 : 0;
+}
+
 /** Opens raw evidence before a valid anchor permits creation of a session. */
 export function openPendingRawLog(startedAt: number): RawLog {
   return openNamedRawLog(`pending-${startedAt}.nmea`);

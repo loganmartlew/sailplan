@@ -1,3 +1,8 @@
+// Hermes has no global `Buffer`; only the Jest node environment provides one.
+// Importing it explicitly is what keeps byte-length accounting working on
+// device, and matches what react-native-tcp-socket itself does.
+import { Buffer } from 'buffer';
+
 export type WindFrame =
   | 'water'
   | 'ground'
@@ -182,7 +187,11 @@ function parseFields(formatter: string, fields: string[]): ParsedSentence {
       else result.updates.variation = parsedVariation;
     }
   } else if (formatter === 'VTG') {
-    if (fields.length !== 9 || fields[1] !== 'T' || fields[5] !== 'N' || (fields[8] && fields[8] !== 'A')) return reject('cog', 'sog'), result;
+    // Pre-NMEA-2.3 talkers omit the mode indicator, so accept both lengths the
+    // way `RMC` already does. The unit letters are checked in full, like every
+    // other formatter here: without them a sentence one field out of register
+    // parses cleanly and stores a magnetic course as a true one.
+    if ((fields.length !== 9 && fields.length !== 8) || fields[1] !== 'T' || fields[3] !== 'M' || fields[5] !== 'N' || fields[7] !== 'K' || (fields[8] && fields[8] !== 'A')) return reject('cog', 'sog'), result;
     const cog = inRange(fields[0], 0, 360);
     const sog = inRange(fields[4], 0, 200);
     const magneticCog = fields[2] === '' ? 0 : inRange(fields[2], 0, 360);
@@ -315,7 +324,11 @@ export function createCaptureStreamParser(sessionStartWallClock: number): Captur
     const variationValue = read('variation', at);
     const magneticHeading = read('hdgMag', at);
     const sample = Object.fromEntries(SAMPLE_FIELDS.map(field => [field, read(field, at)])) as unknown as ReplayCaptureSample;
-    sample.timestamp = sessionStartWallClock + at;
+    // `at` comes from `performance.now()` deltas and carries sub-millisecond
+    // precision. `captureSample.timestamp` is an INTEGER column inside a UNIQUE
+    // index, and SQLite stores a non-integral value in it as a REAL, so the
+    // rounding has to happen before the sample leaves the parser.
+    sample.timestamp = Math.round(sessionStartWallClock + at);
     sample.rawOffset = open.rawOffset;
     sample.variation = variationValue;
     sample.hdg = variationValue === null || magneticHeading === null ? null : normal360(magneticHeading + variationValue);
@@ -326,6 +339,17 @@ export function createCaptureStreamParser(sessionStartWallClock: number): Captur
     lastEmittedAt = at;
     return [sample];
   };
+
+  /**
+   * True-wind MWV is the anchor; relative (`R`) is not. Corruption in an `R`
+   * sentence must never discard the pending sample, so both the checksum-failed
+   * and the parsed path ask this the same way rather than one of them pattern-
+   * matching the whole line for `,T`.
+   */
+  const isTrueWindMwv = (fields: readonly string[]) => fields[1] === 'T';
+  /** The comma-separated fields of a line whose checksum did not verify. */
+  const unverifiedFields = (line: string) =>
+    (/^[$!]([^*]*)/.exec(line)?.[1] ?? '').split(',').slice(1);
 
   const consumeLine = (rawLine: string, at: number, rawOffset: number | null) => {
     const emitted: ReplayCaptureSample[] = [];
@@ -338,17 +362,16 @@ export function createCaptureStreamParser(sessionStartWallClock: number): Captur
     if (!checked) {
       const formatter = formatterOf(line);
       countReject(formatter);
-      if (pending && formatter === 'MWV' && /,T(?:,|\*)/.test(line)) pending.corruptWind = true;
+      if (pending && formatter === 'MWV' && isTrueWindMwv(unverifiedFields(line))) pending.corruptWind = true;
       return emitted;
     }
     const parsed = parseFields(checked.formatter, checked.fields);
+    const ttl = parsed.formatter === 'HDG' || parsed.formatter === 'GGA' ? FAST_TTL_MS : ONE_HZ_TTL_MS;
     if (!parsed.valid) {
       countReject(parsed.formatter);
-      const ttl = parsed.formatter === 'HDG' || parsed.formatter === 'GGA' ? FAST_TTL_MS : ONE_HZ_TTL_MS;
       for (const field of parsed.invalidFields) state.set(field, { value: null, at, ttl });
-      if (pending && parsed.formatter === 'MWV' && checked.fields[1] === 'T') pending.corruptWind = true;
+      if (pending && parsed.formatter === 'MWV' && isTrueWindMwv(checked.fields)) pending.corruptWind = true;
     }
-    const ttl = parsed.formatter === 'HDG' || parsed.formatter === 'GGA' ? FAST_TTL_MS : ONE_HZ_TTL_MS;
     for (const [field, value] of Object.entries(parsed.updates)) state.set(field as FieldName | 'hdgMag', { value: value ?? null, at, ttl });
     if (parsed.anchor && parsed.valid) {
       hasValidAnchor = true;

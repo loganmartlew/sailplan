@@ -18,7 +18,6 @@ import {
   isSailStampStale,
 } from '../model/captureLayerState';
 import {
-  endOrphanedCaptureSessions,
   useCaptureRecordingStore,
   type CaptureStampHistory,
 } from '../store/captureRecordingStore';
@@ -109,6 +108,41 @@ function SailStampSheet({
   );
 }
 
+/**
+ * Shown whether or not a recording is running: the failure it reports may come
+ * from the notification action handler, which acts while the app is idle and
+ * has no screen of its own to report through.
+ */
+function CaptureFailureBanner({
+  message,
+  onDismiss,
+}: {
+  message: string | null;
+  onDismiss: () => void;
+}) {
+  if (message === null) return null;
+  return (
+    <View
+      className='absolute bottom-full left-3 right-3 z-40 mb-2 flex-row items-start gap-2 rounded-2xl bg-destructive px-4 py-3 shadow-lg'
+      accessibilityRole='alert'
+    >
+      <Text className='flex-1 text-sm text-destructive-foreground'>
+        {message}
+      </Text>
+      <Button
+        variant='ghost'
+        size='sm'
+        onPress={onDismiss}
+        accessibilityLabel='Dismiss message'
+      >
+        <Text className='font-semibold text-destructive-foreground'>
+          Dismiss
+        </Text>
+      </Button>
+    </View>
+  );
+}
+
 /** App-wide recording chrome. It deliberately renders nothing while idle. */
 export function CaptureRecordingBar() {
   const recording = useCaptureRecordingStore(state => state.recording);
@@ -118,16 +152,14 @@ export function CaptureRecordingBar() {
   const setLastStamp = useCaptureRecordingStore(state => state.setLastStamp);
   const isStopping = useCaptureRecordingStore(state => state.isStopping);
   const stop = useCaptureRecordingStore(state => state.stop);
+  const failure = useCaptureRecordingStore(state => state.failure);
+  const setFailure = useCaptureRecordingStore(state => state.setFailure);
   const sailsQuery = useSails();
   const [now, setNow] = useState(Date.now);
   const [sheetOpen, setSheetOpen] = useState(false);
   const [isStamping, setIsStamping] = useState(false);
   const [undoStamp, setUndoStamp] = useState<UndoStamp | null>(null);
   const heldToStop = useRef(false);
-
-  useEffect(() => {
-    void endOrphanedCaptureSessions();
-  }, []);
 
   useEffect(() => {
     if (!recording) return;
@@ -146,7 +178,11 @@ export function CaptureRecordingBar() {
     return () => clearTimeout(timer);
   }, [undoStamp]);
 
-  if (!recording) return null;
+  const dismissFailure = () => setFailure(null);
+
+  if (!recording) {
+    return <CaptureFailureBanner message={failure} onDismiss={dismissFailure} />;
+  }
 
   const stampSail = async (sail: Sail) => {
     if (isStamping) return;
@@ -165,6 +201,10 @@ export function CaptureRecordingBar() {
       setUndoStamp({ stamp: history, previous });
       setSheetOpen(false);
       setNow(Date.now());
+    } catch {
+      // Silence here would be the worst outcome: the sheet closes, no stamp
+      // exists, and the sailor believes the sail change was recorded.
+      setFailure('SailPlan could not record that sail stamp. Try again.');
     } finally {
       setIsStamping(false);
     }
@@ -172,7 +212,15 @@ export function CaptureRecordingBar() {
 
   const undo = async () => {
     if (!undoStamp) return;
-    await deleteSailStamp(undoStamp.stamp.id);
+    try {
+      await deleteSailStamp(undoStamp.stamp.id);
+    } catch {
+      // The toast has to go regardless — leaving it up would keep offering an
+      // undo that has already failed once.
+      setUndoStamp(null);
+      setFailure('SailPlan could not undo that sail stamp. It still stands.');
+      return;
+    }
     if (lastStamp?.id === undoStamp.stamp.id) {
       setLastStamp(undoStamp.previous);
     }
@@ -202,6 +250,7 @@ export function CaptureRecordingBar() {
 
   return (
     <>
+      <CaptureFailureBanner message={failure} onDismiss={dismissFailure} />
       {connection.status === 'retrying' && (
         <View
           className='absolute bottom-full left-5 right-5 z-20 mb-16 flex-row items-center justify-center rounded-full bg-amber-500 px-3 py-1.5'

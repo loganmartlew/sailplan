@@ -1,3 +1,5 @@
+import type { CaptureLiveData } from '../util/captureRecorder';
+
 export const STALE_SAIL_STAMP_MS = 15 * 60_000;
 
 export type CaptureConnectionState =
@@ -18,7 +20,9 @@ export function formatSailStampAge(timestamp: number, now: number): string {
   if (minutes < 1) return 'just now';
   if (minutes < 60) return `${minutes} min ago`;
   const hours = Math.floor(minutes / 60);
-  return `${hours} ${hours === 1 ? 'hr' : 'hr'} ago`;
+  // `hr` is deliberately invariant, matching `min` above: the unit is an
+  // abbreviation, not a word, so it does not take a plural.
+  return `${hours} hr ago`;
 }
 
 export function formatConnectionGapAge(ageMs: number): string {
@@ -59,4 +63,3 @@ export function captureStopSessionId(url: string): number | null {
   const match = /[?&]captureSessionId=(\d+)(?:&|$)/.exec(url);
   return match ? Number(match[1]) : null;
 }
-import type { CaptureLiveData } from '../util/captureRecorder';

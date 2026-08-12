@@ -70,6 +70,64 @@ describe('replayCaptureSession', () => {
     expect(result.samples[0].timestamp).toBe(start + 1_000);
   });
 
+  it('keeps a pending row whose corrupt MWV is relative, not the anchor', () => {
+    const result = replayCaptureSession({
+      sessionStartWallClock: start,
+      sentences: [
+        at(0, sentence('WIMWV,42.0,T,12.0,N,A')),
+        // Checksum-failed relative wind whose corruption happens to contain
+        // `,T,`. Only a true-wind MWV is the anchor, so the row still stands.
+        at(100, '$WIMWV,31.0,R,,T,,8.0,N,A*00'),
+      ],
+    });
+    expect(result.samples).toHaveLength(1);
+    expect(result.samples[0]).toMatchObject({ tws: 12, twa: 42 });
+  });
+
+  it('reads VTG with and without the mode indicator, and checks its units', () => {
+    const withMode = replayCaptureSession({
+      sessionStartWallClock: start,
+      sentences: [
+        at(0, sentence('GPVTG,89.5,T,69.5,M,6.4,N,11.9,K,A')),
+        at(50, sentence('WIMWV,42.0,T,12.0,N,A')),
+      ],
+    });
+    // Pre-NMEA-2.3 talkers omit the mode field entirely.
+    const legacy = replayCaptureSession({
+      sessionStartWallClock: start,
+      sentences: [
+        at(0, sentence('GPVTG,89.5,T,69.5,M,6.4,N,11.9,K')),
+        at(50, sentence('WIMWV,42.0,T,12.0,N,A')),
+      ],
+    });
+    // One field out of register: the magnetic unit is no longer where it
+    // belongs, so the true and magnetic halves cannot be told apart.
+    const shifted = replayCaptureSession({
+      sessionStartWallClock: start,
+      sentences: [
+        at(0, sentence('GPVTG,89.5,T,69.5,X,6.4,N,11.9,K,A')),
+        at(50, sentence('WIMWV,42.0,T,12.0,N,A')),
+      ],
+    });
+
+    expect(withMode.samples[0]).toMatchObject({ cog: 89.5, sog: 6.4 });
+    expect(legacy.samples[0]).toMatchObject({ cog: 89.5, sog: 6.4 });
+    expect(shifted.samples[0]).toMatchObject({ cog: null, sog: null });
+    expect(shifted.health.rejects).toMatchObject({ VTG: 1 });
+  });
+
+  it('emits whole-millisecond timestamps for the INTEGER sample column', () => {
+    const result = replayCaptureSession({
+      sessionStartWallClock: start,
+      sentences: [
+        { chunk: `${sentence('WIMWV,42.0,T,12.0,N,A')}\r\n`, monotonicElapsedMs: 40.6180419921875 },
+      ],
+    });
+    expect(result.samples).toHaveLength(1);
+    expect(Number.isInteger(result.samples[0].timestamp)).toBe(true);
+    expect(result.samples[0].timestamp).toBe(start + 41);
+  });
+
   it('keeps valid fields from a partially corrupt non-anchor sentence', () => {
     const result = replayCaptureSession({
       sessionStartWallClock: start,

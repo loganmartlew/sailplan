@@ -69,6 +69,7 @@ function makeDependencies(withTimers = false) {
     createSession: jest.fn(async () => session),
     openRawLog: jest.fn(async () => rawLog),
     openResumeRawLog: jest.fn(async () => rawLog),
+    resumeRawLogSize: jest.fn(() => 0),
     deleteSession: jest.fn(async () => {}),
     endSession: jest.fn(async () => {}),
     autoEndSession: jest.fn(async () => {}),
@@ -447,6 +448,61 @@ describe('startCaptureRecording', () => {
       ]);
       expect(written.every(sample => sample.timestamp <= finalSampleAt)).toBe(true);
     });
+
+    it('keeps the session stoppable when the auto-end write fails', async () => {
+      const fixture = makeDependencies(true);
+      const onAutoEnded = jest.fn();
+      fixture.dependencies.autoEndSession.mockRejectedValueOnce(
+        new Error('database is locked'),
+      );
+      const started = startCaptureRecording(
+        { ...input, onAutoEnded },
+        fixture.dependencies,
+      );
+      connectWithAnchor(fixture);
+      const recording = await started;
+
+      fixture.listeners.error?.(new Error('socket closed'));
+      await jest.advanceTimersByTimeAsync(30 * 60_000);
+      await jest.advanceTimersByTimeAsync(0);
+
+      // The row is still `active`, so the handle must not have latched itself
+      // terminal: stop is the sailor's remaining way to close the session.
+      expect(onAutoEnded).not.toHaveBeenCalled();
+      await recording.stop();
+      expect(fixture.dependencies.endSession).toHaveBeenCalledWith(
+        42,
+        expect.any(Number),
+      );
+    });
+  });
+
+  it('keeps persisting after a batch write fails mid-race', async () => {
+    const fixture = makeDependencies();
+    fixture.dependencies.persistBatch.mockRejectedValueOnce(
+      new Error('database is locked'),
+    );
+    const started = startCaptureRecording(input, fixture.dependencies);
+    connectWithAnchor(fixture);
+    const recording = await started;
+
+    // One transient lock must not silently drop the rest of the recording: a
+    // rejected chain would skip every write queued after it.
+    for (let index = 1; index <= 3; index += 1) {
+      fixture.dependencies.monotonicNow.mockReturnValue(1_000 + index * 1_000);
+      fixture.listeners.data?.(validAnchor);
+      await flush();
+    }
+    await recording.stop();
+
+    const written = fixture.dependencies.persistBatch.mock.calls.flatMap(
+      call => call[1],
+    );
+    expect(written.length).toBeGreaterThan(1);
+    expect(fixture.dependencies.endSession).toHaveBeenCalledWith(
+      42,
+      expect.any(Number),
+    );
   });
 
   describe('explicit resume', () => {
@@ -458,6 +514,7 @@ describe('startCaptureRecording', () => {
           resumeSession: {
             id: 42,
             startedAt: 1_699_999_000_000,
+            endedAt: 1_699_999_500_000,
             rawLogPath: fixture.rawLog.path,
           },
         },
@@ -495,6 +552,7 @@ describe('startCaptureRecording', () => {
           resumeSession: {
             id: 42,
             startedAt: 1_699_999_000_000,
+            endedAt: 1_699_999_500_000,
             rawLogPath: fixture.rawLog.path,
           },
         },
@@ -505,6 +563,90 @@ describe('startCaptureRecording', () => {
       await expect(started).rejects.toThrow('service failed');
       expect(fixture.dependencies.deleteSession).not.toHaveBeenCalled();
       expect(fixture.rawLog.remove).not.toHaveBeenCalled();
+    });
+
+    it('restores the auto-ended row when the resume fails after reopening it', async () => {
+      const fixture = makeDependencies();
+      fixture.dependencies.startForegroundService.mockRejectedValueOnce(
+        new Error('service failed'),
+      );
+      const started = startCaptureRecording(
+        {
+          ...input,
+          resumeSession: {
+            id: 42,
+            startedAt: 1_699_999_000_000,
+            endedAt: 1_699_999_500_000,
+            rawLogPath: fixture.rawLog.path,
+          },
+        },
+        fixture.dependencies,
+      );
+      connectWithAnchor(fixture);
+
+      await expect(started).rejects.toThrow('service failed');
+      await flush();
+      // Left `active`, the session would be neither resumable nor ended — the
+      // offer would be gone for good. Its original window goes back verbatim.
+      expect(fixture.dependencies.reopenSession).toHaveBeenCalledWith(42);
+      expect(fixture.dependencies.autoEndSession).toHaveBeenCalledWith(
+        42,
+        1_699_999_500_000,
+      );
+    });
+
+    it('writes no recovered event when the session is no longer resumable', async () => {
+      const fixture = makeDependencies();
+      fixture.dependencies.reopenSession.mockRejectedValueOnce(
+        new Error('Capture session is no longer resumable'),
+      );
+      const started = startCaptureRecording(
+        {
+          ...input,
+          resumeSession: {
+            id: 42,
+            startedAt: 1_699_999_000_000,
+            endedAt: 1_699_999_500_000,
+            rawLogPath: fixture.rawLog.path,
+          },
+        },
+        fixture.dependencies,
+      );
+      connectWithAnchor(fixture);
+
+      await expect(started).rejects.toThrow('no longer resumable');
+      await flush();
+      expect(fixture.dependencies.addConnectionEvent).not.toHaveBeenCalled();
+      // Nothing was reopened, so nothing needs restoring either.
+      expect(fixture.dependencies.autoEndSession).not.toHaveBeenCalled();
+    });
+
+    it('measures resumed offsets from the end of the existing log', async () => {
+      const fixture = makeDependencies();
+      fixture.dependencies.resumeRawLogSize.mockReturnValue(4_096);
+      const started = startCaptureRecording(
+        {
+          ...input,
+          resumeSession: {
+            id: 42,
+            startedAt: 1_699_999_000_000,
+            endedAt: 1_699_999_500_000,
+            rawLogPath: fixture.rawLog.path,
+          },
+        },
+        fixture.dependencies,
+      );
+      connectWithAnchor(fixture);
+      const recording = await started;
+      await recording.stop();
+
+      const written = fixture.dependencies.persistBatch.mock.calls.flatMap(
+        call => call[1],
+      );
+      // Anything below the pre-existing size would point into the part of the
+      // race recorded before the outage.
+      expect(written.length).toBeGreaterThan(0);
+      expect(written[0].rawOffset).toBe(4_096);
     });
   });
 
@@ -555,11 +697,27 @@ describe('startCaptureRecording', () => {
       expect(fixture.dependencies.openRawLog).toHaveBeenCalled();
     });
 
-    it('still deletes the session row when removing the raw log throws', async () => {
+    it('removes an empty raw log, and a throwing remove does not abort cleanup', async () => {
       const fixture = makeDependencies();
       fixture.rawLog.remove.mockImplementation(() => {
         throw new Error('File is gone');
       });
+      const started = startCaptureRecording(input, fixture.dependencies);
+      // Connected, so the log is open, but not one byte arrived before the
+      // socket died: there is no evidence in it worth keeping.
+      fixture.listeners.connect?.();
+      await flush();
+      fixture.listeners.error?.(new Error('Connection reset'));
+
+      await expect(started).rejects.toThrow(CaptureRecordingStartError);
+      await flush();
+      expect(fixture.rawLog.remove).toHaveBeenCalledTimes(1);
+      // Cleanup carried on past the throw rather than stranding the socket.
+      expect(fixture.socket.destroy).toHaveBeenCalled();
+    });
+
+    it('keeps raw evidence that already holds valid anchors', async () => {
+      const fixture = makeDependencies();
       fixture.dependencies.startForegroundService.mockRejectedValueOnce(
         new Error('Service refused to start'),
       );
@@ -567,7 +725,9 @@ describe('startCaptureRecording', () => {
       connectWithAnchor(fixture);
 
       await expect(started).rejects.toThrow(CaptureRecordingStartError);
-      expect(fixture.rawLog.remove).toHaveBeenCalledTimes(1);
+      // The anchors in this file cannot be re-read off the wire; only the
+      // orphaned session row has to go.
+      expect(fixture.rawLog.remove).not.toHaveBeenCalled();
       expect(fixture.dependencies.deleteSession).toHaveBeenCalledWith(42);
     });
 

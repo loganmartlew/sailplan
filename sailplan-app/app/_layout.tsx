@@ -17,11 +17,13 @@ import {
   CAPTURE_DISMISS_ACTION,
   CAPTURE_RESUME_ACTION,
   CaptureRecordingBar,
+  captureFailureMessage,
   captureNotificationData,
   captureStopSessionId,
   configureCaptureNotifications,
   dismissCaptureNotification,
   dismissCaptureResume,
+  endOrphanedCaptureSessions,
   getPlotterSetup,
   getResumableCaptureSession,
   recordingEndpoint,
@@ -41,6 +43,12 @@ export default function RootLayout() {
   const { isColorSchemeLoaded } = useAppTheme();
   const { isDarkColorScheme } = useColorScheme();
   const theme = isDarkColorScheme ? DARK_THEME : LIGHT_THEME;
+
+  // A launch-time database repair, so it belongs with the other startup
+  // effects rather than in the mount of the tab-bar chrome.
+  React.useEffect(() => {
+    void endOrphanedCaptureSessions().catch(() => undefined);
+  }, []);
 
   React.useEffect(() => {
     const handleUrl = ({ url }: { url: string }) => {
@@ -80,19 +88,35 @@ export default function RootLayout() {
       }
       const setup = await getPlotterSetup(session.boatProfileId);
       const endpoint = recordingEndpoint(setup);
-      if (!endpoint) return;
+      // Both of these paths used to return or swallow silently, so the sailor
+      // tapped Resume, nothing happened, and nothing said why. The notification
+      // deliberately survives either failure: it is the way back to the offer
+      // once the address is set up or the plotter is reachable again.
+      if (!endpoint) {
+        useCaptureRecordingStore
+          .getState()
+          .setFailure(
+            'SailPlan has no plotter address for this boat, so the recording cannot resume. Add one in plotter setup, then resume from this notification.',
+          );
+        return;
+      }
       await useCaptureRecordingStore.getState().resume(session, endpoint);
       await dismissCaptureNotification(notificationId);
     };
 
+    const reportFailure = (error: unknown) =>
+      useCaptureRecordingStore.getState().setFailure(
+        captureFailureMessage(error),
+      );
+
     const subscription = Notifications.addNotificationResponseReceivedListener(
-      response => void handleResponse(response).catch(() => undefined),
+      response => void handleResponse(response).catch(reportFailure),
     );
     const initial = Notifications.getLastNotificationResponse();
     if (initial) {
-      void handleResponse(initial).finally(() =>
-        Notifications.clearLastNotificationResponse(),
-      );
+      void handleResponse(initial)
+        .catch(reportFailure)
+        .finally(() => Notifications.clearLastNotificationResponse());
     }
     return () => subscription.remove();
   }, []);
