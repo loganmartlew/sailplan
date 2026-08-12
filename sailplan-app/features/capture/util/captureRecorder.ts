@@ -10,6 +10,14 @@ import {
   stopCaptureForegroundService,
 } from './captureForegroundService';
 import { openRawLog, type RawLog } from './rawLog';
+// Throwaway, ticket `07`. Removed with `captureDiagnostics.ts` once the resume
+// ANR is root-caused.
+import {
+  diagnosticNow,
+  recordCaptureDataEvent,
+  startCaptureDiagnostics,
+  stopCaptureDiagnostics,
+} from './captureDiagnostics';
 import {
   CaptureRecordingStartError,
   connectFailureReason,
@@ -164,7 +172,15 @@ export function startCaptureRecording(
         return;
       }
       try {
+        // Ticket `07` (throwaway): the append is synchronous, so its duration
+        // is main-thread time. Timing it here is how a resume burst becomes
+        // measurable rather than inferred.
+        const appendStartedAt = diagnosticNow();
         rawLog.append(rawChunk);
+        recordCaptureDataEvent(
+          rawChunk.length,
+          diagnosticNow() - appendStartedAt,
+        );
       } catch {
         // A write that fails mid-race must not throw into the socket's emitter
         // and take the recording down with it. Losing a chunk is survivable;
@@ -203,6 +219,7 @@ export function startCaptureRecording(
 
           phase = 'started';
           const startedSession = session;
+          startCaptureDiagnostics(startedSession.id);
 
           resolve({
             sessionId: startedSession.id,
@@ -210,6 +227,9 @@ export function startCaptureRecording(
             stop: async () => {
               if (stopping) return;
               stopping = true;
+              // Before the socket goes: the final flush is the one that carries
+              // the last resume window.
+              stopCaptureDiagnostics();
               try {
                 rawLog?.close();
                 socket?.destroy();

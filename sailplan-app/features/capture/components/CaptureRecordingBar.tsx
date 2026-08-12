@@ -7,6 +7,8 @@ import {
   useCaptureRecordingStore,
 } from '../store/captureRecordingStore';
 import { formatCaptureDuration } from '../util/formatCaptureDuration';
+// Throwaway, ticket `07`.
+import { recordCaptureTimerTick } from '../util/captureDiagnostics';
 
 /**
  * The capture layer: app chrome floating over screen content just above the tab
@@ -33,7 +35,14 @@ export function CaptureRecordingBar() {
     if (!recording) return;
 
     setNow(Date.now());
-    const timer = setInterval(() => setNow(Date.now()), 1000);
+    const timer = setInterval(() => {
+      // Throwaway, ticket `07`: this interval is a JS timer, which
+      // `JavaTimerManager` stalls while backgrounded. If a backlog of ticks
+      // lands with the socket burst on resume, both are on the blocked main
+      // thread and the diagnostic trace shows them together.
+      recordCaptureTimerTick();
+      setNow(Date.now());
+    }, 1000);
     return () => clearInterval(timer);
   }, [recording]);
 
