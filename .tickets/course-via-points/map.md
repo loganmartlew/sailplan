@@ -1,7 +1,7 @@
 # Course Via Points — Wayfinding Map
 
 Type: map
-Status: active
+Status: resolved
 
 ## Destination
 
@@ -26,13 +26,13 @@ An implementation-ready product and technical specification for durable Course V
 
 - [Specify the route read model, Plan calculation, and leg-data serialization](issues/09-specify-route-query-and-plan-calculation.md) — `useCourseRoute` returns a mapped `CourseRoute` (union route points, Legs, derived Segments, flat `points`); `useCourseMarks` survives for the count badge and the location picker; the `id: -1` start/finish trick is replaced by `buildPlanRoute` with `planEndpoint` points and `legId: null` Legs; pure `computeRouteGuidance({ route, twd })` puts bearing/TWA on Segments only, sail suggestion stays at the row; Leg detail takes `{ planData, legRef, segmentIndex }` instead of a serialized snapshot, so `courseLegDataSchema` is replaced; direction renders only on Course Mark endpoints.
 
+- [Prototype the Leg detail screen under multi-Segment Legs](issues/10-prototype-leg-detail-multi-segment.md) — Leg Detail focuses one Leg Segment, reached from its Plan row; a Leg-bounds banner preserves Mark-to-Mark context, and the existing `{ legRef, segmentIndex }` contract supplies the focused Segment and enclosing Leg.
+
 - [Decide Via Point and Course Mark notes](issues/08-decide-route-point-notes.md) — Both route point kinds carry a Course-scoped `note` (capped at 200 chars) on the course-point row, following the `courseMark.direction` precedent; the saved `mark` gets none. It renders clamped to one line under the point name in the Route thread, on the selected Course Map pin, and on the Leg Segment row that *ends* at that point in Plan results (Leg 1 header for the course's first point), and in full on Leg detail. Both row types move to tap-to-edit plus a `⋯` menu holding remove.
 
 ## Not yet specified
 
-- Exact implementation acceptance criteria and implementation-ticket slicing depend on the remaining UI decisions.
-
-Stale drafts and concurrent edits are no longer fog: ticket 05 made writes immediate and durable, so no draft exists to go stale.
+None. The decision route is complete; implementation acceptance criteria and work slicing are the next, separate planning activity.
 
 ## Out of scope
 
