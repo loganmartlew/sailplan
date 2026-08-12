@@ -276,6 +276,7 @@ export type CaptureStreamParser = {
   health: CaptureHealth;
   samples: ReplayCaptureSample[];
   readonly hasValidAnchor: boolean;
+  readonly validAnchorCount: number;
 };
 
 export function createCaptureStreamParser(sessionStartWallClock: number): CaptureStreamParser {
@@ -289,6 +290,7 @@ export function createCaptureStreamParser(sessionStartWallClock: number): Captur
   let pending: { at: number; rawOffset: number | null; corruptWind: boolean } | null = null;
   let lastEmittedAt = -Infinity;
   let hasValidAnchor = false;
+  let validAnchorCount = 0;
 
   const countReject = (formatter: string) => {
     health.rejects[formatter] = (health.rejects[formatter] ?? 0) + 1;
@@ -350,6 +352,7 @@ export function createCaptureStreamParser(sessionStartWallClock: number): Captur
     for (const [field, value] of Object.entries(parsed.updates)) state.set(field as FieldName | 'hdgMag', { value: value ?? null, at, ttl });
     if (parsed.anchor && parsed.valid) {
       hasValidAnchor = true;
+      validAnchorCount += 1;
       if (!pending && at - lastEmittedAt >= MIN_SAMPLE_PERIOD_MS) pending = { at, rawOffset, corruptWind: false };
     }
     return emitted;
@@ -360,6 +363,9 @@ export function createCaptureStreamParser(sessionStartWallClock: number): Captur
     samples,
     get hasValidAnchor() {
       return hasValidAnchor;
+    },
+    get validAnchorCount() {
+      return validAnchorCount;
     },
     pushChunk(input) {
       const text = typeof input.chunk === 'string' ? input.chunk : Buffer.from(input.chunk).toString('utf8');

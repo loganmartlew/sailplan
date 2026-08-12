@@ -7,6 +7,9 @@ jest.mock('../../api/captureSession', () => ({
   setCaptureSessionRawLogPath: jest.fn(),
   persistCaptureBatch: jest.fn(),
   endCaptureSession: jest.fn(),
+  autoEndCaptureSession: jest.fn(),
+  addConnectionEvent: jest.fn(),
+  reopenCaptureSession: jest.fn(),
   deleteCaptureSession: jest.fn(),
 }));
 jest.mock('../rawLog', () => ({ openPendingRawLog: jest.fn() }));
@@ -52,7 +55,7 @@ function makeSocket() {
   };
 }
 
-function makeDependencies() {
+function makeDependencies(withTimers = false) {
   const { socket, listeners } = makeSocket();
   const rawLog = {
     path: 'file:///documents/capture/session-42.nmea',
@@ -65,8 +68,15 @@ function makeDependencies() {
     connect: jest.fn(() => socket),
     createSession: jest.fn(async () => session),
     openRawLog: jest.fn(async () => rawLog),
+    openResumeRawLog: jest.fn(async () => rawLog),
     deleteSession: jest.fn(async () => {}),
     endSession: jest.fn(async () => {}),
+    autoEndSession: jest.fn(async () => {}),
+    addConnectionEvent: jest.fn<
+      Promise<void>,
+      Parameters<RecordingDependencies['addConnectionEvent']>
+    >(async () => {}),
+    reopenSession: jest.fn(async () => {}),
     setRawLogPath: jest.fn(async () => {}),
     persistBatch: jest.fn<
       Promise<void>,
@@ -76,6 +86,15 @@ function makeDependencies() {
     stopForegroundService: jest.fn(async () => {}),
     now: jest.fn(() => 1_700_000_000_000),
     monotonicNow: jest.fn(() => 1_000),
+    setTimer: (callback: () => void, delayMs: number) => {
+      if (!withTimers) return -1 as unknown as ReturnType<typeof setTimeout>;
+      const timer = setTimeout(callback, delayMs);
+      timer.unref?.();
+      return timer;
+    },
+    clearTimer: (timer: ReturnType<typeof setTimeout>) => {
+      if (withTimers) clearTimeout(timer);
+    },
   };
   return { socket, listeners, rawLog, session, dependencies };
 }
@@ -162,7 +181,7 @@ describe('startCaptureRecording', () => {
     const fixture = makeDependencies();
     const started = startCaptureRecording(input, fixture.dependencies);
     connectWithAnchor(fixture);
-    await started;
+    const recording = await started;
 
     expect(fixture.dependencies.setRawLogPath).toHaveBeenCalledWith(
       42,
@@ -304,6 +323,188 @@ describe('startCaptureRecording', () => {
       expect(fixture.dependencies.stopForegroundService).toHaveBeenCalledTimes(
         1,
       );
+    });
+  });
+
+  describe('connection loss after recording has started', () => {
+    beforeEach(() => jest.useFakeTimers());
+    afterEach(() => jest.useRealTimers());
+
+    it('marks the live feed retrying and reconnects immediately on socket loss', async () => {
+      const fixture = makeDependencies(true);
+      const onConnectionState = jest.fn();
+      const started = startCaptureRecording(
+        { ...input, onConnectionState } as Parameters<typeof startCaptureRecording>[0],
+        fixture.dependencies,
+      );
+      connectWithAnchor(fixture);
+      await started;
+
+      fixture.listeners.error?.(new Error('socket closed'));
+      await jest.advanceTimersByTimeAsync(1);
+
+      expect(onConnectionState).toHaveBeenLastCalledWith({
+        status: 'retrying',
+        gapStartedAt: 1_700_000_000_000,
+      });
+      expect(fixture.dependencies.connect).toHaveBeenCalledTimes(2);
+    });
+
+    it('uses the last valid anchor even when the TCP socket stays open but silent', async () => {
+      const fixture = makeDependencies(true);
+      const onConnectionState = jest.fn();
+      const started = startCaptureRecording(
+        { ...input, onConnectionState },
+        fixture.dependencies,
+      );
+      connectWithAnchor(fixture);
+      await started;
+
+      await jest.advanceTimersByTimeAsync(2_999);
+      expect(onConnectionState).not.toHaveBeenCalled();
+      await jest.advanceTimersByTimeAsync(1);
+
+      expect(onConnectionState).toHaveBeenCalledWith({
+        status: 'retrying',
+        gapStartedAt: 1_700_000_000_000,
+      });
+      await jest.advanceTimersByTimeAsync(1);
+      expect(fixture.dependencies.connect).toHaveBeenCalledTimes(2);
+    });
+
+    it('continues the same session and closes the durable gap when anchors recover', async () => {
+      const fixture = makeDependencies(true);
+      const retry = makeSocket();
+      fixture.dependencies.connect
+        .mockReturnValueOnce(fixture.socket)
+        .mockReturnValueOnce(retry.socket);
+      const onConnectionState = jest.fn();
+      const onConnectionAlert = jest.fn();
+      const started = startCaptureRecording(
+        { ...input, onConnectionState, onConnectionAlert },
+        fixture.dependencies,
+      );
+      connectWithAnchor(fixture);
+      const recording = await started;
+
+      fixture.listeners.error?.(new Error('socket closed'));
+      await jest.advanceTimersByTimeAsync(0);
+      retry.listeners.connect?.();
+      retry.listeners.data?.(validAnchor);
+      await Promise.resolve();
+      await Promise.resolve();
+
+      expect(recording.sessionId).toBe(42);
+      expect(fixture.dependencies.createSession).toHaveBeenCalledTimes(1);
+      expect(fixture.dependencies.addConnectionEvent.mock.calls.map(call => call[2])).toEqual([
+        'lost',
+        'recovered',
+      ]);
+      expect(onConnectionState).toHaveBeenLastCalledWith({ status: 'connected' });
+      expect(onConnectionAlert).toHaveBeenLastCalledWith('recovered');
+    });
+
+    it('auto-ends at the last valid sample without manufacturing gap rows', async () => {
+      const fixture = makeDependencies(true);
+      const onAutoEnded = jest.fn();
+      const onConnectionAlert = jest.fn();
+      let wallClock = 1_700_000_000_000;
+      fixture.dependencies.now.mockImplementation(() => wallClock);
+      const started = startCaptureRecording(
+        { ...input, onAutoEnded, onConnectionAlert },
+        fixture.dependencies,
+      );
+      connectWithAnchor(fixture);
+      const recording = await started;
+      fixture.dependencies.monotonicNow.mockReturnValue(2_000);
+      wallClock += 1_000;
+      fixture.listeners.data?.(validAnchor);
+      await Promise.resolve();
+      await Promise.resolve();
+      const lastSampleAt = recording.live.lastSampleAt;
+
+      wallClock += 1_000;
+      fixture.listeners.error?.(new Error('socket closed'));
+      await jest.advanceTimersByTimeAsync(30 * 60_000);
+      await Promise.resolve();
+      await Promise.resolve();
+      await Promise.resolve();
+
+      expect(lastSampleAt).not.toBeNull();
+      const written = fixture.dependencies.persistBatch.mock.calls.flatMap(
+        call => call[1],
+      );
+      const finalSampleAt = Math.max(...written.map(sample => sample.timestamp));
+      expect(fixture.dependencies.autoEndSession).toHaveBeenCalledWith(
+        42,
+        finalSampleAt,
+      );
+      expect(onAutoEnded).toHaveBeenCalledWith(42, finalSampleAt);
+      expect(onConnectionAlert.mock.calls.map(call => call[0])).toEqual([
+        'lost',
+        'reminder',
+        'autoEnded',
+      ]);
+      expect(written.every(sample => sample.timestamp <= finalSampleAt)).toBe(true);
+    });
+  });
+
+  describe('explicit resume', () => {
+    it('waits for valid data, then reopens the same auto-ended session and raw log', async () => {
+      const fixture = makeDependencies();
+      const started = startCaptureRecording(
+        {
+          ...input,
+          resumeSession: {
+            id: 42,
+            startedAt: 1_699_999_000_000,
+            rawLogPath: fixture.rawLog.path,
+          },
+        },
+        fixture.dependencies,
+      );
+
+      fixture.listeners.connect?.();
+      expect(fixture.dependencies.reopenSession).not.toHaveBeenCalled();
+      fixture.listeners.data?.(validAnchor);
+      const recording = await started;
+
+      expect(recording.sessionId).toBe(42);
+      expect(recording.startedAt).toBe(1_699_999_000_000);
+      expect(fixture.dependencies.createSession).not.toHaveBeenCalled();
+      expect(fixture.dependencies.openResumeRawLog).toHaveBeenCalledWith(
+        42,
+        fixture.rawLog.path,
+      );
+      expect(fixture.dependencies.reopenSession).toHaveBeenCalledWith(42);
+      expect(fixture.dependencies.addConnectionEvent).toHaveBeenCalledWith(
+        42,
+        1_700_000_000_000,
+        'recovered',
+      );
+    });
+
+    it('never deletes the auto-ended session or its evidence when resume fails', async () => {
+      const fixture = makeDependencies();
+      fixture.dependencies.startForegroundService.mockRejectedValueOnce(
+        new Error('service failed'),
+      );
+      const started = startCaptureRecording(
+        {
+          ...input,
+          resumeSession: {
+            id: 42,
+            startedAt: 1_699_999_000_000,
+            rawLogPath: fixture.rawLog.path,
+          },
+        },
+        fixture.dependencies,
+      );
+      connectWithAnchor(fixture);
+
+      await expect(started).rejects.toThrow('service failed');
+      expect(fixture.dependencies.deleteSession).not.toHaveBeenCalled();
+      expect(fixture.rawLog.remove).not.toHaveBeenCalled();
     });
   });
 
@@ -455,7 +656,7 @@ describe('startCaptureRecording', () => {
     const started = startCaptureRecording(input);
     listeners.connect?.();
     listeners.data?.(validAnchor);
-    await started;
+    const recording = await started;
 
     expect(TcpSocket.createConnection).toHaveBeenCalledWith(
       expect.objectContaining({ interface: 'wifi', connectTimeout: 31_000 }),
@@ -467,5 +668,6 @@ describe('startCaptureRecording', () => {
       'file:///documents/capture/session-7.nmea',
     );
     expect(startCaptureForegroundService).toHaveBeenCalledWith(7);
+    await recording.stop();
   });
 });

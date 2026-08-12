@@ -1,5 +1,9 @@
 export const STALE_SAIL_STAMP_MS = 15 * 60_000;
 
+export type CaptureConnectionState =
+  | { status: 'connected' }
+  | { status: 'retrying'; gapStartedAt: number };
+
 export function formatCaptureValue(
   value: number | null,
   kind: 'speed' | 'angle',
@@ -17,6 +21,14 @@ export function formatSailStampAge(timestamp: number, now: number): string {
   return `${hours} ${hours === 1 ? 'hr' : 'hr'} ago`;
 }
 
+export function formatConnectionGapAge(ageMs: number): string {
+  const seconds = Math.floor(Math.max(0, ageMs) / 1_000);
+  const minutes = Math.floor(seconds / 60);
+  const remaining = seconds % 60;
+  if (minutes === 0) return `${remaining} sec`;
+  return remaining === 0 ? `${minutes} min` : `${minutes} min ${remaining} sec`;
+}
+
 export function isSailStampStale(timestamp: number, now: number): boolean {
   return now - timestamp > STALE_SAIL_STAMP_MS;
 }
@@ -25,7 +37,14 @@ export function formatCaptureNotification(
   live: CaptureLiveData,
   lastStampAt: number | null,
   now: number,
+  connection: CaptureConnectionState = { status: 'connected' },
 ): { title: string; description: string } {
+  if (connection.status === 'retrying') {
+    return {
+      title: 'Connection lost — retrying',
+      description: `Gap ${formatConnectionGapAge(now - connection.gapStartedAt)}  •  ${live.sampleCount.toLocaleString('en-NZ')} ${live.sampleCount === 1 ? 'sample' : 'samples'}`,
+    };
+  }
   const title = `TWS ${formatCaptureValue(live.tws, 'speed')} kn  •  TWA ${formatCaptureValue(live.twa, 'angle')}`;
   const samples = live.sampleCount.toLocaleString('en-NZ');
   const stamp = lastStampAt === null ? 'No sail stamped' : `Last stamp ${formatSailStampAge(lastStampAt, now)}`;

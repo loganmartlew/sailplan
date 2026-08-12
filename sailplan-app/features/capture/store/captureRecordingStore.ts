@@ -3,6 +3,9 @@ import { create } from 'zustand';
 import { db } from '~/lib/db';
 import { captureSession } from '~/schema';
 import { endCaptureSession } from '../api/captureSession';
+import type { CaptureSession } from '../model/capture';
+import type { CaptureConnectionState } from '../model/captureLayerState';
+import { AUTO_END_AFTER_MS } from '../model/connectionLossPolicy';
 import {
   requestCaptureNotificationPermission,
   stopCaptureForegroundService,
@@ -16,6 +19,11 @@ import {
   startCaptureRecording,
   type CaptureRecording,
 } from '../util/captureRecorder';
+import { vibrateForCaptureAlert } from '../util/captureAlerts';
+import {
+  dismissNotificationsForCapture,
+  postCaptureAutoEndedNotification,
+} from '../util/captureNotifications';
 
 type StartInput = Parameters<typeof startCaptureRecording>[0];
 
@@ -37,10 +45,15 @@ interface CaptureRecordingStore {
   /** The live recording handle. `null` whenever nothing is being recorded. */
   recording: CaptureRecording | null;
   live: CaptureRecording['live'];
+  connection: CaptureConnectionState;
   lastStamp: CaptureStampHistory | null;
   isConnecting: boolean;
   isStopping: boolean;
   start: (input: StartInput) => Promise<void>;
+  resume: (
+    session: CaptureSession,
+    endpoint: StartInput['endpoint'],
+  ) => Promise<void>;
   stop: () => Promise<void>;
   setLastStamp: (stamp: CaptureStampHistory | null) => void;
 }
@@ -56,6 +69,7 @@ export const useCaptureRecordingStore = create<CaptureRecordingStore>(
   (set, get) => ({
     recording: null,
     live: EMPTY_LIVE,
+    connection: { status: 'connected' },
     lastStamp: null,
     isConnecting: false,
     isStopping: false,
@@ -88,11 +102,105 @@ export const useCaptureRecordingStore = create<CaptureRecordingStore>(
             void updateCaptureForegroundService(
               live,
               get().lastStamp?.timestamp ?? null,
+              get().connection,
             );
           },
+          onConnectionState: connection => {
+            set({ connection });
+            void updateCaptureForegroundService(
+              get().live,
+              get().lastStamp?.timestamp ?? null,
+              connection,
+            );
+          },
+          onConnectionAlert: vibrateForCaptureAlert,
+          onAutoEnded: sessionId => {
+            set({
+              recording: null,
+              live: EMPTY_LIVE,
+              connection: { status: 'connected' },
+              lastStamp: null,
+            });
+            void postCaptureAutoEndedNotification(
+              sessionId,
+              input.courseId,
+              AUTO_END_AFTER_MS,
+            ).catch(() => undefined);
+          },
         });
-        set({ recording, live: { ...recording.live }, lastStamp: null });
-        void updateCaptureForegroundService(recording.live, null);
+        set({
+          recording,
+          live: { ...recording.live },
+          connection: { status: 'connected' },
+          lastStamp: null,
+        });
+        void updateCaptureForegroundService(
+          recording.live,
+          null,
+          { status: 'connected' },
+        );
+      } finally {
+        set({ isConnecting: false });
+      }
+    },
+
+    resume: async (session, endpoint) => {
+      if (
+        get().recording ||
+        get().isConnecting ||
+        session.courseId === null
+      ) {
+        return;
+      }
+      set({ isConnecting: true });
+      try {
+        const recording = await startCaptureRecording({
+          boatProfileId: session.boatProfileId,
+          courseId: session.courseId,
+          endpoint,
+          resumeSession: {
+            id: session.id,
+            startedAt: session.startedAt,
+            rawLogPath: session.rawLogPath,
+          },
+          onLiveData: live => {
+            set({ live });
+            void updateCaptureForegroundService(
+              live,
+              get().lastStamp?.timestamp ?? null,
+              get().connection,
+            );
+          },
+          onConnectionState: connection => {
+            set({ connection });
+            void updateCaptureForegroundService(
+              get().live,
+              get().lastStamp?.timestamp ?? null,
+              connection,
+            );
+          },
+          onConnectionAlert: vibrateForCaptureAlert,
+          onAutoEnded: sessionId => {
+            set({
+              recording: null,
+              live: EMPTY_LIVE,
+              connection: { status: 'connected' },
+              lastStamp: null,
+            });
+            void postCaptureAutoEndedNotification(
+              sessionId,
+              session.courseId!,
+              AUTO_END_AFTER_MS,
+            ).catch(() => undefined);
+          },
+        });
+        set({
+          recording,
+          live: { ...recording.live },
+          connection: { status: 'connected' },
+          lastStamp: null,
+        });
+        await dismissNotificationsForCapture(session.id).catch(() => undefined);
       } finally {
         set({ isConnecting: false });
       }
@@ -107,7 +215,12 @@ export const useCaptureRecordingStore = create<CaptureRecordingStore>(
         // handle first would strand a failed stop with no way to retry it and
         // leave the session row `active` forever.
         await recording.stop();
-        set({ recording: null, live: EMPTY_LIVE, lastStamp: null });
+        set({
+          recording: null,
+          live: EMPTY_LIVE,
+          connection: { status: 'connected' },
+          lastStamp: null,
+        });
       } finally {
         set({ isStopping: false });
       }
@@ -117,7 +230,11 @@ export const useCaptureRecordingStore = create<CaptureRecordingStore>(
       set({ lastStamp });
       const { recording, live } = get();
       if (recording) {
-        void updateCaptureForegroundService(live, lastStamp?.timestamp ?? null);
+        void updateCaptureForegroundService(
+          live,
+          lastStamp?.timestamp ?? null,
+          get().connection,
+        );
       }
     },
   }),

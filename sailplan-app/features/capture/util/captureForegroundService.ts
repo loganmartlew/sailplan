@@ -4,6 +4,7 @@ import Constants from 'expo-constants';
 import * as IntentLauncher from 'expo-intent-launcher';
 import type { CaptureLiveData } from './captureRecorder';
 import { formatCaptureNotification } from '../model/captureLayerState';
+import type { CaptureConnectionState } from '../model/captureLayerState';
 
 /**
  * `connectedDevice`, never `dataSync` — Android 15 caps `dataSync` at 6 h per
@@ -16,10 +17,10 @@ const FOREGROUND_SERVICE_TYPE = ['connectedDevice'] as const;
 /**
  * The service keeps the process alive for exactly as long as its task promise
  * is pending. Recording itself hangs off socket `data` events, so the task has
- * no work of its own: it parks until {@link stopCaptureForegroundService}
- * releases it. Deliberately not a loop or a timer — `JavaTimerManager` drops
- * timer callbacks while backgrounded, which is the whole reason for this
- * design.
+ * no polling work of its own: it parks until
+ * {@link stopCaptureForegroundService} releases it. Capture samples stay
+ * socket-event-driven; ticket 08's reconnection policy owns only its bounded
+ * silence/backoff/alert timers.
  */
 let releaseTask: (() => void) | undefined;
 
@@ -67,9 +68,15 @@ export async function startCaptureForegroundService(sessionId: number) {
 export async function updateCaptureForegroundService(
   live: CaptureLiveData,
   lastStampAt: number | null,
+  connection: CaptureConnectionState = { status: 'connected' },
 ): Promise<void> {
   if (Platform.OS !== 'android' || !BackgroundService.isRunning()) return;
-  const notification = formatCaptureNotification(live, lastStampAt, Date.now());
+  const notification = formatCaptureNotification(
+    live,
+    lastStampAt,
+    Date.now(),
+    connection,
+  );
   try {
     await BackgroundService.updateNotification({
       taskTitle: notification.title,

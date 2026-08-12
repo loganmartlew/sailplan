@@ -16,6 +16,12 @@ export function usePlotterSetup(boatProfileId: number | null) {
   );
 }
 
+export async function getPlotterSetup(boatProfileId: number) {
+  return db.query.plotterSetup.findFirst({
+    where: eq(plotterSetup.boatProfileId, boatProfileId),
+  });
+}
+
 export async function saveManualPlotterSetup(
   boatProfileId: number,
   { host, port }: ManualPlotterSetupFormValues,

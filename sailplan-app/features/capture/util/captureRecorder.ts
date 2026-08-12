@@ -1,16 +1,27 @@
 import TcpSocket from 'react-native-tcp-socket';
 import {
   createActiveCaptureSession,
+  addConnectionEvent,
+  autoEndCaptureSession,
   deleteCaptureSession,
   endCaptureSession,
   persistCaptureBatch,
+  reopenCaptureSession,
   setCaptureSessionRawLogPath,
 } from '../api/captureSession';
+import {
+  AUTO_END_AFTER_MS,
+  LOSS_ALERT_AFTER_MS,
+  LOSS_REMINDER_AFTER_MS,
+  VALID_ANCHOR_SILENCE_MS,
+  retryDelayMs,
+} from '../model/connectionLossPolicy';
+import type { CaptureConnectionState } from '../model/captureLayerState';
 import {
   startCaptureForegroundService,
   stopCaptureForegroundService,
 } from './captureForegroundService';
-import { openPendingRawLog, type RawLog } from './rawLog';
+import { openExistingRawLog, openPendingRawLog, openRawLog, type RawLog } from './rawLog';
 import {
   classifyWindFrame,
   createCaptureStreamParser,
@@ -73,11 +84,26 @@ export type CaptureLiveData = {
   lastSampleAt: number | null;
 };
 
-type CaptureRecordingInput = {
+export type CaptureConnectionAlert =
+  | 'lost'
+  | 'reminder'
+  | 'recovered'
+  | 'autoEnded';
+
+export type CaptureRecordingInput = {
   boatProfileId: number;
   courseId: number;
   endpoint: { host: string; port: number };
   onLiveData?: (live: CaptureLiveData) => void;
+  onConnectionState?: (state: CaptureConnectionState) => void;
+  onConnectionAlert?: (alert: CaptureConnectionAlert) => void;
+  onAutoEnded?: (sessionId: number, endedAt: number) => void;
+  /** Present only for the explicit offer on an auto-ended session. */
+  resumeSession?: {
+    id: number;
+    startedAt: number;
+    rawLogPath: string | null;
+  };
 };
 
 export type RecordingDependencies = {
@@ -93,8 +119,16 @@ export type RecordingDependencies = {
     startedAt: number;
   }) => Promise<Session>;
   openRawLog: (startedAt: number) => Promise<RawLog> | RawLog;
+  openResumeRawLog: (sessionId: number, path: string | null) => Promise<RawLog> | RawLog;
   deleteSession: (sessionId: number) => Promise<void>;
   endSession: (sessionId: number, endedAt: number) => Promise<void>;
+  autoEndSession: (sessionId: number, endedAt: number) => Promise<void>;
+  addConnectionEvent: (
+    sessionId: number,
+    at: number,
+    kind: 'lost' | 'recovered',
+  ) => Promise<void>;
+  reopenSession: (sessionId: number) => Promise<void>;
   setRawLogPath: (sessionId: number, rawLogPath: string) => Promise<void>;
   persistBatch: (
     sessionId: number,
@@ -106,29 +140,48 @@ export type RecordingDependencies = {
   stopForegroundService: () => Promise<void>;
   now: () => number;
   monotonicNow: () => number;
+  setTimer: (callback: () => void, delayMs: number) => ReturnType<typeof setTimeout>;
+  clearTimer: (timer: ReturnType<typeof setTimeout>) => void;
 };
 
 const productionDependencies: RecordingDependencies = {
   connect: options => TcpSocket.createConnection(options, () => undefined),
   createSession: createActiveCaptureSession,
   openRawLog: openPendingRawLog,
+  openResumeRawLog: (sessionId, path) =>
+    path ? openExistingRawLog(path) : openRawLog(sessionId),
   deleteSession: deleteCaptureSession,
   endSession: endCaptureSession,
+  autoEndSession: autoEndCaptureSession,
+  addConnectionEvent,
+  reopenSession: reopenCaptureSession,
   setRawLogPath: setCaptureSessionRawLogPath,
   persistBatch: persistCaptureBatch,
   startForegroundService: startCaptureForegroundService,
   stopForegroundService: stopCaptureForegroundService,
   now: Date.now,
   monotonicNow: () => performance.now(),
+  setTimer: (callback, delayMs) => setTimeout(callback, delayMs),
+  clearTimer: timer => clearTimeout(timer),
 };
 
 /**
  * Opens raw evidence on connect, but creates the session only after a valid
- * anchor reaches the pure parser. Emission and persistence are driven entirely
- * by socket data events; backgrounding cannot suspend a timer on this path.
+ * anchor reaches the pure parser. Samples remain driven by socket data events;
+ * the small set of timers exists only for silence detection, finite alerts,
+ * retry backoff, and the auto-end horizon.
  */
 export function startCaptureRecording(
-  { boatProfileId, courseId, endpoint, onLiveData }: CaptureRecordingInput,
+  {
+    boatProfileId,
+    courseId,
+    endpoint,
+    onLiveData,
+    onConnectionState,
+    onConnectionAlert,
+    onAutoEnded,
+    resumeSession,
+  }: CaptureRecordingInput,
   dependencies: RecordingDependencies = productionDependencies,
 ): Promise<CaptureRecording> {
   return new Promise((resolve, reject) => {
@@ -153,6 +206,18 @@ export function startCaptureRecording(
     let queuedSamples: ReplayCaptureSample[] = [];
     let persistence = Promise.resolve();
     let preserveRawEvidence = false;
+    let connectionGeneration = 0;
+    let lossStartedAt: number | null = null;
+    let lastValidAnchorAt: number | null = null;
+    let retryAttempt = 0;
+    let lifecyclePersistence = Promise.resolve();
+    let silenceTimer: ReturnType<typeof setTimeout> | undefined;
+    let retryTimer: ReturnType<typeof setTimeout> | undefined;
+    let retryAnchorTimer: ReturnType<typeof setTimeout> | undefined;
+    let lostAlertTimer: ReturnType<typeof setTimeout> | undefined;
+    let reminderTimer: ReturnType<typeof setTimeout> | undefined;
+    let autoEndTimer: ReturnType<typeof setTimeout> | undefined;
+    let terminal = false;
     const live: CaptureLiveData = {
       tws: null,
       twa: null,
@@ -160,6 +225,21 @@ export function startCaptureRecording(
       lastSampleAt: null,
     };
     const hasFailed = () => phase === 'failed';
+
+    const clearTimer = (timer: ReturnType<typeof setTimeout> | undefined) => {
+      if (timer !== undefined) dependencies.clearTimer(timer);
+    };
+
+    const clearConnectionTimers = () => {
+      clearTimer(silenceTimer);
+      clearTimer(retryTimer);
+      clearTimer(retryAnchorTimer);
+      clearTimer(lostAlertTimer);
+      clearTimer(reminderTimer);
+      clearTimer(autoEndTimer);
+      silenceTimer = retryTimer = retryAnchorTimer = undefined;
+      lostAlertTimer = reminderTimer = autoEndTimer = undefined;
+    };
 
     /**
      * Every step is independently guarded: a failure to remove a setup artefact
@@ -180,7 +260,7 @@ export function startCaptureRecording(
       } catch {
         // Nothing actionable; the removal below is what matters.
       }
-      if (!preserveRawEvidence) {
+      if (!preserveRawEvidence && !resumeSession) {
         try {
           failedRawLog?.remove();
         } catch {
@@ -189,7 +269,9 @@ export function startCaptureRecording(
         }
       }
       try {
-        if (failedSession) await dependencies.deleteSession(failedSession.id);
+        if (failedSession && !resumeSession) {
+          await dependencies.deleteSession(failedSession.id);
+        }
       } catch {
         // Already the failure path; the original error is the one to report.
       }
@@ -204,29 +286,84 @@ export function startCaptureRecording(
       socket?.destroy();
     };
 
-    const runStop = async (sessionId: number) => {
+    const notifyConnectionState = (state: CaptureConnectionState) => {
+      try {
+        onConnectionState?.(state);
+      } catch {
+        // Recording state is authoritative; UI chrome is observational.
+      }
+    };
+
+    const notifyAlert = (alert: CaptureConnectionAlert) => {
+      try {
+        onConnectionAlert?.(alert);
+      } catch {
+        // Vibration is deliberately never load-bearing.
+      }
+    };
+
+    const finishPersistence = async (sessionId: number) => {
       // Before the socket goes: the final flush is the one that carries the
       // last resume window.
       stopCaptureDiagnostics();
+      const finalSamples = parser?.finish() ?? [];
+      if (finalSamples.length > 0) {
+        const latest = finalSamples[finalSamples.length - 1];
+        live.tws = latest.tws;
+        live.twa = latest.twa;
+        live.sampleCount += finalSamples.length;
+        live.lastSampleAt = latest.timestamp;
+        queuedSamples.push(...finalSamples);
+      }
+      if (parser) {
+        const batch = queuedSamples;
+        queuedSamples = [];
+        persistence = persistence.then(() =>
+          dependencies.persistBatch(
+            sessionId,
+            batch,
+            parser!.health,
+            classifyWindFrame(parser!.samples),
+          ),
+        );
+        await persistence;
+      }
+      await lifecyclePersistence;
+      rawLog?.close();
+      socket?.destroy();
+    };
+
+    const runStop = async (sessionId: number) => {
+      if (terminal) return;
+      terminal = true;
+      clearConnectionTimers();
       try {
-        const finalSamples = parser?.finish() ?? [];
-        if (finalSamples.length > 0) queuedSamples.push(...finalSamples);
-        if (parser) {
-          const batch = queuedSamples;
-          queuedSamples = [];
-          persistence = persistence.then(() =>
-            dependencies.persistBatch(
-              sessionId,
-              batch,
-              parser!.health,
-              classifyWindFrame(parser!.samples),
-            ),
-          );
-          await persistence;
-        }
-        rawLog?.close();
-        socket?.destroy();
+        await finishPersistence(sessionId);
         await dependencies.endSession(sessionId, dependencies.now());
+        await dependencies.stopForegroundService();
+      } catch (error) {
+        // A deliberate stop remains retryable when storage or service teardown
+        // fails; the caller still owns the live handle.
+        terminal = false;
+        throw error;
+      }
+    };
+
+    const runAutoEnd = async (sessionId: number) => {
+      if (terminal) return;
+      terminal = true;
+      clearConnectionTimers();
+      const endedAt = live.lastSampleAt ?? lastValidAnchorAt ?? startedAt;
+      try {
+        await finishPersistence(sessionId);
+        const finalEndedAt = live.lastSampleAt ?? endedAt;
+        await dependencies.autoEndSession(sessionId, finalEndedAt);
+        notifyAlert('autoEnded');
+        try {
+          onAutoEnded?.(sessionId, finalEndedAt);
+        } catch {
+          // The durable auto-ended row is the source of truth on relaunch.
+        }
       } finally {
         await dependencies.stopForegroundService();
       }
@@ -284,28 +421,42 @@ export function startCaptureRecording(
       phase = 'starting';
       sessionStartInFlight = (async () => {
         try {
-          session = await dependencies.createSession({
-            boatProfileId,
-            courseId,
-            startedAt,
-          });
+          session = resumeSession
+            ? { id: resumeSession.id }
+            : await dependencies.createSession({
+                boatProfileId,
+                courseId,
+                startedAt,
+              });
           if (hasFailed()) return void (await cleanupFailedStart());
           const openedRawLog = await rawLogPromise;
           if (!openedRawLog) throw new Error('Raw log was not opened');
           rawLog = openedRawLog;
           if (hasFailed()) return void (await cleanupFailedStart());
-          await dependencies.setRawLogPath(session.id, openedRawLog.path);
+          if (!resumeSession?.rawLogPath) {
+            await dependencies.setRawLogPath(session.id, openedRawLog.path);
+          }
+          if (hasFailed()) return void (await cleanupFailedStart());
+          if (resumeSession) {
+            await dependencies.addConnectionEvent(
+              session.id,
+              dependencies.now(),
+              'recovered',
+            );
+            await dependencies.reopenSession(session.id);
+          }
           if (hasFailed()) return void (await cleanupFailedStart());
           await dependencies.startForegroundService(session.id);
           foregroundServiceStarted = true;
           if (hasFailed()) return void (await cleanupFailedStart());
           phase = 'started';
+          if (lastValidAnchorAt !== null) scheduleAnchorSilence();
           startCaptureDiagnostics(session.id);
           queuePersistence([]);
           const startedSession = session;
           resolve({
             sessionId: startedSession.id,
-            startedAt,
+            startedAt: resumeSession?.startedAt ?? startedAt,
             live,
             stop: () => {
               stopInFlight ??= runStop(startedSession.id).catch(error => {
@@ -329,6 +480,80 @@ export function startCaptureRecording(
           );
         }
       })();
+    };
+
+    let connectSocket = () => undefined;
+
+    const scheduleRetry = () => {
+      if (terminal || lossStartedAt === null) return;
+      const delay = retryDelayMs(retryAttempt);
+      retryAttempt += 1;
+      clearTimer(retryTimer);
+      retryTimer = dependencies.setTimer(connectSocket, delay);
+    };
+
+    const retryFailed = () => {
+      clearTimer(retryAnchorTimer);
+      connectionGeneration += 1;
+      socket?.destroy();
+      scheduleRetry();
+    };
+
+    const beginLoss = () => {
+      if (phase !== 'started' || terminal) return;
+      if (lossStartedAt !== null) {
+        retryFailed();
+        return;
+      }
+      lossStartedAt = lastValidAnchorAt ?? live.lastSampleAt ?? dependencies.now();
+      notifyConnectionState({ status: 'retrying', gapStartedAt: lossStartedAt });
+      if (session) {
+        lifecyclePersistence = lifecyclePersistence.then(() =>
+          dependencies.addConnectionEvent(session!.id, lossStartedAt!, 'lost'),
+        );
+      }
+      connectionGeneration += 1;
+      socket?.destroy();
+
+      const age = Math.max(0, dependencies.now() - lossStartedAt);
+      lostAlertTimer = dependencies.setTimer(
+        () => notifyAlert('lost'),
+        Math.max(0, LOSS_ALERT_AFTER_MS - age),
+      );
+      reminderTimer = dependencies.setTimer(
+        () => notifyAlert('reminder'),
+        Math.max(0, LOSS_REMINDER_AFTER_MS - age),
+      );
+      autoEndTimer = dependencies.setTimer(
+        () => {
+          if (session) void runAutoEnd(session.id);
+        },
+        Math.max(0, AUTO_END_AFTER_MS - age),
+      );
+      retryAttempt = 0;
+      scheduleRetry();
+    };
+
+    const recover = () => {
+      if (lossStartedAt === null || !session || terminal) return;
+      const recoveredAt = dependencies.now();
+      lossStartedAt = null;
+      retryAttempt = 0;
+      clearTimer(retryAnchorTimer);
+      clearTimer(lostAlertTimer);
+      clearTimer(reminderTimer);
+      clearTimer(autoEndTimer);
+      retryAnchorTimer = lostAlertTimer = reminderTimer = autoEndTimer = undefined;
+      lifecyclePersistence = lifecyclePersistence.then(() =>
+        dependencies.addConnectionEvent(session!.id, recoveredAt, 'recovered'),
+      );
+      notifyConnectionState({ status: 'connected' });
+      notifyAlert('recovered');
+    };
+
+    const scheduleAnchorSilence = () => {
+      clearTimer(silenceTimer);
+      silenceTimer = dependencies.setTimer(beginLoss, VALID_ANCHOR_SILENCE_MS);
     };
 
     const onData = (chunk: string | Buffer) => {
@@ -362,6 +587,7 @@ export function startCaptureRecording(
       const chunkOffset = rawOffset;
       rawOffset += chunkByteLength(chunk);
       if (parser) {
+        const anchorsBefore = parser.validAnchorCount;
         const emitted = parser.pushChunk({
           chunk,
           monotonicElapsedMs: Math.max(
@@ -370,22 +596,36 @@ export function startCaptureRecording(
           ),
           rawOffset: chunkOffset,
         });
+        if (parser.validAnchorCount > anchorsBefore) {
+          lastValidAnchorAt = dependencies.now();
+          recover();
+          scheduleAnchorSilence();
+        }
         queuePersistence(emitted);
         startSessionForValidData();
       }
     };
 
-    const onConnect = () => {
+    const onConnect = (connectedSocket: Socket, generation: number) => {
       if (phase !== 'connecting') return;
       phase = 'waitingForData';
       // Listen at the connection edge, rather than after asynchronous SQLite
       // and file setup, so the plotter's first sentences cannot race the log.
-      socket?.on('data', onData);
+      connectedSocket.on('data', chunk => {
+        if (generation === connectionGeneration && !terminal) onData(chunk);
+      });
       startedAt = dependencies.now();
       connectedMonotonic = dependencies.monotonicNow();
       parser = createCaptureStreamParser(startedAt);
       try {
-        rawLogPromise = Promise.resolve(dependencies.openRawLog(startedAt));
+        rawLogPromise = Promise.resolve(
+          resumeSession
+            ? dependencies.openResumeRawLog(
+                resumeSession.id,
+                resumeSession.rawLogPath,
+              )
+            : dependencies.openRawLog(startedAt),
+        );
       } catch (error) {
         fail(
           error instanceof Error ? error : new Error('Could not open raw log'),
@@ -421,19 +661,54 @@ export function startCaptureRecording(
       // Session setup starts from onData only after parser.hasValidAnchor.
     };
 
-    socket = dependencies.connect({
-      host: endpoint.host,
-      port: endpoint.port,
-      interface: 'wifi',
-      connectTimeout: CAPTURE_CONNECTION_TIMEOUT_MS,
-    });
-    socket.once('connect', onConnect);
-    socket.once('error', error => {
-      const thrown = error ?? new Error('Connection failed');
-      fail(thrown, connectFailureReason(thrown));
-    });
-    socket.once('timeout', () =>
-      fail(new Error('Connection timed out'), 'unreachable'),
-    );
+    connectSocket = () => {
+      if (terminal) return;
+      const generation = ++connectionGeneration;
+      const nextSocket = dependencies.connect({
+        host: endpoint.host,
+        port: endpoint.port,
+        interface: 'wifi',
+        connectTimeout: CAPTURE_CONNECTION_TIMEOUT_MS,
+      });
+      socket = nextSocket;
+      nextSocket.once('connect', () => {
+        if (generation !== connectionGeneration || terminal) return;
+        if (phase === 'connecting') {
+          onConnect(nextSocket, generation);
+          return;
+        }
+        if (phase === 'started' && lossStartedAt !== null) {
+          nextSocket.on('data', chunk => {
+            if (generation === connectionGeneration && !terminal) onData(chunk);
+          });
+          clearTimer(retryAnchorTimer);
+          retryAnchorTimer = dependencies.setTimer(
+            retryFailed,
+            VALID_ANCHOR_SILENCE_MS,
+          );
+        }
+      });
+      nextSocket.once('error', error => {
+        if (generation !== connectionGeneration || terminal) return;
+        const thrown = error ?? new Error('Connection failed');
+        if (phase === 'started') {
+          if (lossStartedAt === null) beginLoss();
+          else retryFailed();
+          return;
+        }
+        fail(thrown, connectFailureReason(thrown));
+      });
+      nextSocket.once('timeout', () => {
+        if (generation !== connectionGeneration || terminal) return;
+        if (phase === 'started') {
+          if (lossStartedAt === null) beginLoss();
+          else retryFailed();
+          return;
+        }
+        fail(new Error('Connection timed out'), 'unreachable');
+      });
+    };
+
+    connectSocket();
   });
 }

@@ -55,6 +55,7 @@ export default {
     'expo-file-system',
     'expo-document-picker',
     'expo-sharing',
+    'expo-notifications',
     [
       'expo-location',
       {

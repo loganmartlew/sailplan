@@ -12,11 +12,14 @@ import {
   Text,
 } from '~/components/ui';
 import { usePlotterSetup } from '../api/plotterSetup';
+import { useCaptureResumeOffer } from '../api/captureResume';
 import { useCaptureRecordingStore } from '../store/captureRecordingStore';
 import { captureFailureMessage } from '../util/captureFailureMessage';
 import { RecordIcon } from './RecordIcon';
 
-function recordingEndpoint(setup: ReturnType<typeof usePlotterSetup>['data']) {
+export function recordingEndpoint(
+  setup: ReturnType<typeof usePlotterSetup>['data'],
+) {
   if (!setup) return null;
   if (setup.mode === 'manual' && setup.host && setup.port) {
     return { host: setup.host, port: setup.port };
@@ -42,9 +45,11 @@ export function CaptureRecordingControl({
 }) {
   const { data: setup } = usePlotterSetup(boatProfileId);
   const endpoint = recordingEndpoint(setup);
+  const { data: resumeOffer } = useCaptureResumeOffer(boatProfileId, courseId);
   const recording = useCaptureRecordingStore(s => s.recording);
   const isConnecting = useCaptureRecordingStore(s => s.isConnecting);
   const start = useCaptureRecordingStore(s => s.start);
+  const resume = useCaptureRecordingStore(s => s.resume);
   const [confirmationOpen, setConfirmationOpen] = useState(false);
   const [failure, setFailure] = useState<string | null>(null);
 
@@ -64,9 +69,16 @@ export function CaptureRecordingControl({
   // setup, so the record control is replaced by the way to create one.
   if (!endpoint) {
     return (
-      <Button variant='outline' size='sm' onPress={openPlotterSetup}>
-        <Text>Set up plotter</Text>
-      </Button>
+      <View className='flex-row items-center gap-2'>
+        {resumeOffer && (
+          <Button variant='outline' size='sm' onPress={openPlotterSetup}>
+            <Text>Resume recording</Text>
+          </Button>
+        )}
+        <Button variant='outline' size='sm' onPress={openPlotterSetup}>
+          <Text>Set up plotter</Text>
+        </Button>
+      </View>
     );
   }
 
@@ -74,6 +86,16 @@ export function CaptureRecordingControl({
     setFailure(null);
     try {
       await start({ boatProfileId, courseId, endpoint });
+    } catch (error) {
+      setFailure(captureFailureMessage(error));
+    }
+  };
+
+  const resumeRecording = async () => {
+    if (!resumeOffer) return;
+    setFailure(null);
+    try {
+      await resume(resumeOffer, endpoint);
     } catch (error) {
       setFailure(captureFailureMessage(error));
     }
@@ -152,6 +174,17 @@ export function CaptureRecordingControl({
       >
         {isConnecting ? <ActivityIndicator color='white' /> : <RecordIcon />}
       </Button>
+      {resumeOffer && (
+        <Button
+          accessibilityLabel='Resume recording'
+          disabled={isConnecting}
+          variant='outline'
+          size='sm'
+          onPress={() => void resumeRecording()}
+        >
+          <Text>Resume recording</Text>
+        </Button>
+      )}
     </>
   );
 }

@@ -34,6 +34,11 @@ export function openRawLog(sessionId: number): RawLog {
   return openNamedRawLog(getRawLogFileName(sessionId));
 }
 
+/** Reopens the exact evidence file already attached to an auto-ended session. */
+export function openExistingRawLog(path: string): RawLog {
+  return openFile(new File(path));
+}
+
 /** Opens raw evidence before a valid anchor permits creation of a session. */
 export function openPendingRawLog(startedAt: number): RawLog {
   return openNamedRawLog(`pending-${startedAt}.nmea`);
@@ -41,7 +46,10 @@ export function openPendingRawLog(startedAt: number): RawLog {
 
 function openNamedRawLog(fileName: string): RawLog {
   rawLogDirectory.create({ idempotent: true, intermediates: true });
-  const file = new File(rawLogDirectory, fileName);
+  return openFile(new File(rawLogDirectory, fileName));
+}
+
+function openFile(file: File): RawLog {
   // Deliberately never truncates: reopening a session's log appends to it, so
   // `08`'s resume cannot destroy the part of the race already recorded.
   if (!file.exists) file.create({ intermediates: true });

@@ -4,6 +4,7 @@ import {
   formatSailStampAge,
   isSailStampStale,
   captureStopSessionId,
+  formatConnectionGapAge,
 } from '../captureLayerState';
 
 describe('capture layer state', () => {
@@ -44,6 +45,29 @@ describe('capture layer state', () => {
       title: 'TWS 12.3 kn  •  TWA -88°',
       description: '1,234 samples  •  Last stamp 4 min ago',
     });
+  });
+
+  it('shows connection loss instead of stale live values in the notification', () => {
+    expect(
+      formatCaptureNotification(
+        { tws: 12.3, twa: -88, sampleCount: 12, lastSampleAt: 100 },
+        null,
+        65_000,
+        { status: 'retrying', gapStartedAt: 1_000 },
+      ),
+    ).toEqual({
+      title: 'Connection lost — retrying',
+      description: 'Gap 1 min 4 sec  •  12 samples',
+    });
+  });
+
+  it.each([
+    [0, '0 sec'],
+    [59_999, '59 sec'],
+    [60_000, '1 min'],
+    [64_999, '1 min 4 sec'],
+  ])('formats a connection gap age of %i ms', (age, expected) => {
+    expect(formatConnectionGapAge(age)).toBe(expected);
   });
 
   it('binds the explicit notification stop action to its capture session', () => {

@@ -25,6 +25,7 @@ export type PlotterSetup = typeof plotterSetup.$inferSelect;
 export type PlotterSetupInsert = typeof plotterSetup.$inferInsert;
 
 export const captureSessionStatusSchema = z.enum(['active', 'ended', 'autoEnded']);
+export type CaptureSessionStatus = z.infer<typeof captureSessionStatusSchema>;
 export const windFrameSchema = z.enum(['water', 'ground', 'instrument-corrected', 'unknown']).nullable();
 export const plotterSetupModeSchema = z.enum(['automatic', 'manual']);
 
