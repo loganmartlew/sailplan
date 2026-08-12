@@ -1,0 +1,188 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Course Via Points — Execution Plan</title>
+    <style>
+      :root {
+        color-scheme: dark;
+        --ink: #edf7f5;
+        --muted: #9db8b4;
+        --panel: #102b2c;
+        --panel-2: #153638;
+        --line: #2b5656;
+        --sea: #35d0ba;
+        --amber: #f1b85b;
+        --coral: #ff7a70;
+        --blue: #73b8ff;
+      }
+
+      * { box-sizing: border-box; }
+
+      body {
+        margin: 0;
+        background:
+          radial-gradient(circle at 85% 0%, #17494a 0, transparent 34rem),
+          linear-gradient(150deg, #07191b, #0a2224 48%, #061719);
+        color: var(--ink);
+        font-family: Inter, ui-sans-serif, system-ui, -apple-system, sans-serif;
+        line-height: 1.5;
+      }
+
+      main { width: min(1180px, calc(100% - 32px)); margin: 0 auto; padding: 54px 0 80px; }
+      h1, h2, h3, p { margin-top: 0; }
+      h1 { max-width: 760px; font-size: clamp(2.4rem, 7vw, 5rem); line-height: .96; letter-spacing: -.055em; }
+      h2 { margin: 58px 0 20px; font-size: 1.65rem; }
+      h3 { margin-bottom: 8px; font-size: 1.04rem; }
+      a { color: inherit; }
+      .eyebrow { color: var(--sea); font-size: .78rem; font-weight: 800; letter-spacing: .14em; text-transform: uppercase; }
+      .lede { max-width: 760px; color: var(--muted); font-size: 1.12rem; }
+      .legend { display: flex; flex-wrap: wrap; gap: 10px; margin: 28px 0 8px; }
+      .pill { border: 1px solid var(--line); border-radius: 999px; padding: 6px 11px; color: var(--muted); font-size: .78rem; }
+      .pill strong { color: var(--ink); }
+
+      .route { display: grid; grid-template-columns: 1fr; gap: 0; }
+      .step { position: relative; display: grid; grid-template-columns: 74px 1fr; gap: 18px; }
+      .rail { display: flex; flex-direction: column; align-items: center; }
+      .number { z-index: 1; display: grid; width: 48px; height: 48px; place-items: center; border: 2px solid var(--sea); border-radius: 50%; background: #092123; color: var(--sea); font-weight: 900; }
+      .stem { width: 2px; min-height: 32px; flex: 1; background: linear-gradient(var(--sea), var(--line)); }
+      .step:last-child .stem { display: none; }
+      .card { margin-bottom: 18px; border: 1px solid var(--line); border-radius: 18px; background: linear-gradient(145deg, rgba(21,54,56,.96), rgba(11,35,37,.96)); padding: 20px; box-shadow: 0 18px 40px rgba(0,0,0,.18); }
+      .card p { margin-bottom: 12px; color: var(--muted); }
+      .tags { display: flex; flex-wrap: wrap; gap: 7px; }
+      .tag { border-radius: 7px; background: rgba(53,208,186,.1); color: #91eadb; padding: 4px 8px; font-size: .72rem; font-weight: 750; }
+      .tag.ui { background: rgba(115,184,255,.12); color: #a9d2ff; }
+      .tag.test { background: rgba(241,184,91,.12); color: #ffd18a; }
+
+      .gate-grid, .test-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; }
+      .gate, .test-card { border: 1px solid var(--line); border-radius: 15px; background: rgba(8,29,31,.74); padding: 18px; }
+      .gate b { color: var(--amber); }
+      .gate p, .test-card p { margin: 7px 0 0; color: var(--muted); font-size: .9rem; }
+      .test-card ul { margin: 10px 0 0; padding-left: 19px; color: var(--muted); font-size: .88rem; }
+      .test-card li + li { margin-top: 5px; }
+      .command { margin-top: 28px; border-left: 3px solid var(--sea); background: rgba(53,208,186,.07); padding: 15px 18px; color: var(--muted); }
+      code { color: var(--ink); }
+      footer { margin-top: 54px; border-top: 1px solid var(--line); padding-top: 18px; color: var(--muted); font-size: .82rem; }
+
+      @media (min-width: 860px) {
+        .route { grid-template-columns: repeat(2, minmax(0, 1fr)); column-gap: 26px; }
+        .step { grid-template-columns: 58px 1fr; }
+        .step:nth-child(odd) .stem { display: none; }
+        .step:nth-child(even) .stem { display: none; }
+      }
+
+      @media (max-width: 680px) {
+        main { width: min(100% - 20px, 1180px); padding-top: 34px; }
+        .gate-grid, .test-grid { grid-template-columns: 1fr; }
+        .step { grid-template-columns: 55px 1fr; gap: 8px; }
+        .number { width: 42px; height: 42px; }
+        .card { padding: 16px; }
+      }
+    </style>
+  </head>
+  <body>
+    <main>
+      <p class="eyebrow">SailPlan · Implementation Route</p>
+      <h1>Course Via Points</h1>
+      <p class="lede">Six ordered tickets turn one direct Mark-to-Mark line into a durable route of Legs and Leg Segments—without losing the Course structure sailors recognise.</p>
+
+      <div class="legend">
+        <span class="pill"><strong>1</strong> enabling prefactor</span>
+        <span class="pill"><strong>5</strong> user-visible tracer bullets</span>
+        <span class="pill"><strong>5</strong> cross-cutting review gates</span>
+        <span class="pill">Android manual verification</span>
+      </div>
+
+      <h2>Implementation route</h2>
+      <section class="route">
+        <article class="step">
+          <div class="rail"><div class="number">11</div><div class="stem"></div></div>
+          <div class="card">
+            <h3><a href="issues/11-establish-route-foundation.md">Canonical route foundation</a></h3>
+            <p>Move direct Courses through the migration, route model, Segment mapper, and transactional intent seam while preserving current behavior.</p>
+            <div class="tags"><span class="tag">prefactor</span><span class="tag">migration</span><span class="tag">domain model</span><span class="tag test">Gate A</span></div>
+          </div>
+        </article>
+
+        <article class="step">
+          <div class="rail"><div class="number">12</div><div class="stem"></div></div>
+          <div class="card">
+            <h3><a href="issues/12-reuse-saved-mark-via-point.md">Saved Mark tracer bullet</a></h3>
+            <p>Add one Mark-backed Via Point from Route thread to persistence, Mark integrity, Segment guidance, and Undo.</p>
+            <div class="tags"><span class="tag">end to end</span><span class="tag ui">Route thread</span><span class="tag ui">Plan</span><span class="tag test">Gate B</span></div>
+          </div>
+        </article>
+
+        <article class="step">
+          <div class="rail"><div class="number">13</div><div class="stem"></div></div>
+          <div class="card">
+            <h3><a href="issues/13-add-local-via-points-spatially.md">Local spatial Via Points</a></h3>
+            <p>Complete map-sheet placement, preview, editing, dragging, point-kind presentation, and promotion to a saved Mark.</p>
+            <div class="tags"><span class="tag">end to end</span><span class="tag ui">Course Map</span><span class="tag">promotion</span></div>
+          </div>
+        </article>
+
+        <article class="step">
+          <div class="rail"><div class="number">14</div><div class="stem"></div></div>
+          <div class="card">
+            <h3><a href="issues/14-manage-complex-routes-safely.md">Complex route editing</a></h3>
+            <p>Handle multi-point ordering, explicit Leg changes, Course Mark deletion rules, transaction failures, and complete Undo coverage.</p>
+            <div class="tags"><span class="tag">end to end</span><span class="tag">integrity</span><span class="tag">Undo</span><span class="tag test">Gate C</span></div>
+          </div>
+        </article>
+
+        <article class="step">
+          <div class="rail"><div class="number">15</div><div class="stem"></div></div>
+          <div class="card">
+            <h3><a href="issues/15-plan-complete-multi-segment-routes.md">Complete Course Plans</a></h3>
+            <p>Finish grouped Segment results, custom endpoints, notes, sail calls, read-only Plan Map, and the edit/recalculation round trip.</p>
+            <div class="tags"><span class="tag">end to end</span><span class="tag ui">Plan results</span><span class="tag ui">Plan Map</span><span class="tag test">Gate D</span></div>
+          </div>
+        </article>
+
+        <article class="step">
+          <div class="rail"><div class="number">16</div><div class="stem"></div></div>
+          <div class="card">
+            <h3><a href="issues/16-navigate-live-segment-detail.md">Live Segment detail</a></h3>
+            <p>Resolve detail from current identity, retain enclosing Leg context, navigate sibling Segments, and recover from stale references.</p>
+            <div class="tags"><span class="tag">end to end</span><span class="tag ui">Segment detail</span><span class="tag">navigation</span><span class="tag test">Gate E</span></div>
+          </div>
+        </article>
+      </section>
+
+      <h2>Cross-cutting review gates</h2>
+      <section class="gate-grid">
+        <article class="gate"><b>Gate A · after 11</b><p>Migration safety, foreign keys, union model, Segment identity, transactions, and dependency direction.</p></article>
+        <article class="gate"><b>Gate B · after 12</b><p>Trace one saved Mark through Via Point persistence, Route thread, usage protection, guidance, and Undo.</p></article>
+        <article class="gate"><b>Gate C · after 14</b><p>Review the complete Course editor: pending map state, route invariants, restructuring rules, and every inverse.</p></article>
+        <article class="gate"><b>Gate D · after 15</b><p>Review Plan-only endpoints, Segment-owned guidance, note placement, read-only map behavior, and recalculation.</p></article>
+        <article class="gate"><b>Gate E · after 16</b><p>Review identity-based navigation, live reload, stale recovery, remaining legacy contracts, and integrated states.</p></article>
+      </section>
+
+      <h2>Manual verification rhythm</h2>
+      <section class="test-grid">
+        <article class="test-card">
+          <h3>A · Migration smoke test</h3>
+          <ul><li>Upgrade existing Courses</li><li>Course Mark CRUD and order-zero regression</li><li>Direct Course Plan parity</li></ul>
+        </article>
+        <article class="test-card">
+          <h3>B · First tracer</h3>
+          <ul><li>Saved-Mark insertion and exclusions</li><li>Live edits and blocked deletion</li><li>Two real Segments and latest-only Undo</li></ul>
+        </article>
+        <article class="test-card">
+          <h3>C · Course editing matrix</h3>
+          <ul><li>Zero, one, several, mixed Via Points</li><li>Gap and free-map placement</li><li>Reorder, move, merge, delete, promote</li></ul>
+        </article>
+        <article class="test-card">
+          <h3>D/E · Plan and detail matrix</h3>
+          <ul><li>Every custom endpoint combination</li><li>Plan Map edit/recalculation</li><li>Sibling navigation and stale recovery</li></ul>
+        </article>
+      </section>
+
+      <div class="command">Every ticket: focused tests while building. Every gate: <code>npm run lint</code>, <code>npx tsc --noEmit</code>, full <code>npx jest --runInBand</code>, then the assigned Android checks. Static checks never substitute for device results.</div>
+
+      <footer>Normative vocabulary: Course Mark · Via Point · Leg · Leg Segment. See <a href="spec.md">the specification</a> and <a href="execution-plan.md">the full execution guide</a>.</footer>
+    </main>
+  </body>
+</html>
