@@ -8,6 +8,7 @@ export * from './api/rawLogs';
 export * from './store/captureRecordingStore';
 export * from './util/testPlotterConnection';
 export * from './util/captureFailureMessage';
+export * from './util/replayCaptureSession';
 export * from './components/PlotterConnectionSection';
 export * from './components/CaptureRecordingBar';
 export * from './components/CaptureRecordingControl';

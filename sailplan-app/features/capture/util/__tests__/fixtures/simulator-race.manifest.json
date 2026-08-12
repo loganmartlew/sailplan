@@ -1,0 +1,360 @@
+{
+  "name": "race",
+  "description": "Ground truth for a synthetic NMEA capture. `truth` is the 1 Hz record of what the boat was actually doing; `grid` is that reduced to the same 1 kn x 4-degree bins the app's clustered polar grid uses, over steady-state samples only. A derivation that recovers `grid.trueSpeed` from the stream is correct; one that does not is measuring noise.",
+  "seed": 1234,
+  "durationSec": 20,
+  "course": {
+    "twd": 225,
+    "tws": 12,
+    "twdOscillationDeg": 8,
+    "twdOscillationPeriodSec": 300,
+    "twsOscillationKn": 1.5,
+    "twsOscillationPeriodSec": 420,
+    "startLat": -41.2865,
+    "startLon": 174.7762,
+    "variationDeg": 21.5,
+    "currentSetDeg": null,
+    "currentDriftKn": 0,
+    "transitionSec": 10,
+    "manoeuvreRecoverSec": 15,
+    "trimDwellSec": 30,
+    "repeat": true,
+    "legs": [
+      {
+        "durationSec": 420,
+        "headingDeg": 180,
+        "sail": "J1"
+      },
+      {
+        "durationSec": 420,
+        "headingDeg": 270,
+        "sail": "J1"
+      },
+      {
+        "durationSec": 300,
+        "headingDeg": 335,
+        "sail": "A6"
+      },
+      {
+        "durationSec": 300,
+        "headingDeg": 115,
+        "sail": "A6"
+      },
+      {
+        "durationSec": 300,
+        "headingDeg": 105,
+        "sail": "A5"
+      },
+      {
+        "durationSec": 300,
+        "headingDeg": 75,
+        "sail": "A2"
+      },
+      {
+        "durationSec": 240,
+        "headingDeg": 53,
+        "sail": "S1"
+      },
+      {
+        "durationSec": 300,
+        "headingDeg": 357,
+        "sail": "A3"
+      },
+      {
+        "durationSec": 420,
+        "headingDeg": 180,
+        "sail": "J1"
+      }
+    ]
+  },
+  "fleetSource": "../polars/fleet.js",
+  "noiseModel": {
+    "twsKn": "+/-0.3 uniform",
+    "twaDeg": "+/-2 uniform",
+    "trim": "20% U(0.82,0.92) poor / 65% U(0.97,1.03) on target / 15% U(1.05,1.15) surfing",
+    "trimDwellSec": 30,
+    "note": "Marginal distribution is identical to polars/generate-polars.js sampleNoisy, so the percentile-bias figures in research/12 carry over. Trim is HELD for a dwell rather than redrawn per sample."
+  },
+  "logFile": "simulator-race.log",
+  "logBytes": 39220,
+  "grid": [
+    {
+      "sail": "J1",
+      "tws": 12,
+      "twa": 44,
+      "samples": 6,
+      "trueSpeed": 6.511,
+      "measuredMeanSpeed": 5.797
+    },
+    {
+      "sail": "J1",
+      "tws": 12,
+      "twa": 48,
+      "samples": 14,
+      "trueSpeed": 6.556,
+      "measuredMeanSpeed": 5.837
+    }
+  ],
+  "truth": [
+    {
+      "t": 0,
+      "sail": "J1",
+      "twd": 225,
+      "tws": 12,
+      "twa": 45,
+      "tack": "starboard",
+      "headingTrue": 180,
+      "trueSpeed": 6.5,
+      "stw": 5.787,
+      "trimNote": "Poor Trim",
+      "manoeuvring": false
+    },
+    {
+      "t": 1,
+      "sail": "J1",
+      "twd": 225.17,
+      "tws": 12.022,
+      "twa": 45.17,
+      "tack": "starboard",
+      "headingTrue": 180,
+      "trueSpeed": 6.504,
+      "stw": 5.791,
+      "trimNote": "Poor Trim",
+      "manoeuvring": false
+    },
+    {
+      "t": 2,
+      "sail": "J1",
+      "twd": 225.34,
+      "tws": 12.045,
+      "twa": 45.34,
+      "tack": "starboard",
+      "headingTrue": 180,
+      "trueSpeed": 6.509,
+      "stw": 5.795,
+      "trimNote": "Poor Trim",
+      "manoeuvring": false
+    },
+    {
+      "t": 3,
+      "sail": "J1",
+      "twd": 225.5,
+      "tws": 12.067,
+      "twa": 45.5,
+      "tack": "starboard",
+      "headingTrue": 180,
+      "trueSpeed": 6.513,
+      "stw": 5.799,
+      "trimNote": "Poor Trim",
+      "manoeuvring": false
+    },
+    {
+      "t": 4,
+      "sail": "J1",
+      "twd": 225.67,
+      "tws": 12.09,
+      "twa": 45.67,
+      "tack": "starboard",
+      "headingTrue": 180,
+      "trueSpeed": 6.518,
+      "stw": 5.803,
+      "trimNote": "Poor Trim",
+      "manoeuvring": false
+    },
+    {
+      "t": 5,
+      "sail": "J1",
+      "twd": 225.84,
+      "tws": 12.112,
+      "twa": 45.84,
+      "tack": "starboard",
+      "headingTrue": 180,
+      "trueSpeed": 6.522,
+      "stw": 5.807,
+      "trimNote": "Poor Trim",
+      "manoeuvring": false
+    },
+    {
+      "t": 6,
+      "sail": "J1",
+      "twd": 226,
+      "tws": 12.134,
+      "twa": 46,
+      "tack": "starboard",
+      "headingTrue": 180,
+      "trueSpeed": 6.527,
+      "stw": 5.811,
+      "trimNote": "Poor Trim",
+      "manoeuvring": false
+    },
+    {
+      "t": 7,
+      "sail": "J1",
+      "twd": 226.17,
+      "tws": 12.157,
+      "twa": 46.17,
+      "tack": "starboard",
+      "headingTrue": 180,
+      "trueSpeed": 6.531,
+      "stw": 5.815,
+      "trimNote": "Poor Trim",
+      "manoeuvring": false
+    },
+    {
+      "t": 8,
+      "sail": "J1",
+      "twd": 226.33,
+      "tws": 12.179,
+      "twa": 46.33,
+      "tack": "starboard",
+      "headingTrue": 180,
+      "trueSpeed": 6.536,
+      "stw": 5.819,
+      "trimNote": "Poor Trim",
+      "manoeuvring": false
+    },
+    {
+      "t": 9,
+      "sail": "J1",
+      "twd": 226.5,
+      "tws": 12.201,
+      "twa": 46.5,
+      "tack": "starboard",
+      "headingTrue": 180,
+      "trueSpeed": 6.54,
+      "stw": 5.823,
+      "trimNote": "Poor Trim",
+      "manoeuvring": false
+    },
+    {
+      "t": 10,
+      "sail": "J1",
+      "twd": 226.66,
+      "tws": 12.224,
+      "twa": 46.66,
+      "tack": "starboard",
+      "headingTrue": 180,
+      "trueSpeed": 6.545,
+      "stw": 5.827,
+      "trimNote": "Poor Trim",
+      "manoeuvring": false
+    },
+    {
+      "t": 11,
+      "sail": "J1",
+      "twd": 226.83,
+      "tws": 12.246,
+      "twa": 46.83,
+      "tack": "starboard",
+      "headingTrue": 180,
+      "trueSpeed": 6.549,
+      "stw": 5.831,
+      "trimNote": "Poor Trim",
+      "manoeuvring": false
+    },
+    {
+      "t": 12,
+      "sail": "J1",
+      "twd": 226.99,
+      "tws": 12.268,
+      "twa": 46.99,
+      "tack": "starboard",
+      "headingTrue": 180,
+      "trueSpeed": 6.554,
+      "stw": 5.835,
+      "trimNote": "Poor Trim",
+      "manoeuvring": false
+    },
+    {
+      "t": 13,
+      "sail": "J1",
+      "twd": 227.15,
+      "tws": 12.29,
+      "twa": 47.15,
+      "tack": "starboard",
+      "headingTrue": 180,
+      "trueSpeed": 6.558,
+      "stw": 5.839,
+      "trimNote": "Poor Trim",
+      "manoeuvring": false
+    },
+    {
+      "t": 14,
+      "sail": "J1",
+      "twd": 227.31,
+      "tws": 12.312,
+      "twa": 47.31,
+      "tack": "starboard",
+      "headingTrue": 180,
+      "trueSpeed": 6.562,
+      "stw": 5.843,
+      "trimNote": "Poor Trim",
+      "manoeuvring": false
+    },
+    {
+      "t": 15,
+      "sail": "J1",
+      "twd": 227.47,
+      "tws": 12.334,
+      "twa": 47.47,
+      "tack": "starboard",
+      "headingTrue": 180,
+      "trueSpeed": 6.567,
+      "stw": 5.847,
+      "trimNote": "Poor Trim",
+      "manoeuvring": false
+    },
+    {
+      "t": 16,
+      "sail": "J1",
+      "twd": 227.63,
+      "tws": 12.356,
+      "twa": 47.63,
+      "tack": "starboard",
+      "headingTrue": 180,
+      "trueSpeed": 6.571,
+      "stw": 5.851,
+      "trimNote": "Poor Trim",
+      "manoeuvring": false
+    },
+    {
+      "t": 17,
+      "sail": "J1",
+      "twd": 227.79,
+      "tws": 12.377,
+      "twa": 47.79,
+      "tack": "starboard",
+      "headingTrue": 180,
+      "trueSpeed": 6.575,
+      "stw": 5.854,
+      "trimNote": "Poor Trim",
+      "manoeuvring": false
+    },
+    {
+      "t": 18,
+      "sail": "J1",
+      "twd": 227.94,
+      "tws": 12.399,
+      "twa": 47.94,
+      "tack": "starboard",
+      "headingTrue": 180,
+      "trueSpeed": 6.58,
+      "stw": 5.858,
+      "trimNote": "Poor Trim",
+      "manoeuvring": false
+    },
+    {
+      "t": 19,
+      "sail": "J1",
+      "twd": 228.1,
+      "tws": 12.421,
+      "twa": 48.1,
+      "tack": "starboard",
+      "headingTrue": 180,
+      "trueSpeed": 6.584,
+      "stw": 5.862,
+      "trimNote": "Poor Trim",
+      "manoeuvring": false
+    }
+  ]
+}

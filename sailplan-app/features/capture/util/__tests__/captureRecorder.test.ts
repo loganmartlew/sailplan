@@ -5,10 +5,11 @@ jest.mock('react-native-tcp-socket', () => ({
 jest.mock('../../api/captureSession', () => ({
   createActiveCaptureSession: jest.fn(),
   setCaptureSessionRawLogPath: jest.fn(),
+  persistCaptureBatch: jest.fn(),
   endCaptureSession: jest.fn(),
   deleteCaptureSession: jest.fn(),
 }));
-jest.mock('../rawLog', () => ({ openRawLog: jest.fn() }));
+jest.mock('../rawLog', () => ({ openPendingRawLog: jest.fn() }));
 jest.mock('../captureForegroundService', () => ({
   startCaptureForegroundService: jest.fn(),
   stopCaptureForegroundService: jest.fn(),
@@ -20,7 +21,7 @@ import {
   setCaptureSessionRawLogPath,
 } from '../../api/captureSession';
 import { startCaptureForegroundService } from '../captureForegroundService';
-import { openRawLog } from '../rawLog';
+import { openPendingRawLog } from '../rawLog';
 import {
   CaptureRecordingStartError,
   type CaptureStartReason,
@@ -67,11 +68,22 @@ function makeDependencies() {
     deleteSession: jest.fn(async () => {}),
     endSession: jest.fn(async () => {}),
     setRawLogPath: jest.fn(async () => {}),
+    persistBatch: jest.fn<
+      Promise<void>,
+      Parameters<RecordingDependencies['persistBatch']>
+    >(async () => {}),
     startForegroundService: jest.fn(async () => {}),
     stopForegroundService: jest.fn(async () => {}),
     now: jest.fn(() => 1_700_000_000_000),
+    monotonicNow: jest.fn(() => 1_000),
   };
   return { socket, listeners, rawLog, session, dependencies };
+}
+
+const validAnchor = '$WIMWV,297.5,T,5.6,N,A*2F\r\n';
+function connectWithAnchor(fixture: ReturnType<typeof makeDependencies>) {
+  fixture.listeners.connect?.();
+  fixture.listeners.data?.(validAnchor);
 }
 
 const endpoint = { host: '192.168.1.1', port: 10110 };
@@ -90,7 +102,7 @@ async function reasonOf(promise: Promise<unknown>): Promise<CaptureStartReason> 
 describe('startCaptureRecording', () => {
   beforeEach(() => jest.clearAllMocks());
 
-  it('opens the Wi-Fi socket, then creates the raw-first active session', async () => {
+  it('opens the raw log on connect and gates session creation on valid anchor data', async () => {
     const fixture = makeDependencies();
 
     const started = startCaptureRecording(input, fixture.dependencies);
@@ -101,6 +113,11 @@ describe('startCaptureRecording', () => {
       connectTimeout: 31_000,
     });
     fixture.listeners.connect?.();
+    expect(fixture.dependencies.openRawLog).toHaveBeenCalledWith(1_700_000_000_000);
+    expect(fixture.dependencies.createSession).not.toHaveBeenCalled();
+    fixture.listeners.data?.('$WIMWV,297.5,R,5.6,N,A*2A\r\n');
+    expect(fixture.dependencies.createSession).not.toHaveBeenCalled();
+    fixture.listeners.data?.(validAnchor);
 
     const recording = await started;
     expect(recording.sessionId).toBe(42);
@@ -110,14 +127,14 @@ describe('startCaptureRecording', () => {
       courseId: 9,
       startedAt: 1_700_000_000_000,
     });
-    expect(fixture.dependencies.openRawLog).toHaveBeenCalledWith(42);
+    expect(fixture.dependencies.openRawLog).toHaveBeenCalledWith(1_700_000_000_000);
     expect(fixture.dependencies.startForegroundService).toHaveBeenCalledWith(42);
   });
 
   it('records the raw log path on the session so the file is findable later', async () => {
     const fixture = makeDependencies();
     const started = startCaptureRecording(input, fixture.dependencies);
-    fixture.listeners.connect?.();
+    connectWithAnchor(fixture);
     await started;
 
     expect(fixture.dependencies.setRawLogPath).toHaveBeenCalledWith(
@@ -129,7 +146,7 @@ describe('startCaptureRecording', () => {
   it('appends socket data verbatim and ends the session cleanly on stop', async () => {
     const fixture = makeDependencies();
     const started = startCaptureRecording(input, fixture.dependencies);
-    fixture.listeners.connect?.();
+    connectWithAnchor(fixture);
     const recording = await started;
 
     fixture.listeners.data?.('$WIMWV,12.3,R,8.2,N,A*00\r\n');
@@ -157,6 +174,7 @@ describe('startCaptureRecording', () => {
 
     fixture.listeners.connect?.();
     fixture.listeners.data?.('$SDHDG,158.5,,,21.5,E*0A\r\n');
+    fixture.listeners.data?.(validAnchor);
     resolveSession?.({ id: 42 });
 
     await started;
@@ -168,7 +186,7 @@ describe('startCaptureRecording', () => {
   it('passes a Buffer chunk to the log as bytes rather than decoding it', async () => {
     const fixture = makeDependencies();
     const started = startCaptureRecording(input, fixture.dependencies);
-    fixture.listeners.connect?.();
+    connectWithAnchor(fixture);
     await started;
 
     // A byte that is not valid UTF-8, which is what line noise on a marine bus
@@ -178,8 +196,49 @@ describe('startCaptureRecording', () => {
     fixture.listeners.data?.(chunk);
 
     expect(fixture.rawLog.append).toHaveBeenCalledWith(chunk);
-    const [appended] = fixture.rawLog.append.mock.calls[0];
+    const [appended] = fixture.rawLog.append.mock.calls.at(-1)!;
     expect(Buffer.from(appended)).toEqual(chunk);
+  });
+
+  it('queues emitted samples to SQLite from socket data without dropping rows', async () => {
+    const fixture = makeDependencies();
+    let monotonic = 1_000;
+    fixture.dependencies.monotonicNow.mockImplementation(() => monotonic);
+    const started = startCaptureRecording(input, fixture.dependencies);
+    connectWithAnchor(fixture);
+    await started;
+
+    monotonic = 2_000;
+    fixture.listeners.data?.(validAnchor);
+    await flush();
+
+    expect(fixture.dependencies.persistBatch).toHaveBeenCalledWith(
+      42,
+      [expect.objectContaining({ timestamp: 1_700_000_000_000, tws: 5.6, twa: -62.5 })],
+      expect.any(Object),
+      expect.any(String),
+    );
+  });
+
+  it('keeps every 1 Hz emission when anchors arrive at twice race rate', async () => {
+    const fixture = makeDependencies();
+    let monotonic = 1_000;
+    fixture.dependencies.monotonicNow.mockImplementation(() => monotonic);
+    const started = startCaptureRecording(input, fixture.dependencies);
+    connectWithAnchor(fixture);
+    const recording = await started;
+
+    for (let halfSecond = 1; halfSecond <= 200; halfSecond += 1) {
+      monotonic = 1_000 + halfSecond * 500;
+      fixture.listeners.data?.(validAnchor);
+    }
+    await recording.stop();
+
+    const written = fixture.dependencies.persistBatch.mock.calls.flatMap(
+      call => call[1],
+    );
+    expect(written).toHaveLength(101);
+    expect(new Set(written.map(row => row.timestamp)).size).toBe(101);
   });
 
   describe('stop', () => {
@@ -189,7 +248,7 @@ describe('startCaptureRecording', () => {
         new Error('Database is locked'),
       );
       const started = startCaptureRecording(input, fixture.dependencies);
-      fixture.listeners.connect?.();
+      connectWithAnchor(fixture);
       const recording = await started;
 
       await expect(recording.stop()).rejects.toThrow('Database is locked');
@@ -208,7 +267,7 @@ describe('startCaptureRecording', () => {
     it('ends the session once when stop is tapped twice in a row', async () => {
       const fixture = makeDependencies();
       const started = startCaptureRecording(input, fixture.dependencies);
-      fixture.listeners.connect?.();
+      connectWithAnchor(fixture);
       const recording = await started;
 
       await Promise.all([recording.stop(), recording.stop()]);
@@ -235,6 +294,20 @@ describe('startCaptureRecording', () => {
       expect(fixture.socket.destroy).toHaveBeenCalledTimes(1);
     });
 
+    it('keeps unlinked raw evidence when connected data never contains a valid anchor', async () => {
+      const fixture = makeDependencies();
+      const started = startCaptureRecording(input, fixture.dependencies);
+      fixture.listeners.connect?.();
+      fixture.listeners.data?.('$WIMWV,,T,,,V*13\r\n');
+      await flush();
+      fixture.listeners.error?.(new Error('Connection reset'));
+
+      await expect(started).rejects.toThrow(CaptureRecordingStartError);
+      expect(fixture.dependencies.createSession).not.toHaveBeenCalled();
+      expect(fixture.rawLog.close).toHaveBeenCalledTimes(1);
+      expect(fixture.rawLog.remove).not.toHaveBeenCalled();
+    });
+
     it('deletes an artefact whose creation raced a socket failure', async () => {
       const fixture = makeDependencies();
       let resolveSession: ((value: { id: number }) => void) | undefined;
@@ -244,13 +317,14 @@ describe('startCaptureRecording', () => {
       const started = startCaptureRecording(input, fixture.dependencies);
 
       fixture.listeners.connect?.();
+      fixture.listeners.data?.(validAnchor);
       fixture.listeners.error?.(new Error('Connection reset'));
       resolveSession?.({ id: 42 });
 
       await expect(started).rejects.toThrow(CaptureRecordingStartError);
       await flush();
       expect(fixture.dependencies.deleteSession).toHaveBeenCalledWith(42);
-      expect(fixture.dependencies.openRawLog).not.toHaveBeenCalled();
+      expect(fixture.dependencies.openRawLog).toHaveBeenCalled();
     });
 
     it('still deletes the session row when removing the raw log throws', async () => {
@@ -262,7 +336,7 @@ describe('startCaptureRecording', () => {
         new Error('Service refused to start'),
       );
       const started = startCaptureRecording(input, fixture.dependencies);
-      fixture.listeners.connect?.();
+      connectWithAnchor(fixture);
 
       await expect(started).rejects.toThrow(CaptureRecordingStartError);
       expect(fixture.rawLog.remove).toHaveBeenCalledTimes(1);
@@ -276,7 +350,7 @@ describe('startCaptureRecording', () => {
         () => new Promise<void>(resolve => (finishServiceStart = resolve)),
       );
       const started = startCaptureRecording(input, fixture.dependencies);
-      fixture.listeners.connect?.();
+      connectWithAnchor(fixture);
       await flush();
 
       // The socket dies while the service is still starting, so the service
@@ -319,7 +393,7 @@ describe('startCaptureRecording', () => {
         new Error('Database unavailable'),
       );
       const started = startCaptureRecording(input, fixture.dependencies);
-      fixture.listeners.connect?.();
+      connectWithAnchor(fixture);
       await expect(reasonOf(started)).resolves.toBe('storage');
     });
 
@@ -333,7 +407,7 @@ describe('startCaptureRecording', () => {
         ),
       );
       const started = startCaptureRecording(input, fixture.dependencies);
-      fixture.listeners.connect?.();
+      connectWithAnchor(fixture);
       await expect(reasonOf(started)).resolves.toBe('service-unavailable');
     });
   });
@@ -342,7 +416,7 @@ describe('startCaptureRecording', () => {
     const { socket, listeners } = makeSocket();
     (TcpSocket.createConnection as jest.Mock).mockReturnValue(socket);
     (createActiveCaptureSession as jest.Mock).mockResolvedValue({ id: 7 });
-    (openRawLog as jest.Mock).mockResolvedValue({
+    (openPendingRawLog as jest.Mock).mockResolvedValue({
       path: 'file:///documents/capture/session-7.nmea',
       append: jest.fn(),
       close: jest.fn(),
@@ -353,13 +427,14 @@ describe('startCaptureRecording', () => {
 
     const started = startCaptureRecording(input);
     listeners.connect?.();
+    listeners.data?.(validAnchor);
     await started;
 
     expect(TcpSocket.createConnection).toHaveBeenCalledWith(
       expect.objectContaining({ interface: 'wifi', connectTimeout: 31_000 }),
       expect.any(Function),
     );
-    expect(openRawLog).toHaveBeenCalledWith(7);
+    expect(openPendingRawLog).toHaveBeenCalledWith(expect.any(Number));
     expect(setCaptureSessionRawLogPath).toHaveBeenCalledWith(
       7,
       'file:///documents/capture/session-7.nmea',

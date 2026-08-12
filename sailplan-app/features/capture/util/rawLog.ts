@@ -21,16 +21,27 @@ export function getRawLogDirectory(): Directory {
 
 /**
  * Raw NMEA is evidence, not cache: keep it under the app document directory
- * with the capture session id as its stable, discoverable filename. Never the
- * Android-reclaimable cache directory.
+ * in a discoverable filename. New recordings first use a start-time name
+ * because raw evidence opens before valid anchor data permits a session row;
+ * resumed sessions keep their stable session-id filename. Never the Android-
+ * reclaimable cache directory.
  *
  * Writes go straight through on every socket `data` event rather than being
  * buffered. The log's whole value is that it is lossless, and a buffer is a
  * window in which a crash costs sentences that cannot be re-read off the wire.
  */
 export function openRawLog(sessionId: number): RawLog {
+  return openNamedRawLog(getRawLogFileName(sessionId));
+}
+
+/** Opens raw evidence before a valid anchor permits creation of a session. */
+export function openPendingRawLog(startedAt: number): RawLog {
+  return openNamedRawLog(`pending-${startedAt}.nmea`);
+}
+
+function openNamedRawLog(fileName: string): RawLog {
   rawLogDirectory.create({ idempotent: true, intermediates: true });
-  const file = new File(rawLogDirectory, getRawLogFileName(sessionId));
+  const file = new File(rawLogDirectory, fileName);
   // Deliberately never truncates: reopening a session's log appends to it, so
   // `08`'s resume cannot destroy the part of the race already recorded.
   if (!file.exists) file.create({ intermediates: true });

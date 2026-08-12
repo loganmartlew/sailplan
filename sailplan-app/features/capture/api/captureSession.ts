@@ -1,7 +1,12 @@
 import { eq } from 'drizzle-orm';
 import type { CaptureSession } from '~/features/capture/model/capture';
+import type {
+  CaptureHealth,
+  ReplayCaptureSample,
+  WindFrame,
+} from '~/features/capture/util/replayCaptureSession';
 import { db } from '~/lib/db';
-import { captureSession } from '~/schema';
+import { captureSample, captureSession } from '~/schema';
 
 export async function createActiveCaptureSession({
   boatProfileId,
@@ -40,6 +45,30 @@ export async function setCaptureSessionRawLogPath(
     .update(captureSession)
     .set({ rawLogPath })
     .where(eq(captureSession.id, sessionId));
+}
+
+/**
+ * Persists a parser emission and its cumulative health in one SQLite
+ * transaction. The socket callback queues these calls, so every emitted row is
+ * written in order without waiting on React or a timer.
+ */
+export async function persistCaptureBatch(
+  sessionId: number,
+  samples: readonly ReplayCaptureSample[],
+  health: CaptureHealth,
+  windFrame: WindFrame,
+): Promise<void> {
+  db.transaction(tx => {
+    if (samples.length > 0) {
+      tx.insert(captureSample)
+        .values(samples.map(sample => ({ ...sample, captureSessionId: sessionId })))
+        .run();
+    }
+    tx.update(captureSession)
+      .set({ healthCounters: JSON.stringify(health), windFrame })
+      .where(eq(captureSession.id, sessionId))
+      .run();
+  });
 }
 
 export async function endCaptureSession(

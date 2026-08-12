@@ -24,51 +24,51 @@ separately at runtime — but tests prefer the top.
 
 **Blocked by:** `02`, `04`.
 
-**Status:** ready-for-agent
+**Status:** done
 
-- [ ] `replayCaptureSession` lives in the capture feature's `util/`, is free of
+- [x] `replayCaptureSession` lives in the capture feature's `util/`, is free of
       React and database access, and returns `samples`, `health` and `windFrame`
       at this stage
-- [ ] Validation runs at the parse boundary **before any unit conversion**:
+- [x] Validation runs at the parse boundary **before any unit conversion**:
       checksum, field count, numeric parse, per-field range, status flag
-- [ ] **Row-level rejection for anchors, field-level for everything else** — a
+- [x] **Row-level rejection for anchors, field-level for everything else** — a
       row whose wind is corrupt is not a sample of anything
-- [ ] Status `V` is a rejection, **never a zero**
-- [ ] Over-length lines are **counted, not rejected** (5 % of a valid real stream
+- [x] Status `V` is a rejection, **never a zero**
+- [x] Over-length lines are **counted, not rejected** (5 % of a valid real stream
       breaks the 82-character limit)
-- [ ] `MWV` is parsed on its **flag field**, not on the sentence — reading
+- [x] `MWV` is parsed on its **flag field**, not on the sentence — reading
       apparent and true as one stream is a silent, plausible bug
-- [ ] Emission is anchor-triggered on `MWV,T` **or** `VHW`, collecting whatever
+- [x] Emission is anchor-triggered on `MWV,T` **or** `VHW`, collecting whatever
       lands within a **250 ms coalesce window**, minimum **750 ms** between rows
-- [ ] Sample fields exactly per §3's table; `twa` **signed ±180°** (positive =
+- [x] Sample fields exactly per §3's table; `twa` **signed ±180°** (positive =
       starboard); stored `REAL` with no rounding; **no derived columns**
-- [ ] `timestamp = sessionStartWallClock + monotonicElapsedMs` — absolute epoch
+- [x] `timestamp = sessionStartWallClock + monotonicElapsedMs` — absolute epoch
       ms, always present, immune to the wall clock stepping on an NTP sync
-- [ ] `variation` is `NULL` when unavailable, **never a silent 0**
-- [ ] Staleness is **TTL-null** at `max(1 s, 3 × nominal period)`; a stale field
+- [x] `variation` is `NULL` when unavailable, **never a silent 0**
+- [x] Staleness is **TTL-null** at `max(1 s, 3 × nominal period)`; a stale field
       is `NULL`, never repeated forward
-- [ ] Gaps are **absent rows plus `connectionEvent` rows** — no marker rows, no
+- [x] Gaps are **absent rows plus `connectionEvent` rows** — no marker rows, no
       manufactured empty samples
-- [ ] Per-sentence-type reject counters and per-field stale counters accumulate
+- [x] Per-sentence-type reject counters and per-field stale counters accumulate
       on the session
-- [ ] Wind frame classified per session (`water` / `ground` /
+- [x] Wind frame classified per session (`water` / `ground` /
       `instrument-corrected` / `unknown`) by deriving true wind twice and
       recording which one `MWV,T` tracks. **Derived and instrument values are
       never blended**
-- [ ] Session creation is now gated on valid NMEA anchor data arriving; the raw
+- [x] Session creation is now gated on valid NMEA anchor data arriving; the raw
       log still opens on socket connect (`04`'s raw-first rule is unchanged)
-- [ ] Samples are written to SQLite off the socket `data` event with no drops at
+- [x] Samples are written to SQLite off the socket `data` event with no drops at
       twice race volume
 
 Tested against, all of it already existing:
 
-- [ ] the real Navico GoFree capture — 142 corrupt `VLW` sentences, `-1.-3` where
+- [x] the real Navico GoFree capture — 142 corrupt `VLW` sentences, `-1.-3` where
       a number belongs, 331 over-length lines counted not rejected
-- [ ] the fault script holding boat speed stale 90 s → **90 rows with `NULL` boat
+- [x] the fault script holding boat speed stale 90 s → **90 rows with `NULL` boat
       speed and intact wind**
-- [ ] a status-`V` sentence → rejected, never a 0 kn sample
-- [ ] a TCP-split sentence → rejected, not parsed one field out of register
-- [ ] two unaligned 1 Hz anchors → a true 1 Hz row rate, not 2.4 Hz of
+- [x] a status-`V` sentence → rejected, never a 0 kn sample
+- [x] a TCP-split sentence → rejected, not parsed one field out of register
+- [x] two unaligned 1 Hz anchors → a true 1 Hz row rate, not 2.4 Hz of
       near-duplicates
-- [ ] a dropout → absent rows, a connection event, no manufactured rows, and no
+- [x] a dropout → absent rows, a connection event, no manufactured rows, and no
       smoothing across the >5 s discontinuity
