@@ -37,7 +37,6 @@ set -euo pipefail
 SSID="${SSID:-ZeusSim}"
 PASSWORD="${PASSWORD:-sailplan123}"
 PORT="${PORT:-10110}"
-CON_NAME="Hotspot"
 NFT_TABLE="nmeasim"
 ISO_TABLE="nmeasim_iso"
 SHARED="${SHARED:-0}"
@@ -129,7 +128,14 @@ cmd_down() {
   need_root
   cmd_restore || true
   isolate_off || true
-  nmcli connection down "$CON_NAME" 2>/dev/null || echo "hotspot was not up"
+  local dev active
+  dev="$(wifi_device)"
+  active="$(nmcli -t -f NAME,DEVICE,TYPE connection show --active | awk -F: -v d="$dev" '$2==d && $3=="802-11-wireless"{print $1; exit}')"
+  if [ -n "$active" ]; then
+    nmcli connection down "$active" 2>/dev/null
+  else
+    echo "hotspot was not up"
+  fi
   echo "hotspot down"
 }
 
