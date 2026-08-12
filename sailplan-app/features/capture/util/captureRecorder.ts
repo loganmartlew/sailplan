@@ -42,6 +42,17 @@ type Socket = {
 
 type Session = { id: number };
 
+/** Whatever the socket handed us, carried to the log without re-encoding. */
+type RawChunk = string | Buffer;
+
+/**
+ * The size the chunk occupies on disk. A string's `length` counts UTF-16 code
+ * units, not bytes, so it under-reports every sentence that is not pure ASCII.
+ */
+function chunkByteLength(chunk: RawChunk): number {
+  return typeof chunk === 'string' ? Buffer.byteLength(chunk) : chunk.length;
+}
+
 export type CaptureRecording = {
   sessionId: number;
   startedAt: number;
@@ -103,9 +114,9 @@ export function startCaptureRecording(
     let session: Session | undefined;
     let rawLog: RawLog | undefined;
     let phase: 'connecting' | 'starting' | 'started' | 'failed' = 'connecting';
-    let stopping = false;
+    let stopInFlight: Promise<void> | undefined;
     let foregroundServiceStarted = false;
-    const openingData: string[] = [];
+    const openingData: RawChunk[] = [];
     const hasFailed = () => phase === 'failed';
 
     /**
@@ -148,6 +159,19 @@ export function startCaptureRecording(
       socket?.destroy();
     };
 
+    const runStop = async (sessionId: number) => {
+      // Before the socket goes: the final flush is the one that carries the
+      // last resume window.
+      stopCaptureDiagnostics();
+      try {
+        rawLog?.close();
+        socket?.destroy();
+        await dependencies.endSession(sessionId, dependencies.now());
+      } finally {
+        await dependencies.stopForegroundService();
+      }
+    };
+
     const fail = (error: Error, reason: CaptureStartReason) => {
       if (phase === 'started' || phase === 'failed') return;
       phase = 'failed';
@@ -165,10 +189,15 @@ export function startCaptureRecording(
     };
 
     const onData = (chunk: string | Buffer) => {
-      // react-native-tcp-socket can deliver either a string or a Buffer.
-      const rawChunk = typeof chunk === 'string' ? chunk : chunk.toString();
+      // react-native-tcp-socket can deliver either a string or a Buffer, and
+      // both are passed to the log untouched. Decoding a Buffer to a string
+      // would round-trip it through UTF-8 and replace every byte the plotter
+      // emits that is not valid UTF-8 with U+FFFD — line noise on a marine bus,
+      // a half-received sentence, a proprietary sentence carrying high bytes.
+      // Those are exactly the cases the raw log exists to preserve, and the
+      // substitution is not reversible.
       if (!rawLog) {
-        openingData.push(rawChunk);
+        openingData.push(chunk);
         return;
       }
       try {
@@ -176,9 +205,9 @@ export function startCaptureRecording(
         // is main-thread time. Timing it here is how a resume burst becomes
         // measurable rather than inferred.
         const appendStartedAt = diagnosticNow();
-        rawLog.append(rawChunk);
+        rawLog.append(chunk);
         recordCaptureDataEvent(
-          rawChunk.length,
+          chunkByteLength(chunk),
           diagnosticNow() - appendStartedAt,
         );
       } catch {
@@ -224,22 +253,19 @@ export function startCaptureRecording(
           resolve({
             sessionId: startedSession.id,
             startedAt,
-            stop: async () => {
-              if (stopping) return;
-              stopping = true;
-              // Before the socket goes: the final flush is the one that carries
-              // the last resume window.
-              stopCaptureDiagnostics();
-              try {
-                rawLog?.close();
-                socket?.destroy();
-                await dependencies.endSession(
-                  startedSession.id,
-                  dependencies.now(),
-                );
-              } finally {
-                await dependencies.stopForegroundService();
-              }
+            stop: () => {
+              // Idempotent by sharing the in-flight attempt rather than by
+              // latching a flag: a stop that throws must clear the way for the
+              // retry the store deliberately keeps the handle for. A latch that
+              // is never reset makes the second tap resolve without doing
+              // anything, which drops the recording from the UI while the
+              // session stays `active`, the socket stays attached and the
+              // foreground service keeps running.
+              stopInFlight ??= runStop(startedSession.id).catch(error => {
+                stopInFlight = undefined;
+                throw error;
+              });
+              return stopInFlight;
             },
           });
         } catch (error) {

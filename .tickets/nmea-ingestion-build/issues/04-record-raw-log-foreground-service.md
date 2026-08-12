@@ -96,6 +96,43 @@ first race that goes wrong in every other respect still costs nothing.
 
 ## Notes
 
+**Code review fixes, after the checklist was first ticked.** Four of these were
+this ticket's own promises not holding:
+
+- **`stop()` latched a `stopping` flag before its first `await` and never reset
+  it.** A stop that threw rejected, the store kept the handle for a retry as
+  designed — and the retry hit the latch and resolved without doing anything, so
+  the recording vanished from the UI while the session stayed `active`, the
+  socket stayed attached and the `connectedDevice` service kept running. Now
+  idempotent by sharing the in-flight promise, which is retryable. Regression
+  test covers both halves
+- **The raw log was not lossless.** Every Buffer off the socket was run through
+  `chunk.toString()`, decoding as UTF-8 and replacing any byte that is not valid
+  UTF-8 with U+FFFD — line noise, a half-received sentence, a proprietary
+  sentence carrying high bytes, which is exactly the evidence this file exists
+  to hold. `File.write` takes a `Uint8Array`, so chunks now reach the log as
+  bytes. `07`'s diagnostics counted UTF-16 code units as bytes for the same
+  reason
+- **The `Set up plotter` fallback was ticked but not built.** The deep-link and
+  the `returnToPlan` round trip existed and were reachable only from the
+  *failure* dialog, so a first-run sailor with no plotter setup saw nothing at
+  all on the course plan. Now built
+- **A denied notification permission blocked recording permanently.** This
+  contradicted both the plugin's own comment and the exemption rule two items
+  above: a `connectedDevice` service starts fine without `POST_NOTIFICATIONS`
+  and only the drawer notification is lost. It was also unrecoverable — Android
+  answers with `never_ask_again` after two denials, so the copy telling the
+  sailor to "retry and allow the prompt" described a dialog that would never
+  appear again. Recording now degrades instead, the
+  `notification-permission-denied` reason is gone, and the Plotter connection
+  section carries routes to both the notification and the battery-optimisation
+  system screens — closing the "declined by accident is silent" gap above for
+  the exemption too, ahead of `08`'s detection
+- Also: `endOrphanedCaptureSessions` ended only the first orphan;
+  `captureFailureMessage` blamed the plotter's address for any error it could
+  not classify; a failed plotter-setup save was indistinguishable from a
+  successful one and still navigated back to the plan
+
 **Spec §4 vs. this ticket on when the session row is created.** §4 says
 `Record this course` "connects, waits for valid NMEA anchor data, and only then
 creates the capture session"; this ticket's checklist creates the row on

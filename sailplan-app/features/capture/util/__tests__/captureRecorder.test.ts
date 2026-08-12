@@ -165,14 +165,60 @@ describe('startCaptureRecording', () => {
     );
   });
 
-  it('converts a Buffer chunk before appending it', async () => {
+  it('passes a Buffer chunk to the log as bytes rather than decoding it', async () => {
     const fixture = makeDependencies();
     const started = startCaptureRecording(input, fixture.dependencies);
     fixture.listeners.connect?.();
     await started;
 
-    fixture.listeners.data?.(Buffer.from('$GPVTG,,T*00\r\n'));
-    expect(fixture.rawLog.append).toHaveBeenCalledWith('$GPVTG,,T*00\r\n');
+    // A byte that is not valid UTF-8, which is what line noise on a marine bus
+    // looks like. Decoding this to a string would replace it with U+FFFD and
+    // the original byte would be gone from the one file that exists to keep it.
+    const chunk = Buffer.from([0x24, 0x47, 0x50, 0xff, 0x0d, 0x0a]);
+    fixture.listeners.data?.(chunk);
+
+    expect(fixture.rawLog.append).toHaveBeenCalledWith(chunk);
+    const [appended] = fixture.rawLog.append.mock.calls[0];
+    expect(Buffer.from(appended)).toEqual(chunk);
+  });
+
+  describe('stop', () => {
+    it('can be retried after a failure, rather than silently doing nothing', async () => {
+      const fixture = makeDependencies();
+      fixture.dependencies.endSession.mockRejectedValueOnce(
+        new Error('Database is locked'),
+      );
+      const started = startCaptureRecording(input, fixture.dependencies);
+      fixture.listeners.connect?.();
+      const recording = await started;
+
+      await expect(recording.stop()).rejects.toThrow('Database is locked');
+
+      // The retry has to really run. A latch set before the first await would
+      // resolve this immediately, and the caller would drop the recording while
+      // the session row stayed `active` and the service kept running.
+      await expect(recording.stop()).resolves.toBeUndefined();
+      expect(fixture.dependencies.endSession).toHaveBeenCalledTimes(2);
+      expect(fixture.dependencies.endSession).toHaveBeenLastCalledWith(
+        42,
+        expect.any(Number),
+      );
+    });
+
+    it('ends the session once when stop is tapped twice in a row', async () => {
+      const fixture = makeDependencies();
+      const started = startCaptureRecording(input, fixture.dependencies);
+      fixture.listeners.connect?.();
+      const recording = await started;
+
+      await Promise.all([recording.stop(), recording.stop()]);
+      await recording.stop();
+
+      expect(fixture.dependencies.endSession).toHaveBeenCalledTimes(1);
+      expect(fixture.dependencies.stopForegroundService).toHaveBeenCalledTimes(
+        1,
+      );
+    });
   });
 
   describe('a failed start leaves nothing behind', () => {
@@ -282,15 +328,13 @@ describe('startCaptureRecording', () => {
       fixture.dependencies.startForegroundService.mockRejectedValueOnce(
         new CaptureRecordingStartError(
           'preparing',
-          'notification-permission-denied',
-          new Error('POST_NOTIFICATIONS was not granted'),
+          'service-unavailable',
+          new Error('BackgroundService refused to start'),
         ),
       );
       const started = startCaptureRecording(input, fixture.dependencies);
       fixture.listeners.connect?.();
-      await expect(reasonOf(started)).resolves.toBe(
-        'notification-permission-denied',
-      );
+      await expect(reasonOf(started)).resolves.toBe('service-unavailable');
     });
   });
 

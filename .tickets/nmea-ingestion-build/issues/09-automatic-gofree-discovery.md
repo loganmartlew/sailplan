@@ -42,3 +42,13 @@ exist first.
       1 Hz JSON, able to emit multiple and ambiguous sources and a changed port
 - [ ] Verified against the simulator: a single source connecting silently, two
       matching sources prompting, and a port change mid-session being followed
+- [ ] **Unify the socket-connect seam while adding the third caller.**
+      `testPlotterConnection` and `captureRecorder` (`03`/`04`) each declare
+      their own structural socket type, the same
+      `{ host, port, interface: 'wifi', connectTimeout }` options and their own
+      timeout string, and discovery makes three. The visible cost today is that
+      only the recording path runs `connectFailureReason`, so a *test* failure
+      shows the raw socket message while a *record* failure shows the classified
+      copy. A single `connectPlotterSocket(endpoint, timeoutMs)` gives all three
+      one classification. Left until now deliberately: two callers did not say
+      what the shape should be, and discovery does

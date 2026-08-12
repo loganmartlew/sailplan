@@ -12,7 +12,7 @@ export default function PlanPage() {
     <ScrollView
       className='flex-1'
       contentContainerClassName='w-full px-3 py-5 flex flex-col gap-6'
-      contentContainerStyle={{ paddingBottom: captureInset || 80 }}
+      contentContainerStyle={{ paddingBottom: 80 + captureInset }}
     >
       <H2>Plan Legs</H2>
       <ToggleGroup

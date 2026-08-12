@@ -28,11 +28,7 @@ describe('captureFailureMessage', () => {
   });
 
   it('never presents a local failure as a bad plotter address', () => {
-    for (const reason of [
-      'notification-permission-denied',
-      'service-unavailable',
-      'storage',
-    ] as const) {
+    for (const reason of ['service-unavailable', 'storage'] as const) {
       expect(messageFor(reason)).toMatch(/connected to the plotter/i);
     }
   });
@@ -41,7 +37,6 @@ describe('captureFailureMessage', () => {
     const reasons: CaptureStartReason[] = [
       'unreachable',
       'refused',
-      'notification-permission-denied',
       'service-unavailable',
       'storage',
     ];
@@ -52,10 +47,11 @@ describe('captureFailureMessage', () => {
     expect(messageFor('storage')).not.toMatch(/underlying detail/);
   });
 
-  it('falls back to the plotter-not-found message for an unknown error', () => {
-    expect(captureFailureMessage(new Error('something else'))).toBe(
-      messageFor('refused'),
-    );
+  it('does not blame the plotter address for an error it could not classify', () => {
+    const message = captureFailureMessage(new Error('something else'));
+    expect(message).not.toBe(messageFor('refused'));
+    expect(message).not.toBe(messageFor('unreachable'));
+    expect(message).toMatch(/could not start recording/i);
   });
 });
 

@@ -12,9 +12,11 @@ export type CaptureStartReason =
   | 'unreachable'
   /** Reached Wi-Fi; nothing accepted a connection at the saved address. */
   | 'refused'
-  /** Connected, but Android would not grant the recording notification. */
-  | 'notification-permission-denied'
-  /** Connected, but the foreground service would not start. */
+  /**
+   * Connected, but the foreground service would not start. Deliberately *not*
+   * raised for a denied notification permission: the service runs without it,
+   * so that is a degraded recording rather than a failed one.
+   */
   | 'service-unavailable'
   /** Connected, but local session or raw-log setup failed. */
   | 'storage';

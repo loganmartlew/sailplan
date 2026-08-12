@@ -11,7 +11,6 @@ import {
   hasAskedBatteryExemption,
   requestBatteryExemption,
 } from '../util/batteryOptimization';
-import { CaptureRecordingStartError } from '../model/captureRecordingError';
 import {
   startCaptureRecording,
   type CaptureRecording,
@@ -44,20 +43,22 @@ export const useCaptureRecordingStore = create<CaptureRecordingStore>(
       if (get().recording || get().isConnecting) return;
       set({ isConnecting: true });
       try {
-        if (!(await requestCaptureNotificationPermission())) {
-          throw new CaptureRecordingStartError(
-            'preparing',
-            'notification-permission-denied',
-            new Error('POST_NOTIFICATIONS was not granted'),
-          );
-        }
+        // Asked before the socket opens, never enforced. A `connectedDevice`
+        // service starts perfectly well without `POST_NOTIFICATIONS`; all that
+        // is lost on Android 13+ is the ongoing notification in the drawer, and
+        // Stop is reachable in-app from any screen regardless. Refusing to
+        // record over it would also be unrecoverable: after two denials Android
+        // returns `never_ask_again` without showing a dialog, so "retry and
+        // allow the prompt" is advice no sailor could act on. The Plotter
+        // connection section holds the route back to the system setting.
+        await requestCaptureNotificationPermission();
 
-        // Asked once, before the socket opens, for the same reason the
-        // notification permission is: spending the ~31 s connect budget only
-        // to interrupt a working recording with a dialog is worse than asking
-        // up front. Never blocks the start — a declined exemption degrades the
-        // recording, it does not prevent it, and MT5 showed the degradation is
-        // invisible until `08` adds detection.
+        // Asked once, before the socket opens, for the same reason: spending
+        // the ~31 s connect budget only to interrupt a working recording with a
+        // dialog is worse than asking up front. Never blocks the start — a
+        // declined exemption degrades the recording, it does not prevent it,
+        // and MT5 showed the degradation is invisible until `08` adds
+        // detection.
         if (!hasAskedBatteryExemption()) await requestBatteryExemption();
         const recording = await startCaptureRecording(input);
         set({ recording });
@@ -92,9 +93,13 @@ export const useCaptureRecordingStore = create<CaptureRecordingStore>(
 export async function endOrphanedCaptureSessions(): Promise<void> {
   if (useCaptureRecordingStore.getState().recording) return;
 
-  const orphan = await db.query.captureSession.findFirst({
+  // Every orphan, not just the newest: a run that stranded two rows would
+  // otherwise clear one per launch and leave the rest `active` forever, and
+  // those rows are what `08`'s resume and `13`'s session list read.
+  const orphans = await db.query.captureSession.findMany({
     where: eq(captureSession.status, 'active'),
   });
-  if (orphan) await endCaptureSession(orphan.id, Date.now());
+  const endedAt = Date.now();
+  for (const orphan of orphans) await endCaptureSession(orphan.id, endedAt);
   await stopCaptureForegroundService();
 }

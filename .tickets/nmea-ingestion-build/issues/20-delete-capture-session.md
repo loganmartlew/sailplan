@@ -39,6 +39,16 @@ about knowing where a point came from.
 - [ ] Withdrawal granularity is the whole session. Per-leg reversal and
       whole-session splices are deliberately out of scope
 
+- [ ] **Rename the raw log before deleting anything.** `getRawLogFileName`
+      (`04`) derives `session-<id>.nmea` from a plain `integer primaryKey`, so
+      SQLite reuses the rowid once the highest row is deleted — and `openRawLog`
+      deliberately never truncates, so `08`'s resume can append to an existing
+      log. Today the two only collide if the override path leaves a file behind;
+      once deletion is routine, the next recording can be handed the previous
+      session's id, find its log already on disk, and append a new race onto the
+      old fragment as one file. Make the filename independently unique
+      (`startedAt`, or a uuid) and migrate `12`'s filename→session join with it
+
 **Deliberately not built:** per-leg reversal of a promotion, and a whole-session
 splice. Review already prevents a bad race reaching promotion, so this only bites
 on a promotion regretted after confirming.

@@ -3,7 +3,12 @@ import { getRawLogFileName } from '../model/rawLogManager';
 
 export interface RawLog {
   path: string;
-  append: (chunk: string) => void;
+  /**
+   * Bytes are written as bytes. `File.write` accepts a `Uint8Array`, so a
+   * Buffer straight off the socket never has to become a JS string — the
+   * decode-then-re-encode round trip is what would make the log lossy.
+   */
+  append: (chunk: string | Uint8Array) => void;
   close: () => void;
   remove: () => void;
 }

@@ -28,8 +28,8 @@ function recordingEndpoint(setup: ReturnType<typeof usePlotterSetup>['data']) {
 }
 
 /**
- * The course plan's entry point into recording. Once recording starts the
- * capture layer above the tab bar owns the UI, so this renders nothing.
+ * The course plan's entry point into recording, and — when the profile has no
+ * usable plotter address — into the setup that makes recording possible.
  */
 export function CaptureRecordingControl({
   boatProfileId,
@@ -55,7 +55,20 @@ export function CaptureRecordingControl({
     });
   };
 
-  if (recording || !endpoint) return null;
+  // Once recording starts the capture layer above the tab bar owns the UI.
+  if (recording) return null;
+
+  // No usable endpoint — a profile with no plotter setup at all, or an
+  // `automatic` one that has not yet cached a discovered address. Rendering
+  // nothing would leave a first-run sailor on a course plan with no route to
+  // setup, so the record control is replaced by the way to create one.
+  if (!endpoint) {
+    return (
+      <Button variant='outline' size='sm' onPress={openPlotterSetup}>
+        <Text>Set up plotter</Text>
+      </Button>
+    );
+  }
 
   const startRecording = async () => {
     setFailure(null);
