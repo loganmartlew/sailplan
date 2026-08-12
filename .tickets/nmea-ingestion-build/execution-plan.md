@@ -181,6 +181,24 @@ cannot see it. Use `/code-review` against the merge-base of the cluster.
 
 ## Things to carry, not rediscover
 
+- **A foreground service does not keep the socket alive in Doze.** MT5 measured
+  it: `connectedDevice` FGS + `WAKE_LOCK`, deep Doze, no battery-optimisation
+  exemption → Android destroys the TCP socket at **2 m 43 s** while process,
+  service and notification all survive and the UI keeps showing a healthy
+  recording. With the exemption: 13.7 min and counting. `04` now asks for the
+  exemption. **Anything that opens a long-lived socket inherits this**, so `08`
+  and `09` should not re-derive it.
+- **`13`'s resume-burst hypothesis is disproven** (see `07`). There is no
+  deferred delivery and no catch-up burst: largest gap over 13.7 min
+  backgrounded was **0.2 s**, and the resume window is indistinguishable from
+  any other ten seconds. **`05` does not need the coalesce-window redesign `13`
+  opened on the strength of it.**
+- **The no-internet WiFi trap is deterministic after all**, via
+  `settings put global network_avoid_bad_wifi 1`. At the default `0` Android
+  keeps unvalidated WiFi as the default route and the trap cannot be
+  reproduced — a test that "passes" in that state proves nothing. `13` believed
+  the trap could not be demonstrated on demand; it can.
+
 - **§12 says "Nine new tables" and lists eight.** Reconcile against the bullet
   list while building `02`; do not invent a ninth.
 - **`16` is still open** and blocked on real race data. `10` ships named interim

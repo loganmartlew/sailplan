@@ -37,9 +37,26 @@ first race that goes wrong in every other respect still costs nothing.
 - [x] The pipeline is driven entirely off the socket's `data` event.
       **No JS timer sits anywhere on the capture path** — the service task is a
       promise that parks until Stop, not a loop
-- [x] Recording is implemented to survive the screen off, the phone pocketed, deep Doze and the
-      restricted standby bucket for a race-length run — **built on the stack `13`
-      proved, but not itself re-measured.** `13`'s Tier B adb walk is the check
+- [x] Recording survives the screen off, the phone pocketed, deep Doze and the
+      restricted standby bucket for a race-length run — **measured in MT5, and
+      the foreground service alone was not enough.** In deep Doze with no
+      battery-optimisation exemption, Android destroys the socket at
+      **2 m 43 s** (`Destroyed live tcp sockets for uids={[10000, 2147483647]}`)
+      while the process, the `connectedDevice` service and the notification all
+      stay up — and the recording bar goes on showing a healthy ticking timer
+      for another 35 minutes. With the exemption granted: 13.7 min and still
+      flowing, largest gap 0.2 s. **A wake lock keeps the CPU alive; it does not
+      exempt the app from Doze's *network* rules.** Satisfied by the exemption
+      item below
+- [x] Before the socket opens, the sailor is asked **once** to exempt SailPlan
+      from battery optimisation (`REQUEST_IGNORE_BATTERY_OPTIMIZATIONS`, merged
+      by `plugins/withNmeaForegroundService.js`). Asked alongside the
+      notification permission and for the same reason — not mid-recording.
+      **Never blocks the start:** a declined exemption degrades the recording
+      rather than preventing it. **Known gap:** whether the sailor actually
+      tapped Allow cannot be read from JS without a local Expo module, so the
+      app records only that it asked. Until `08` adds detection, an exemption
+      declined by accident is silent
 - [x] A `captureSession` row is created with the boat profile, the course link,
       `startedAt`, `rawLogPath` and `status: 'active'`
 - [x] The notification is **status-only**; Stop ends the session cleanly
@@ -53,12 +70,29 @@ first race that goes wrong in every other respect still costs nothing.
       and no half-formed recording
 - [x] Failure copy distinguishes _not on boat WiFi_ from _on WiFi, plotter not
       found_, and may tell a fresh install to accept Android's **stay connected**
-      prompt
+      prompt. **Was broken and is now fixed:** `connectFailureReason` matched
+      `timed out`/`timeout` but not **`ETIMEDOUT`** — no space, and a `D`
+      between `TIME` and `OUT` — so every real timeout, which is exactly the
+      not-on-boat-WiFi case `13` measured at ~31 s, was classified `refused` and
+      told the sailor to go and check the plotter's address. The unit test
+      missed it by asserting on `'Connection timed out'`, the string this module
+      generates itself, rather than the one the socket emits
 - [x] The ~31 s no-route failure surfaces without the UI looking hung
 - [x] `app.config.js` sets no explicit `targetSdkVersion` — Expo SDK 55 targets API 36 at build time
 - [x] Verify on hardware over the repository's hotspot rig, including the
-      no-internet WiFi trap (needs a fresh install — a phone whose user once
-      tapped **stay connected** permanently stops reproducing it)
+      no-internet WiFi trap. **Verified in MT5**, and two pieces of folklore in
+      the original wording were wrong:
+      - **It does not need a fresh install.** Forgetting the network resets it;
+        the device's own wifi log shows the config removed and recreated, with
+        the prompt reappearing. `hotspot.sh`'s "forget the network to reset it"
+        was right all along
+      - **The trap is governed by `network_avoid_bad_wifi`, not by tapping
+        anything.** With it at `0` — this phone's default — Android keeps an
+        unvalidated Wi-Fi as the *default route*, so a socket to the plotter
+        succeeds with or without `interface: 'wifi'` and the test is vacuous.
+        Set it to `1` and the default route moves to mobile, which is the real
+        trap; the app then connects only because of `interface: 'wifi'`. **This
+        makes the trap deterministic**, which `13` believed impossible
 
 ## Notes
 

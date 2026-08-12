@@ -23,6 +23,15 @@ Run these from `sailplan-app/`:
 | Generate a Drizzle migration | `npx drizzle-kit generate`                     |
 | Prebuild native project      | `npm run prebuild:development`                 |
 
+- **Build with JDK 17.** `export JAVA_HOME=/usr/lib/jvm/temurin-17-jdk` (Fedora
+  package `temurin-17-jdk`). On a machine whose default `java` is newer,
+  incremental builds appear to work — the native configure step is already done
+  and skipped — and then `npm run prebuild:development` wipes it and
+  `:app:configureCMakeDebug` fails, reporting only
+  `WARNING: A restricted method in java.lang.System has been called`, which
+  names neither Java nor the real problem. `ANDROID_HOME` must be set too
+  (`/home/logan/Android/Sdk`); a non-interactive shell does not source
+  `.zshrc`.
 - The app targets **Android only** (`app.config.js` → `platforms: ['android']`).
   The `ios` script exists but the app is not built or tested for iOS.
 - Commands are wrapped in `cross-env APP_VARIANT=development`. The variant
