@@ -3,6 +3,10 @@ import { create } from 'zustand';
 import { db } from '~/lib/db';
 import { captureSample, captureSession } from '~/schema';
 import { endCaptureSession } from '../api/captureSession';
+import {
+  getLatestSailStampHistory,
+  type CaptureStampHistory,
+} from '../api/sailStamp';
 import type { CaptureSession } from '../model/capture';
 import type { CaptureConnectionState } from '../model/captureLayerState';
 import { AUTO_END_AFTER_MS } from '../model/connectionLossPolicy';
@@ -27,13 +31,7 @@ import {
 
 type StartInput = Parameters<typeof startCaptureRecording>[0];
 
-export type CaptureStampHistory = {
-  id: number;
-  sailId: number;
-  sailName: string;
-  sailColor: string;
-  timestamp: number;
-};
+export type { CaptureStampHistory } from '../api/sailStamp';
 
 /**
  * Recording is app-wide, not screen-local: the capture layer sits above the tab
@@ -116,16 +114,22 @@ export const useCaptureRecordingStore = create<CaptureRecordingStore>(
       },
     });
 
-    const adoptRecording = (recording: CaptureRecording) => {
+    const adoptRecording = (
+      recording: CaptureRecording,
+      lastStamp: CaptureStampHistory | null = null,
+    ) => {
       set({
         ...IDLE_STATE,
         recording,
         live: { ...recording.live },
+        lastStamp,
         failure: null,
       });
-      void updateCaptureForegroundService(recording.live, null, {
-        status: 'connected',
-      });
+      void updateCaptureForegroundService(
+        recording.live,
+        lastStamp?.timestamp ?? null,
+        { status: 'connected' },
+      );
     };
 
     return {
@@ -172,6 +176,9 @@ export const useCaptureRecordingStore = create<CaptureRecordingStore>(
         }
         set({ isConnecting: true });
         try {
+          const lastStamp = getLatestSailStampHistory(session.id).catch(
+            () => null,
+          );
           adoptRecording(
             await startCaptureRecording({
               boatProfileId: session.boatProfileId,
@@ -185,6 +192,7 @@ export const useCaptureRecordingStore = create<CaptureRecordingStore>(
               },
               ...recordingCallbacks(session.courseId),
             }),
+            await lastStamp,
           );
           await dismissNotificationsForCapture(session.id).catch(
             () => undefined,

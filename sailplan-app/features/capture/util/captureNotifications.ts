@@ -42,13 +42,12 @@ export async function postCaptureAutoEndedNotification(
     content: {
       title: 'Recording ended — plotter data lost',
       body: `No valid plotter data for ${minutes} minutes`,
-      channelId: 'capture-recording',
       categoryIdentifier: CAPTURE_ENDED_CATEGORY,
       data: { captureSessionId: sessionId, courseId } satisfies CaptureNotificationData,
       sound: false,
       vibrate: [],
     },
-    trigger: null,
+    trigger: { channelId: 'capture-recording' },
   });
 }
 
