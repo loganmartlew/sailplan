@@ -23,6 +23,45 @@ const FOREGROUND_SERVICE_TYPE = ['connectedDevice'] as const;
  * silence/backoff/alert timers.
  */
 let releaseTask: (() => void) | undefined;
+let retryingNotificationTimer: ReturnType<typeof setInterval> | undefined;
+let retryingNotification:
+  | {
+      live: CaptureLiveData;
+      lastStampAt: number | null;
+      connection: Extract<CaptureConnectionState, { status: 'retrying' }>;
+    }
+  | undefined;
+
+function stopRetryingNotificationRefresh() {
+  if (retryingNotificationTimer !== undefined) {
+    clearInterval(retryingNotificationTimer);
+  }
+  retryingNotificationTimer = undefined;
+  retryingNotification = undefined;
+}
+
+async function renderCaptureForegroundNotification(
+  live: CaptureLiveData,
+  lastStampAt: number | null,
+  connection: CaptureConnectionState,
+): Promise<void> {
+  if (!BackgroundService.isRunning()) return;
+  const notification = formatCaptureNotification(
+    live,
+    lastStampAt,
+    Date.now(),
+    connection,
+  );
+  try {
+    await BackgroundService.updateNotification({
+      taskTitle: notification.title,
+      taskDesc: notification.description,
+    });
+  } catch {
+    // The drawer is informational. A notification refresh must never interrupt
+    // the socket, raw log, sample persistence, or the in-app capture layer.
+  }
+}
 
 /**
  * Asked *before* the socket is opened. Prompting afterwards would spend the
@@ -70,27 +109,33 @@ export async function updateCaptureForegroundService(
   lastStampAt: number | null,
   connection: CaptureConnectionState = { status: 'connected' },
 ): Promise<void> {
-  if (Platform.OS !== 'android' || !BackgroundService.isRunning()) return;
-  const notification = formatCaptureNotification(
-    live,
-    lastStampAt,
-    Date.now(),
-    connection,
-  );
-  try {
-    await BackgroundService.updateNotification({
-      taskTitle: notification.title,
-      taskDesc: notification.description,
-    });
-  } catch {
-    // The drawer is informational. A notification refresh must never interrupt
-    // the socket, raw log, sample persistence, or the in-app capture layer.
+  if (Platform.OS !== 'android') return;
+  if (connection.status === 'retrying') {
+    retryingNotification = {
+      live: { ...live },
+      lastStampAt,
+      connection,
+    };
+    retryingNotificationTimer ??= setInterval(() => {
+      const current = retryingNotification;
+      if (current) {
+        void renderCaptureForegroundNotification(
+          current.live,
+          current.lastStampAt,
+          current.connection,
+        );
+      }
+    }, 1_000);
+  } else {
+    stopRetryingNotificationRefresh();
   }
+  await renderCaptureForegroundNotification(live, lastStampAt, connection);
 }
 
 export async function stopCaptureForegroundService() {
   if (Platform.OS !== 'android') return;
 
+  stopRetryingNotificationRefresh();
   releaseTask?.();
   releaseTask = undefined;
   if (BackgroundService.isRunning()) await BackgroundService.stop();

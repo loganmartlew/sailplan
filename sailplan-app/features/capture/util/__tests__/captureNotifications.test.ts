@@ -45,6 +45,7 @@ describe('capture auto-end notification', () => {
       content: expect.objectContaining({
         title: 'Recording ended — plotter data lost',
         body: 'No valid plotter data for 30 minutes',
+        channelId: 'capture-recording',
         categoryIdentifier: CAPTURE_ENDED_CATEGORY,
         data: { captureSessionId: 42, courseId: 9 },
       }),
