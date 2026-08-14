@@ -14,7 +14,7 @@ switch (variant) {
 }
 
 const appVersion = '2.0.0';
-const buildNumber = 1;
+const buildNumber = 2;
 
 export default {
   name: name,
