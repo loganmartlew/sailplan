@@ -25,5 +25,5 @@ expo-env.d.ts
 .env.*
 *.env
 
-/android
-/ios
+/sailplan-app/android
+/sailplan-app/ios
