@@ -22,6 +22,7 @@ const fs = require('fs');
 const path = require('path');
 
 const { createServer } = require('./lib/server');
+const { makeEventLog } = require('./lib/events');
 const { armFaults } = require('./lib/timeline');
 const { replaySource } = require('./lib/replay');
 const { Sail, sailSource, sentencesForTick, TICK_HZ } = require('./lib/sail');
@@ -47,6 +48,7 @@ function parseArgs(argv) {
     loop: false,
     maxClients: 0,
     out: null,
+    events: null,
     duration: 0,
     manifest: null,
     quiet: false,
@@ -66,6 +68,7 @@ function parseArgs(argv) {
       case '--loop': opts.loop = true; break;
       case '--max-clients': opts.maxClients = Number(next()); break;
       case '--out': opts.out = next(); break;
+      case '--events': opts.events = next(); break;
       case '--manifest': opts.manifest = next(); break;
       case '--duration': opts.duration = Number(next()); break;
       case '--quiet': opts.quiet = true; break;
@@ -117,8 +120,25 @@ function announce(log, opts) {
     log('hotspot address 10.42.0.1 is up — point the app here');
 }
 
+/**
+ * Opens the machine-readable event log for a serving run.
+ *
+ * `--out` and `--events` answer different questions — the bytes that were sent
+ * versus when the connection and fault boundaries happened — but a run that
+ * wants one almost always wants the other, so `--out` implies an adjacent
+ * `.events.jsonl`. `--events` overrides the location; there is no way to
+ * suppress it while keeping `--out`, and no reason to want one.
+ */
+function openEvents(opts) {
+  const chosen =
+    opts.events || (opts.out ? `${opts.out.replace(/\.log$/, '')}.events.jsonl` : null);
+  if (!chosen) return { emit: () => {}, path: null };
+  const full = path.isAbsolute(chosen) ? chosen : path.join(HERE, chosen);
+  return { emit: makeEventLog(full), path: full };
+}
+
 /** Wraps a source so the script's fault timeline is armed per connection. */
-function withFaults(source, faults, log, serverRef) {
+function withFaults(source, faults, log, serverRef, emit) {
   return channel => {
     // Faults are armed BEFORE the source starts: an `at: 0` entry must apply
     // to the very first sentence, and a source's first tick is synchronous.
@@ -127,6 +147,7 @@ function withFaults(source, faults, log, serverRef) {
       channel,
       server: serverRef.value,
       log,
+      emit,
     });
     const stopSource = source(channel);
     return () => {
@@ -147,18 +168,28 @@ async function cmdReplay(opts) {
 
   const script = opts.script ? loadScript(opts.script) : {};
   const serverRef = { value: null };
+  const events = openEvents(opts);
+  events.emit('run-start', {
+    command: 'replay',
+    log: logPath,
+    script: opts.script || null,
+    speed: opts.speed,
+    rate: opts.rate,
+  });
 
   const source = withFaults(
     replaySource({ path: logPath, rate: opts.rate, loop: opts.loop, speed: opts.speed, log }),
     script.faults || [],
     log,
     serverRef,
+    events.emit,
   );
 
-  const srv = createServer({ ...opts, source, log });
+  const srv = createServer({ ...opts, source, log, emit: events.emit });
   serverRef.value = srv;
   await srv.listen();
   announce(log, opts);
+  if (events.path) log(`event log: ${events.path}`);
 }
 
 async function cmdSail(opts) {
@@ -176,6 +207,15 @@ async function cmdSail(opts) {
   }
 
   const serverRef = { value: null };
+  const events = openEvents(opts);
+  events.emit('run-start', {
+    command: 'sail',
+    script: opts.script || 'scripts/race.json',
+    name: script.name || null,
+    seed,
+    faults: (script.faults || []).length,
+  });
+
   const source = withFaults(
     sailSource({
       course: script.course,
@@ -186,9 +226,10 @@ async function cmdSail(opts) {
     script.faults || [],
     log,
     serverRef,
+    events.emit,
   );
 
-  const srv = createServer({ ...opts, source, log });
+  const srv = createServer({ ...opts, source, log, emit: events.emit });
   serverRef.value = srv;
   await srv.listen();
   announce(log, opts);

@@ -163,7 +163,14 @@ function randomGarbage() {
  * it); we accept every client so the app is exercised against the permissive
  * case, and `--max-clients 1` reproduces the restrictive one.
  */
-function createServer({ port, host = '0.0.0.0', maxClients = 0, source, log }) {
+function createServer({
+  port,
+  host = '0.0.0.0',
+  maxClients = 0,
+  source,
+  log,
+  emit = () => {},
+}) {
   const channels = new Set();
 
   const server = net.createServer(socket => {
@@ -171,6 +178,7 @@ function createServer({ port, host = '0.0.0.0', maxClients = 0, source, log }) {
 
     if (maxClients && channels.size >= maxClients) {
       log(`refused ${peer} (max-clients ${maxClients})`);
+      emit('refused', { peer, maxClients });
       socket.destroy();
       return;
     }
@@ -179,6 +187,8 @@ function createServer({ port, host = '0.0.0.0', maxClients = 0, source, log }) {
     const channel = new Channel(socket, { log });
     channels.add(channel);
     log(`client connected: ${peer} (${channels.size} open)`);
+    // The retry ladder is read off the gaps between these. See lib/events.js.
+    emit('accept', { peer, open: channels.size });
 
     const stop = source(channel);
 
@@ -187,10 +197,12 @@ function createServer({ port, host = '0.0.0.0', maxClients = 0, source, log }) {
       channels.delete(channel);
       if (typeof stop === 'function') stop();
       log(`client gone: ${peer} — ${channel.bytes} bytes (${channels.size} open)`);
+      emit('close', { peer, bytes: channel.bytes, open: channels.size });
     };
     socket.on('close', cleanup);
     socket.on('error', err => {
       log(`socket error ${peer}: ${err.message}`);
+      emit('socket-error', { peer, message: err.message });
       cleanup();
     });
   });
@@ -199,15 +211,26 @@ function createServer({ port, host = '0.0.0.0', maxClients = 0, source, log }) {
     server,
     channels,
     listen: () =>
-      new Promise(resolve => server.listen(port, host, () => resolve())),
+      new Promise(resolve =>
+        server.listen(port, host, () => {
+          emit('listening', { host, port });
+          resolve();
+        }),
+      ),
     // Plotter reboot: drop every client, stop listening, come back later.
     reboot: afterSec => {
       log(`plotter reboot: dropping ${channels.size} client(s), down ${afterSec}s`);
+      emit('reboot-down', { dropped: channels.size, afterSec });
       for (const c of channels) c.destroy();
       channels.clear();
       server.close(() => {
         setTimeout(() => {
-          server.listen(port, host, () => log('plotter back up'));
+          server.listen(port, host, () => {
+            log('plotter back up');
+            // The ladder's rungs before this are observable; after it, the next
+            // `accept` is the recovery the phone must show without a new session.
+            emit('reboot-up', { host, port });
+          });
         }, afterSec * 1000);
       });
     },

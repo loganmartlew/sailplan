@@ -74,6 +74,7 @@ function window(ctx, entry, apply, revert) {
       setTimeout(() => {
         revert(ctx.channel.faults);
         ctx.log(`fault: ${entry.do} cleared`);
+        ctx.emit('fault-end', { op: entry.do, sentences: entry.sentences ?? null });
       }, entry.forSec * 1000),
     );
   }
@@ -84,16 +85,28 @@ function window(ctx, entry, apply, revert) {
  * that clears every outstanding timer, so a disconnect does not leave a
  * revert firing into a dead socket.
  */
-function armFaults({ faults = [], channel, server, log }) {
-  const ctx = { channel, server, log, timers: [] };
+function armFaults({ faults = [], channel, server, log, emit = () => {} }) {
+  const ctx = { channel, server, log, emit, timers: [] };
+
+  // Fired at apply time, not arm time. T05-2's SQL wants these boundaries as
+  // epoch-ms literals, and they are script offsets from connect — so only the
+  // simulator can supply them in wall-clock terms. See lib/events.js.
+  const fire = entry => {
+    emit('fault-start', {
+      op: entry.do,
+      at: entry.at ?? 0,
+      forSec: entry.forSec ?? null,
+      sentences: entry.sentences ?? null,
+    });
+    OPS[entry.do](ctx, entry);
+  };
 
   for (const entry of faults) {
-    const op = OPS[entry.do];
-    if (!op) throw new Error(`Unknown fault op "${entry.do}"`);
+    if (!OPS[entry.do]) throw new Error(`Unknown fault op "${entry.do}"`);
     // `at: 0` applies synchronously — a source's first tick runs before any
     // timer fires, and "from the first sentence" has to mean the first one.
-    if (!entry.at) op(ctx, entry);
-    else ctx.timers.push(setTimeout(() => op(ctx, entry), entry.at * 1000));
+    if (!entry.at) fire(entry);
+    else ctx.timers.push(setTimeout(() => fire(entry), entry.at * 1000));
   }
 
   return () => ctx.timers.forEach(clearTimeout);

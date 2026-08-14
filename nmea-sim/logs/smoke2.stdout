@@ -1,0 +1,7 @@
+[23:17:55] writing timestamped log to /run/media/logan/1TBSSD/Projects/sailplan.nmea-ingestion/nmea-sim/logs/smoke2.log
+[23:17:55] listening on 0.0.0.0:10110
+[23:17:55] reachable at 192.168.1.243:10110  10.88.0.1:10110  100.90.153.1:10110
+[23:17:55] script: race — 0 scheduled fault(s)
+[23:18:05] client connected: 192.168.1.101:43303 (1 open)
+[23:18:05] sail: 9 legs, 3000s per lap (repeating), TWD 225° TWS 12 kn, seed 1234
+[23:20:03] client gone: 192.168.1.101:43303 — 142703 bytes (0 open)

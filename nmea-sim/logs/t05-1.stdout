@@ -1,0 +1,8 @@
+[23:21:16] replay: 33600 sentences from /run/media/logan/1TBSSD/Projects/sailplan.nmea-ingestion/nmea-sim/logs/t05-2x.log — own timestamps, 2× speed
+[23:21:16] listening on 0.0.0.0:10110
+[23:21:16] reachable at 192.168.1.243:10110  10.88.0.1:10110  100.90.153.1:10110
+[23:21:16] event log: /run/media/logan/1TBSSD/Projects/sailplan.nmea-ingestion/nmea-sim/logs/t05-1.events.jsonl
+[23:22:02] client connected: 192.168.1.101:42917 (1 open)
+[23:32:02] replay: end of log, closing
+[23:32:02] client gone: 192.168.1.101:42917 — 1447293 bytes (0 open)
+[23:32:04] client connected: 192.168.1.101:38241 (1 open)

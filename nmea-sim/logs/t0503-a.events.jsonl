@@ -1,0 +1,3 @@
+{"t":1786666480836,"iso":"2026-08-14T00:14:40.836Z","event":"run-start","command":"sail","script":"scripts/race.json","name":"race","seed":1234,"faults":0}
+{"t":1786666480842,"iso":"2026-08-14T00:14:40.842Z","event":"listening","host":"0.0.0.0","port":10110}
+{"t":1786666504065,"iso":"2026-08-14T00:15:04.065Z","event":"accept","peer":"192.168.1.101:38561","open":1}

@@ -27,6 +27,9 @@ Options
   --script FILE     course + fault timeline (default scripts/race.json)
   --seed N          PRNG seed; a script's own `seed` wins
   --out FILE        also write a timestamped, replayable log
+  --events FILE     JSONL of connect/close/fault-window events with epoch-ms
+                    timestamps — the timing oracle for the device test plan.
+                    Implied by --out as <out>.events.jsonl
   --duration SEC    generate: how much to produce (default: one lap)
   --rate N          replay: sentences/sec for logs with no timestamps
   --speed N         replay: playback multiplier for logs that have them

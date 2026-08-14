@@ -1,0 +1,38 @@
+[23:41:57] writing timestamped log to /run/media/logan/1TBSSD/Projects/sailplan.nmea-ingestion/nmea-sim/logs/t05-08-nasty.log
+[23:41:57] listening on 0.0.0.0:10110
+[23:41:57] reachable at 192.168.1.243:10110  10.88.0.1:10110  100.90.153.1:10110
+[23:41:57] script: nasty — 12 scheduled fault(s)
+[23:42:29] client connected: 192.168.1.101:39537 (1 open)
+[23:42:29] sail: 5 legs, 1020s per lap (repeating), TWD 225° TWS 12 kn, seed 99
+[23:43:29] fault: split for 60s
+[23:44:29] fault: split cleared
+[23:44:59] fault: concat for 60s
+[23:45:59] fault: concat cleared
+[23:46:29] fault: corrupt for 90s
+[23:47:59] fault: corrupt cleared
+[23:48:29] fault: truncate for 90s
+[23:49:59] fault: truncate cleared
+[23:50:29] fault: garbage for 60s
+[23:51:29] fault: garbage cleared
+[23:51:59] fault: stale for 90s
+[23:53:29] fault: stale cleared
+[23:54:09] fault: empty for 45s
+[23:54:54] fault: empty cleared
+[23:55:29] fault: rate for 90s
+[23:56:59] fault: rate cleared
+[23:57:29] fault: silence for 45s
+[23:57:31] client gone: 192.168.1.101:39537 — 1073210 bytes (0 open)
+[23:57:31] client connected: 192.168.1.101:38595 (1 open)
+[23:57:31] sail: 5 legs, 1020s per lap (repeating), TWD 225° TWS 12 kn, seed 99
+[23:58:31] fault: split for 60s
+[23:59:31] fault: split cleared
+[00:00:01] fault: concat for 60s
+[00:01:01] fault: concat cleared
+[00:01:31] fault: corrupt for 90s
+[00:03:01] fault: corrupt cleared
+[00:03:31] fault: truncate for 90s
+[00:05:01] fault: truncate cleared
+[00:05:31] fault: garbage for 60s
+[00:06:31] fault: garbage cleared
+[00:07:01] fault: stale for 90s
+[00:08:31] fault: stale cleared

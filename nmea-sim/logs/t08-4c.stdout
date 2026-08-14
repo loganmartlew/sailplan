@@ -1,0 +1,7 @@
+[02:13:11] writing timestamped log to /run/media/logan/1TBSSD/Projects/sailplan.nmea-ingestion/nmea-sim/logs/t08-4c.log
+[02:13:11] listening on 0.0.0.0:10110
+[02:13:11] reachable at 192.168.1.243:10110  10.88.0.1:10110  100.90.153.1:10110
+[02:13:11] script: race — 0 scheduled fault(s)
+[02:13:40] client connected: 192.168.1.101:38879 (1 open)
+[02:13:40] sail: 9 legs, 3000s per lap (repeating), TWD 225° TWS 12 kn, seed 1234
+[02:13:59] client gone: 192.168.1.101:38879 — 22869 bytes (0 open)

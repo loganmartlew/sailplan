@@ -1,0 +1,4 @@
+# Pulled databases, raw logs, screenshots and logcat. The test plan asks for
+# this to be retained beside the result record but kept out of version control
+# when it carries personal race data — which a pulled device DB always does.
+evidence/

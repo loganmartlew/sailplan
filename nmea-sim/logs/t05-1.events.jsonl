@@ -1,0 +1,5 @@
+{"t":1786663276067,"iso":"2026-08-13T23:21:16.067Z","event":"run-start","command":"replay","log":"/run/media/logan/1TBSSD/Projects/sailplan.nmea-ingestion/nmea-sim/logs/t05-2x.log","script":null,"speed":2,"rate":10}
+{"t":1786663276097,"iso":"2026-08-13T23:21:16.097Z","event":"listening","host":"0.0.0.0","port":10110}
+{"t":1786663322035,"iso":"2026-08-13T23:22:02.035Z","event":"accept","peer":"192.168.1.101:42917","open":1}
+{"t":1786663922095,"iso":"2026-08-13T23:32:02.095Z","event":"close","peer":"192.168.1.101:42917","bytes":1447293,"open":0}
+{"t":1786663924655,"iso":"2026-08-13T23:32:04.655Z","event":"accept","peer":"192.168.1.101:38241","open":1}

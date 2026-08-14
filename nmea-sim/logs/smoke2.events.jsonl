@@ -1,0 +1,4 @@
+{"t":1786663075583,"iso":"2026-08-13T23:17:55.583Z","event":"run-start","command":"sail","script":"scripts/race.json","name":"race","seed":1234,"faults":0}
+{"t":1786663075587,"iso":"2026-08-13T23:17:55.587Z","event":"listening","host":"0.0.0.0","port":10110}
+{"t":1786663085826,"iso":"2026-08-13T23:18:05.826Z","event":"accept","peer":"192.168.1.101:43303","open":1}
+{"t":1786663203935,"iso":"2026-08-13T23:20:03.935Z","event":"close","peer":"192.168.1.101:43303","bytes":142703,"open":0}

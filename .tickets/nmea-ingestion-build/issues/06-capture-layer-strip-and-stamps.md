@@ -54,3 +54,48 @@ parser state, stamp-age boundaries, notification copy and session-bound Stop
 links; all 283 tests, strict TypeScript, lint (pre-existing warnings only), Expo
 prebuild and an Android debug assembly pass. The final device/one-handed check
 remains for a human, so the ticket is not marked `done` yet.
+
+### U1 — hold-to-stop is not discoverable (2026-08-14, from Session B)
+
+**Raised by the human during the T06-1/2/3 device block.** This is a design
+problem, not a bug: hold-to-stop *works* exactly as the acceptance criterion
+above specifies, and T06-3 passed on it. The criterion itself is what needs
+rethinking.
+
+**The problem.** Nothing on screen tells a user that holding the strip stops the
+recording. The strip advertises one affordance and it is the wrong one: a tap —
+the gesture a user will try first — opens the sail stamp picker, so the
+discoverable action is *stamping*, not *stopping*. A user who wants to stop and
+does not already know about the hold has no in-app path to it. They can tap the
+strip (picker), brush it (picker), or look at the strip's contents (connection
+dot, TWS/TWA, last stamp) and find no stop control at all.
+
+The **Stop** action in the notification is currently the only labelled way to
+stop, and it is not in the app. On this device it is worse than it sounds: the
+capture notification is `mImportance=2` / `pri=-2`, so it sits in the shade's
+collapsed **silent** section below the fold — during Session B it took several
+attempts to reach it even while looking for it deliberately.
+
+**Why the current design chose a hold.** The criterion pairs "holding the strip
+stops the recording" with "a brush of a wet hand cannot" — the hold exists to
+make an accidental stop impossible in a seaway. That constraint is real and was
+verified: the human's deliberate careless brush did not stop the recording.
+Any redesign has to keep that property.
+
+**What is worth reconsidering.** The tension is that one gesture target is
+carrying two actions of very different weight, and the destructive one is the
+hidden one. Options, none of them decided:
+
+- a visible stop affordance on the strip (an explicit control, distinct from the
+  stamp target) that itself requires a deliberate confirm — keeps
+  accident-resistance without hiding the action;
+- a hold that *shows* it is happening — a progress ring or fill on the strip
+  that appears on touch-down, so the gesture is self-teaching the first time a
+  user rests a thumb on it;
+- surfacing stop where the user already went looking for it — the course plan
+  screen that started the recording;
+- at minimum, a first-run hint on the strip.
+
+**Not urgent for correctness, but it is a real on-the-water failure mode:** a
+user who cannot stop a recording will force-quit the app, and ticket `07`
+exists because of what resume/ANR does around that path.
