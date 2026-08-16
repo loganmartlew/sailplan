@@ -10,13 +10,13 @@ remembered mode.
 
 **Blocked by:** `14`.
 
-**Status:** ready-for-agent
+**Status:** done
 
-- [ ] The map is **read-only** and follows the pager
-- [ ] Each sail-attribution span draws in its own colour, matching the span row
-- [ ] A chip on the map switches focus-leg ⟷ whole-course
-- [ ] **GPS only** — no chart tiles, no land
-- [ ] It never becomes a second navigable surface: no selection, no
+- [x] The map is **read-only** and follows the pager
+- [x] Each sail-attribution span draws in its own colour, matching the span row
+- [x] A chip on the map switches focus-leg ⟷ whole-course
+- [x] **GPS only** — no chart tiles, no land
+- [x] It never becomes a second navigable surface: no selection, no
       panning-driven state, nothing to get lost in
-- [ ] Reads correctly when a leg has no GPS fix for part of its range (TTL-null
+- [x] Reads correctly when a leg has no GPS fix for part of its range (TTL-null
       `lat`/`lon`) and across a >5 s discontinuity — no line drawn across a gap

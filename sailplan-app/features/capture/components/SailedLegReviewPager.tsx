@@ -19,6 +19,7 @@ import {
 import { splitLegBand, unifyLegParts } from '../util/legBand';
 import { createGuardedDraftSpans } from '../util/sailedLegDetection';
 import type { EditableSailSpan } from '../util/spanEditing';
+import { ReviewTrackMap } from './ReviewTrackMap';
 import { SailSpanEditor } from './SailSpanEditor';
 
 function editableSpansForLeg(item: {
@@ -130,6 +131,9 @@ export function SailedLegReviewPager({ sessionId }: { sessionId: number }) {
   const visibleSpans = presentation.map(part =>
     draftSpans[part.id] ?? editableSpansForLeg(part),
   );
+  const allVisibleSpans = presentations.flatMap(parts =>
+    parts.flatMap(part => draftSpans[part.id] ?? editableSpansForLeg(part)),
+  );
   // A leg interrupted by a data gap is stored as several rows but reviewed as
   // one: two bands and two control cards, each asking to be assigned
   // separately, is the confusion this screen exists to remove.
@@ -189,6 +193,15 @@ export function SailedLegReviewPager({ sessionId }: { sessionId: number }) {
             </Toggle>
           </View>
         </View>
+
+        <ReviewTrackMap
+          key={leg.ordinal}
+          samples={samples.data}
+          spans={allVisibleSpans}
+          sails={sailsQuery?.data ?? []}
+          legStartTime={presentation[0].startTime}
+          legEndTime={presentation.at(-1)!.endTime}
+        />
 
         <SailSpanEditor
           spans={band}
