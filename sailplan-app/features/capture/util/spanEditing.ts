@@ -93,6 +93,21 @@ export function deleteDivider(
   ];
 }
 
+export function removeSpan(
+  spans: readonly EditableSailSpan[],
+  spanIndex: number,
+): readonly EditableSailSpan[] {
+  const span = spans[spanIndex];
+  if (!span || spans.length < 2) return spans;
+  if (spanIndex > 0) return deleteDivider(spans, spanIndex);
+
+  const right = spans[1];
+  return [
+    { ...right, startTime: span.startTime },
+    ...spans.slice(2),
+  ];
+}
+
 export function splitSpan(
   spans: readonly EditableSailSpan[],
   spanIndex: number,

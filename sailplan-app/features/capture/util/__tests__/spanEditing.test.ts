@@ -5,6 +5,7 @@ import {
   findNearestDivider,
   moveDivider,
   nudgeSpanEdge,
+  removeSpan,
   splitSpan,
 } from '../spanEditing';
 
@@ -68,6 +69,19 @@ describe('deleteDivider', () => {
     ], 1)).toEqual([
       { startTime: 0, endTime: 50 * SECOND, sailId: 7 },
       { startTime: 50 * SECOND, endTime: 90 * SECOND, sailId: 8 },
+    ]);
+  });
+});
+
+describe('removeSpan', () => {
+  it('can remove the first block by retaining the block to its right', () => {
+    expect(removeSpan([
+      { startTime: 0, endTime: 20 * SECOND, sailId: null },
+      { startTime: 20 * SECOND, endTime: 60 * SECOND, sailId: 7 },
+      { startTime: 60 * SECOND, endTime: 90 * SECOND, sailId: null },
+    ], 0)).toEqual([
+      { startTime: 0, endTime: 60 * SECOND, sailId: 7 },
+      { startTime: 60 * SECOND, endTime: 90 * SECOND, sailId: null },
     ]);
   });
 });

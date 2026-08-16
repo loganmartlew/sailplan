@@ -37,3 +37,15 @@ than prose can.)*
       separate mode
 - [x] Verified on a device that the interaction is usable one-handed, at the real
       scale of 1–4 points per leg
+
+## Verification
+
+- 17 August 2026 — exercised on a physical ASUS AI2302 in the Android
+  development build, using a materialised 4:31 sailed leg. Assigned and cleared
+  a sail, nudged an edge, dragged the nearest divider, split repeatedly, and
+  deleted a divider to merge back. The controls remained reachable and readable
+  one-handed with three and four blocks. The test leg was restored to its
+  original unconfirmed null-sail spans afterwards.
+- The pager now accurately labels its pre-promotion raw count as samples.
+  Ticket 18 will replace that with its derived 1–4 polar-point count as part of
+  promotion.

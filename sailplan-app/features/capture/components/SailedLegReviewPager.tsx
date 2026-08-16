@@ -1,11 +1,15 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { View } from 'react-native';
-import { Button } from '~/components/ui/button';
-import { Card, CardContent } from '~/components/ui/card';
-import { Input } from '~/components/ui/input';
-import { Text } from '~/components/ui/text';
-import { H3, Muted } from '~/components/ui/typography';
-import { Toggle } from '~/components/ui/toggle';
+import {
+  Button,
+  Card,
+  CardContent,
+  H3,
+  Input,
+  Muted,
+  Text,
+  Toggle,
+} from '~/components/ui';
 import { useSails } from '~/features/sail';
 import {
   confirmSailedLegPresentation,
@@ -15,6 +19,16 @@ import {
 import { createGuardedDraftSpans } from '../util/sailedLegDetection';
 import type { EditableSailSpan } from '../util/spanEditing';
 import { SailSpanEditor } from './SailSpanEditor';
+
+function editableSpansForLeg(item: {
+  startTime: number;
+  endTime: number;
+  sailSpans: readonly EditableSailSpan[];
+}) {
+  return item.sailSpans.length > 0
+    ? item.sailSpans
+    : createGuardedDraftSpans(item.startTime, item.endTime);
+}
 
 export function SailedLegReviewPager({ sessionId }: { sessionId: number }) {
   const { legs, samples } = useSailedLegReview(sessionId);
@@ -40,9 +54,7 @@ export function SailedLegReviewPager({ sessionId }: { sessionId: number }) {
       for (const item of legs.data) {
         if (next[item.id]) continue;
         if (next === current) next = { ...current };
-        next[item.id] = item.sailSpans.length > 0
-          ? item.sailSpans
-          : createGuardedDraftSpans(item.startTime, item.endTime);
+        next[item.id] = editableSpansForLeg(item);
       }
       return next;
     });
@@ -78,7 +90,7 @@ export function SailedLegReviewPager({ sessionId }: { sessionId: number }) {
     );
   }, [leg, presentation]);
 
-  const pointCount = useMemo(
+  const sampleCount = useMemo(
     () => presentation
       ? samples.data.filter(sample =>
           presentation.some(part =>
@@ -107,9 +119,7 @@ export function SailedLegReviewPager({ sessionId }: { sessionId: number }) {
 
   const isLast = index === presentations.length - 1;
   const visibleSpans = presentation.map(part =>
-    draftSpans[part.id] ?? (part.sailSpans.length > 0
-      ? part.sailSpans
-      : createGuardedDraftSpans(part.startTime, part.endTime)),
+    draftSpans[part.id] ?? editableSpansForLeg(part),
   );
   const advance = () => {
     confirmSailedLegPresentation({
@@ -155,7 +165,7 @@ export function SailedLegReviewPager({ sessionId }: { sessionId: number }) {
             )}
           </View>
           <View className='items-end gap-1'>
-            <Text>{pointCount.toLocaleString('en-NZ')} points</Text>
+            <Text>{sampleCount.toLocaleString('en-NZ')} samples</Text>
             <Toggle
               variant='outline'
               pressed={used}
@@ -184,7 +194,9 @@ export function SailedLegReviewPager({ sessionId }: { sessionId: number }) {
           </View>
         ))}
         {!used && (
-          <Muted>These {pointCount.toLocaleString('en-NZ')} points will stay in the recording for later attribution.</Muted>
+          <Muted>
+            These {sampleCount.toLocaleString('en-NZ')} samples will stay in the recording for later attribution.
+          </Muted>
         )}
         <View className='flex-row gap-3'>
           {index > 0 && (

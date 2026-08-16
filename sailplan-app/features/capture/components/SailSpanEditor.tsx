@@ -5,20 +5,18 @@ import {
   Pressable,
   View,
 } from 'react-native';
-import { Button } from '~/components/ui/button';
-import { Text } from '~/components/ui/text';
-import { Muted } from '~/components/ui/typography';
+import { Button, Muted, Text } from '~/components/ui';
 import type { Sail } from '~/features/sail/model/sail';
 import { cn } from '~/lib/utils';
 import {
   assignSpanSail,
   canSpanHoldBin,
-  deleteDivider,
   type EditableSailSpan,
   findNearestDivider,
   MIN_SPAN_DURATION_MS,
   moveDivider,
   nudgeSpanEdge,
+  removeSpan,
   splitSpan,
 } from '../util/spanEditing';
 import { formatCaptureDuration } from '../util/formatCaptureDuration';
@@ -83,6 +81,9 @@ export function SailSpanEditor({ spans, sails, onChange }: SailSpanEditorProps) 
 
   const selectedSail = sails.find(sail => sail.id === selected.sailId);
   const canSplit = selected.endTime - selected.startTime >= MIN_SPAN_DURATION_MS * 2;
+  const tooShortBlocks = visibleSpans.flatMap((span, index) =>
+    canSpanHoldBin(span) ? [] : [index + 1],
+  );
 
   return (
     <View className='gap-3'>
@@ -115,9 +116,11 @@ export function SailSpanEditor({ spans, sails, onChange }: SailSpanEditorProps) 
               accessibilityState={{ selected: selectedIndex === index }}
               accessibilityLabel={`${sail?.name ?? 'Not used'} block, ${formatCaptureDuration(span.endTime - span.startTime)}`}
             >
-              <Text className={cn('text-xs font-semibold', sail && 'text-black')} numberOfLines={1}>
-                {sail?.name ?? 'Not used'}
-              </Text>
+              <View className={cn('max-w-full rounded px-1', sail && 'bg-background/80')}>
+                <Text className='text-xs font-semibold' numberOfLines={1}>
+                  {sail?.name ?? 'Not used'}
+                </Text>
+              </View>
             </Pressable>
           );
         })}
@@ -131,6 +134,11 @@ export function SailSpanEditor({ spans, sails, onChange }: SailSpanEditorProps) 
         ))}
       </View>
       <Muted>Drag the band to move the nearest divider. Tap a block to edit it.</Muted>
+      {tooShortBlocks.length > 0 && (
+        <Text className='text-sm text-destructive'>
+          {`Block${tooShortBlocks.length === 1 ? '' : 's'} ${tooShortBlocks.join(', ')} ${tooShortBlocks.length === 1 ? 'is' : 'are'} too short to hold a 15 second polar bin.`}
+        </Text>
+      )}
 
       <View className='gap-3 rounded-xl border border-border p-3'>
         <View className='flex-row items-center justify-between gap-2'>
@@ -209,9 +217,9 @@ export function SailSpanEditor({ spans, sails, onChange }: SailSpanEditorProps) 
             className='flex-1'
             size='sm'
             variant='outline'
-            disabled={selectedIndex === 0}
+            disabled={visibleSpans.length < 2}
             onPress={() => {
-              onChange(deleteDivider(visibleSpans, selectedIndex));
+              onChange(removeSpan(visibleSpans, selectedIndex));
               setSelectedIndex(Math.max(0, selectedIndex - 1));
             }}
           >
