@@ -13,6 +13,21 @@ export interface ReviewMapCoordinate {
   longitude: number;
 }
 
+const MARK_FRAME_DISTANCE_METRES = 2_000;
+const EARTH_RADIUS_METRES = 6_371_000;
+
+function distanceMetres(a: ReviewMapCoordinate, b: ReviewMapCoordinate): number {
+  const toRadians = (degrees: number) => degrees * Math.PI / 180;
+  const latitudeDelta = toRadians(b.latitude - a.latitude);
+  const longitudeDelta = toRadians(b.longitude - a.longitude);
+  const aLatitude = toRadians(a.latitude);
+  const bLatitude = toRadians(b.latitude);
+  const haversine =
+    Math.sin(latitudeDelta / 2) ** 2 +
+    Math.cos(aLatitude) * Math.cos(bLatitude) * Math.sin(longitudeDelta / 2) ** 2;
+  return 2 * EARTH_RADIUS_METRES * Math.asin(Math.sqrt(haversine));
+}
+
 export function selectReviewMapMarks(
   focus: ReviewMapFocus,
   courseMarks: readonly ReviewMapMark[],
@@ -35,5 +50,9 @@ export function selectReviewMapFrame<T extends ReviewMapCoordinate>(
   trackCoordinates: readonly T[],
   markCoordinates: readonly ReviewMapCoordinate[],
 ): readonly ReviewMapCoordinate[] {
-  return trackCoordinates.length > 0 ? trackCoordinates : markCoordinates;
+  if (trackCoordinates.length === 0) return markCoordinates;
+  const nearbyMarks = markCoordinates.filter(mark =>
+    trackCoordinates.some(point => distanceMetres(point, mark) <= MARK_FRAME_DISTANCE_METRES),
+  );
+  return [...trackCoordinates, ...nearbyMarks];
 }

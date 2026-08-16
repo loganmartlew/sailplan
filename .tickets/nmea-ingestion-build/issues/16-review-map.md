@@ -15,7 +15,7 @@ remembered mode.
 - [x] The map is **read-only** and follows the pager
 - [x] Each sail-attribution span draws in its own colour, matching the span row
 - [x] A chip on the map switches focus-leg ⟷ whole-course
-- [x] **GPS only** — no chart tiles, no land
+- [x] Standard road/land basemap behind the GPS track
 - [x] It never becomes a second navigable surface: no selection, no
       panning-driven state, nothing to get lost in
 - [x] Reads correctly when a leg has no GPS fix for part of its range (TTL-null

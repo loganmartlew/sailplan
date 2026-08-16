@@ -48,4 +48,14 @@ describe('selectReviewMapFrame', () => {
 
     expect(selectReviewMapFrame([], markCoordinates)).toEqual(markCoordinates);
   });
+
+  it('includes nearby course marks so their labels stay inside the viewport', () => {
+    const track = [
+      { latitude: -36.8, longitude: 174.7 },
+      { latitude: -36.79, longitude: 174.71 },
+    ];
+    const nearbyMark = { latitude: -36.788, longitude: 174.712 };
+
+    expect(selectReviewMapFrame(track, [nearbyMark])).toEqual([...track, nearbyMark]);
+  });
 });

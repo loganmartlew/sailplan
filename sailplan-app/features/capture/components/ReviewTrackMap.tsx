@@ -124,7 +124,7 @@ export function ReviewTrackMap({
             ref={map}
             pointerEvents='none'
             style={{ flex: 1 }}
-            mapType='none'
+            mapType='standard'
             scrollEnabled={false}
             zoomEnabled={false}
             rotateEnabled={false}
