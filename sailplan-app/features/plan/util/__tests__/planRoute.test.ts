@@ -1,4 +1,4 @@
-import { CourseMarkRoutePoint, CourseRoute } from '~/features/course';
+import { CourseMarkRoutePoint, CourseRoute, MarkBackedViaRoutePoint } from '~/features/course';
 import { buildPlanRoute } from '../planRoute';
 
 function makeCourseMarkPoint(
@@ -101,5 +101,24 @@ describe('buildPlanRoute', () => {
 
     expect(route.legs.map(leg => leg.index)).toEqual([0, 1]);
     expect(route.legs.at(-1)?.segments[0].key).toBe('plan-finish');
+  });
+
+  test('preserves Mark-backed Via Point endpoints as two actual Segments', () => {
+    const courseRoute = makeDirectRoute();
+    const via: MarkBackedViaRoutePoint = {
+      kind: 'markBackedVia', viaPointId: 30, markId: 99, name: 'Channel',
+      latitude: -36.75, longitude: 174.72, note: null,
+    };
+    courseRoute.points.splice(1, 0, via);
+    courseRoute.legs[0].viaPoints = [via];
+    courseRoute.legs[0].segments = [
+      { key: '10:0', from: courseRoute.legs[0].start, to: via, indexInLeg: 0 },
+      { key: '10:1', from: via, to: courseRoute.legs[0].end, indexInLeg: 1 },
+    ];
+
+    const route = buildPlanRoute({ route: courseRoute, startLocation: null, finishLocation: null });
+    expect(route.legs[0].segments.map(segment => [segment.from.name, segment.to.name])).toEqual([
+      ['Start', 'Channel'], ['Channel', 'Finish'],
+    ]);
   });
 });

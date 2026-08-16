@@ -7,6 +7,14 @@ export interface MarkRouteUsage {
   viaPointCount: number;
   /** Distinct Course names using the Mark, so a refusal can name them. */
   courseNames: string[];
+  uses: MarkRouteUse[];
+}
+
+export interface MarkRouteUse {
+  courseId: number;
+  courseName: string;
+  role: 'courseMark' | 'viaPoint';
+  legName?: string;
 }
 
 /**
@@ -27,7 +35,14 @@ export async function getMarkRouteUsage(
   });
   const viaPoints = await db.query.courseViaPoint.findMany({
     where: eq(courseViaPoint.markId, markId),
-    with: { legStartCourseMark: { with: { course: true } } },
+    with: {
+      legStartCourseMark: {
+        with: {
+          mark: true,
+          course: { with: { courseMarks: { with: { mark: true } } } },
+        },
+      },
+    },
   });
 
   const courseNames = [
@@ -37,9 +52,26 @@ export async function getMarkRouteUsage(
     ]),
   ].sort();
 
+  const uses: MarkRouteUse[] = [
+    ...courseMarks.map(row => ({
+      courseId: row.course.id, courseName: row.course.name, role: 'courseMark' as const,
+    })),
+    ...viaPoints.map(row => {
+      const start = row.legStartCourseMark;
+      const end = start.course.courseMarks
+        .filter(courseMark => courseMark.order > start.order)
+        .sort((a, b) => a.order - b.order || a.id - b.id)[0];
+      return {
+        courseId: start.course.id, courseName: start.course.name, role: 'viaPoint' as const,
+        legName: end ? `${start.mark.name} to ${end.mark.name}` : start.mark.name,
+      };
+    }),
+  ].sort((a, b) => a.courseName.localeCompare(b.courseName));
+
   return {
     courseMarkCount: courseMarks.length,
     viaPointCount: viaPoints.length,
     courseNames,
+    uses,
   };
 }

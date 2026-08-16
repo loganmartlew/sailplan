@@ -1,6 +1,7 @@
 import { Link, router } from 'expo-router';
-import { Alert, View, FlatList } from 'react-native';
-import { Badge, Button, H2, Muted, Text } from '~/components/ui';
+import { View, FlatList, Pressable } from 'react-native';
+import { Badge, Button, Dialog, DialogContent, DialogHeader, DialogTitle, H2, Muted, Text } from '~/components/ui';
+import { MarkRouteUsage } from '~/features/course';
 import {
   useMarks,
   Mark,
@@ -18,6 +19,7 @@ export default function Marks() {
   const marksQuery = useMarks();
 
   const [shareDialogOpen, setShareDialogOpen] = useState(false);
+  const [blockedUsage, setBlockedUsage] = useState<MarkRouteUsage | null>(null);
 
   const onMarkEdit = (mark: Mark) => {
     router.push({
@@ -41,7 +43,7 @@ export default function Marks() {
       await deleteMark(mark.id);
     } catch (error) {
       if (!(error instanceof MarkInUseError)) throw error;
-      Alert.alert('Mark in use', error.message);
+      setBlockedUsage(error.usage);
     }
   };
 
@@ -103,6 +105,7 @@ export default function Marks() {
         open={shareDialogOpen}
         onOpenChange={val => setShareDialogOpen(val)}
       />
+      <Dialog open={!!blockedUsage} onOpenChange={open => !open && setBlockedUsage(null)}><DialogContent><DialogHeader><DialogTitle>Mark in use</DialogTitle></DialogHeader><Text>This Mark cannot be deleted until every Course use is removed.</Text><View className='gap-2'>{blockedUsage?.uses.map((use, index) => <Pressable key={`${use.courseId}:${index}`} onPress={() => { setBlockedUsage(null); router.push({ pathname: '/courses/(course)/[courseId]', params: { courseId: use.courseId.toString() } }); }}><View className='rounded-xl bg-muted p-3'><Text className='font-semibold'>{use.courseName}</Text><Text className='text-sm text-muted-foreground'>{use.role === 'courseMark' ? 'Course Mark' : `Via Point in ${use.legName}`}</Text></View></Pressable>)}</View></DialogContent></Dialog>
     </View>
   );
 }

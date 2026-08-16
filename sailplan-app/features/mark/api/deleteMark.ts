@@ -1,11 +1,11 @@
 import { eq } from 'drizzle-orm';
 import { db } from '~/lib/db';
 import { mark } from '~/schema';
-import { getMarkRouteUsage } from '~/features/course/api/markRouteUsage';
+import { getMarkRouteUsage, MarkRouteUsage } from '~/features/course/api/markRouteUsage';
 import { describeMarkRouteUsage } from '~/features/course/util/describeMarkRouteUsage';
 
 export class MarkInUseError extends Error {
-  constructor(message: string) {
+  constructor(message: string, public readonly usage: MarkRouteUsage) {
     super(message);
     this.name = 'MarkInUseError';
   }
@@ -19,7 +19,7 @@ export class MarkInUseError extends Error {
 export async function deleteMark(id: number): Promise<void> {
   const usage = await getMarkRouteUsage(id);
   const refusal = describeMarkRouteUsage(usage);
-  if (refusal) throw new MarkInUseError(refusal);
+  if (refusal) throw new MarkInUseError(refusal, usage);
 
   await db.delete(mark).where(eq(mark.id, id));
 }

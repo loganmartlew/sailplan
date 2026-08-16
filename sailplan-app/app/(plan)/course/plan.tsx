@@ -3,12 +3,12 @@ import { useMemo } from 'react';
 import { ActivityIndicator, ScrollView, View } from 'react-native';
 import { Badge, H2, Text } from '~/components/ui';
 import { useBoatProfile } from '~/features/boatProfile';
-import { coordsToBearing, getTwa } from '~/features/coordinate';
 import { useCourse, useCourseRoute } from '~/features/course';
 import {
   CourseLegCard,
   CourseMarkListDialog,
   buildPlanRoute,
+  calculateSegmentGuidance,
   deserializeCoursePlanData,
   TrueWindInputCard,
   usePlanState,
@@ -46,14 +46,13 @@ export default function CoursePlanResults() {
     [courseRoute, planData],
   );
 
-  const segments = useMemo(
+  const guidance = useMemo(
     () =>
-      planRoute?.legs.flatMap(leg =>
+      new Map(planRoute?.legs.flatMap(leg =>
         leg.segments.map(segment => {
-          const bearing = coordsToBearing({ from: segment.from, to: segment.to });
-          return { ...segment, bearing, twa: getTwa({ bearing, twd }) };
+          return [segment.key, calculateSegmentGuidance(segment, twd)] as const;
         }),
-      ) ?? [],
+      ) ?? []),
     [planRoute, twd],
   );
 
@@ -101,17 +100,10 @@ export default function CoursePlanResults() {
       <TrueWindInputCard twd tws />
       <ScrollView>
         <View className='flex gap-4 pb-4'>
-          {segments.map(segment => (
-            <CourseLegCard
-              key={segment.key}
-              from={segment.from}
-              to={segment.to}
-              bearing={segment.bearing}
-              twa={segment.twa}
-              tws={currentState?.tws ?? 0}
-              suggestionData={suggestionData}
-            />
-          ))}
+          {planRoute?.legs.map(leg => <View key={`${leg.legId}:${leg.index}`} className='gap-3'>
+            {leg.segments.length > 1 && <View className='px-2'><Text className='font-semibold'>{leg.start.name} to {leg.end.name}</Text><Text className='text-xs text-muted-foreground'>{leg.segments.length} Leg Segments</Text></View>}
+            {leg.segments.map(segment => { const values = guidance.get(segment.key); return values ? <CourseLegCard key={segment.key} from={segment.from} to={segment.to} bearing={values.bearing} twa={values.twa} tws={currentState?.tws ?? 0} suggestionData={suggestionData} /> : null; })}
+          </View>)}
         </View>
       </ScrollView>
     </View>

@@ -11,3 +11,4 @@ export * from './components/DirectionsCard';
 export * from './components/TrueWindInputCard';
 export * from './components/CourseMarkListDialog';
 export * from './util/planRoute';
+export * from './util/segmentGuidance';

@@ -1,12 +1,13 @@
 import { useMutation } from '@tanstack/react-query';
 import { router, Stack, useLocalSearchParams } from 'expo-router';
 import { useState } from 'react';
-import { ActivityIndicator, View } from 'react-native';
+import { ActivityIndicator, ScrollView, View } from 'react-native';
 import { Badge, Button, H2, Text } from '~/components/ui';
 import {
   CourseForm,
   CourseFormValues,
   CourseMarks,
+  CourseRouteThread,
   updateCourse,
   useCourse,
 } from '~/features/course';
@@ -81,7 +82,7 @@ export default function CourseDetailsPage() {
     />
   );
 
-  const detailsSlot = <CourseMarks course={course} />;
+  const detailsSlot = <View className='gap-8'><CourseRouteThread course={course} /><CourseMarks course={course} /></View>;
 
   return (
     <View className='flex-1 w-full px-3 py-5 flex flex-col gap-6'>
@@ -105,7 +106,7 @@ export default function CourseDetailsPage() {
           )}
         </View>
       </View>
-      {editMode ? editSlot : detailsSlot}
+      <ScrollView>{editMode ? editSlot : detailsSlot}</ScrollView>
     </View>
   );
 }
