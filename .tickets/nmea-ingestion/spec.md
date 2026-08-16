@@ -685,10 +685,25 @@ changing sail are one act — moving a divider.)*
   ±33 s boundary survivable and welds the trim default to the detection
   tolerance. They are one decision; retune them together or not at all.
 - Any number of cuts; every block resizable, splittable and removable; **merge (a
-  deleted divider) is the universal undo**. Drag the band to move the nearest
-  divider, or nudge a selected block's edges by ±5 s / ±15 s. Minimum block 15 s;
-  splitting a block that cannot yield two 15 s halves is refused. A block too
-  short to hold a bin **says so** rather than silently contributing nothing.
+  deleted divider) is the universal undo**, offered in both directions so the
+  first block is removable too. Drag the band to move the nearest divider, or
+  nudge a selected block's edges by ±5 s / ±15 s. Minimum block 15 s; splitting a
+  block that cannot yield two 15 s halves is refused. A block **carrying a sail**
+  that is too short to hold a bin **says so** rather than silently contributing
+  nothing — a no-sail block is *meant* to be short, so warning about one only
+  teaches sailors to ignore the warning.
+- **The band sits under a speed trace** (`stw`, ~90 px, the same time axis,
+  no-sail regions shaded). Added after round 5 on the evidence of ticket `15`:
+  alone, the band is an abstract bar with no referent — nothing says *when* in
+  the leg the boat went slow, which is the only question a divider can answer.
+  The trace also forces the band to stay strictly linear in time, so selection
+  belongs to a segmented strip beneath it rather than to the band itself, and a
+  10 s block still gets a full-size tap. Complementary to the map, which answers
+  *where* rather than *when*.
+- A leg interrupted by a data gap is stored as several `sailedLeg` rows but
+  **reviewed as one leg**, the uncovered time standing as a fixed "no data"
+  block: never selected, moved, or merged through. It is therefore a permanent
+  divider, and confirming is just splitting the band at it.
 - A leg is **used by default**, with the toggle beside its point count where the
   consequence is visible.
 - The **map is read-only and follows the pager**. Each span draws in its own
