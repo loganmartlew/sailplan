@@ -7,14 +7,12 @@ import {
 } from '../model/courseRoute';
 import { CourseMarkWithRouteData } from '../model/courseMark';
 import { CourseViaPointWithMark } from '../model/courseViaPoint';
+import { sortByOrderThenId } from './routeOrder';
 
 export interface CourseRouteRow {
   id: number;
   courseMarks: CourseMarkWithRouteData[];
 }
-
-const byOrderThenId = <T extends { id: number; order: number }>(a: T, b: T) =>
-  a.order - b.order || a.id - b.id;
 
 function mapCourseMark(row: CourseMarkWithRouteData): CourseMarkRoutePoint {
   if (!row.mark) {
@@ -25,6 +23,7 @@ function mapCourseMark(row: CourseMarkWithRouteData): CourseMarkRoutePoint {
     kind: 'courseMark',
     courseMarkId: row.id,
     markId: row.markId,
+    order: row.order,
     name: row.mark.name,
     latitude: row.mark.latitude,
     longitude: row.mark.longitude,
@@ -75,11 +74,12 @@ function mapViaPoint(
 }
 
 export function mapCourseRoute(row: CourseRouteRow): CourseRoute {
-  const courseMarks = [...row.courseMarks].sort(byOrderThenId).map(mapCourseMark);
+  const courseMarkRows = sortByOrderThenId(row.courseMarks);
+  const courseMarks = courseMarkRows.map(mapCourseMark);
   const viaPointsByCourseMark = new Map(
-    row.courseMarks.map(courseMarkRow => [
+    courseMarkRows.map(courseMarkRow => [
       courseMarkRow.id,
-      [...courseMarkRow.viaPoints].sort(byOrderThenId).map(mapViaPoint),
+      sortByOrderThenId(courseMarkRow.viaPoints).map(mapViaPoint),
     ]),
   );
 
@@ -103,10 +103,7 @@ export function mapCourseRoute(row: CourseRouteRow): CourseRoute {
     };
   });
 
-  const terminalCourseMark = row.courseMarks
-    .slice()
-    .sort(byOrderThenId)
-    .at(-1);
+  const terminalCourseMark = courseMarkRows.at(-1);
   if (terminalCourseMark && terminalCourseMark.viaPoints.length > 0) {
     throw new Error(
       `Course Mark ${terminalCourseMark.id} cannot own Via Points because it does not start a Leg`,

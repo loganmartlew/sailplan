@@ -67,6 +67,24 @@ denormalised onto this table.
    renumbering, and blocked-reorder testable without SQLite. Nullable columns
    never escape the module; callers see `{ kind: 'local' } | { kind: 'markBacked' }`.
 
+### Amendments
+
+Recorded while implementing
+[ticket 11](../../.tickets/course-via-points/issues/11-establish-route-foundation.md);
+they refine the decision above rather than replace it.
+
+- **`courseMark` gains a `note` column** (2026-08-17). The decision said
+  `courseMark` is unchanged, but Course-scoped Course Mark notes are the
+  counterpart of the Via Point `note` and belong to the same migration; adding
+  them later would mean a second one. It is an additive `ALTER TABLE … ADD`, so
+  existing rows and their identities are untouched and the consequence above
+  still holds.
+- **`PRAGMA foreign_keys = ON` moves off connection-open** (2026-08-17). Set at
+  open, enforcement is already live when migrations run — the orphan cleanup in
+  0009 and drizzle's table-rebuild migrations both need it off. `lib/db.ts`
+  exports `enableForeignKeys()` and `MigrationGate` calls it once migrations
+  succeed, blocking the app until it has, so every writer still runs under it.
+
 ## Alternatives rejected
 
 - **Unified `coursePoint` table with a `role` column** and one order across the
@@ -103,7 +121,8 @@ denormalised onto this table.
   created by the unguarded `deleteMark` on installed copies. `courseMark`'s
   definition is untouched, so existing rows and every current `useCourseMarks`
   caller keep working.
-- **`PRAGMA foreign_keys = ON`** is set on the connection in `lib/db.ts`. Every
+- **`PRAGMA foreign_keys = ON`** is set on the connection (see the amendment
+  above for *when*) from `lib/db.ts`. Every
   `references()` in `schema.ts` becomes enforcement rather than documentation;
   delete ordering (Via Points → Course Marks → Course) is now checked.
 - **Two shipped bugs are fixed as part of this work**: `createCourseMark`'s

@@ -8,6 +8,8 @@ export * from './api/deleteCourse';
 export * from './api/updateCourse';
 export * from './api/getCourses';
 export * from './api/courseRoute';
+export * from './api/markRouteUsage';
+export * from './util/toCourseMarkRows';
 export * from './components/CourseGroupListItem';
 export * from './components/NewCourseGroupDialog';
 export * from './components/CourseForm';

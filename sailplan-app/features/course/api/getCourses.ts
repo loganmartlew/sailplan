@@ -1,7 +1,7 @@
 import { asc, count, eq, isNull } from 'drizzle-orm';
 import { useLiveQuery } from 'drizzle-orm/expo-sqlite';
 import { db } from '~/lib/db';
-import { course, courseGroup, courseMark } from '~/schema';
+import { course, courseGroup } from '~/schema';
 
 interface UseCoursesOptions {
   courseGroupId?: number | null;
@@ -54,18 +54,5 @@ export function useCourseGroup(id: number) {
     db.query.courseGroup.findFirst({
       where: eq(courseGroup.id, id),
     })
-  );
-}
-
-export function useCourseMarks(courseId?: number | null) {
-  return useLiveQuery(
-    db.query.courseMark.findMany({
-      where: eq(courseMark.courseId, courseId ?? -1),
-      orderBy: [asc(courseMark.order)],
-      with: {
-        mark: true,
-      },
-    }),
-    [courseId]
   );
 }

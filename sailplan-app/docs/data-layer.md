@@ -30,8 +30,13 @@ Drizzle `relations()` power the nested `db.query.*.findMany({ with: … })` API.
 boatProfile ─┬─< sail ─┬─< sailPolar
              │         └─< sailTwaLimit
              │
-courseGroup ─┴─< course ─< courseMark >─ mark
+courseGroup ─┴─< course ─< courseMark ─< courseViaPoint
+                              │               │
+                              └──> mark <─────┘
 ```
+
+A `courseMark` is a Leg boundary; the Leg it starts owns its `courseViaPoint`
+rows. Both reference `mark` — a Via Point only when it is Mark-backed.
 
 | Table          | Key columns                                              | Notes                                        |
 | -------------- | -------------------------------------------------------- | -------------------------------------------- |
@@ -41,7 +46,8 @@ courseGroup ─┴─< course ─< courseMark >─ mark
 | `sailPolar`    | `id`, `tws`, `twa`, `speed`, `sailId`                   | One polar data point (see glossary)          |
 | `sailTwaLimit` | `id`, `tws`, `minTwa?`, `maxTwa?`, `sailId`             | Usable TWA band at a wind speed              |
 | `course`       | `id`, `name`, `courseGroupId?`                           | An ordered set of marks                      |
-| `courseMark`   | `id`, `courseId`, `markId`, `order`, `direction?`       | Join row; `order` sequences the legs         |
+| `courseMark`   | `id`, `courseId`, `markId`, `order`, `direction?`, `note?` | Join row; `order` sequences the legs       |
+| `courseViaPoint` | `id`, `legStartCourseMarkId`, `order`, `markId?`, `name?`, `latitude?`, `longitude?`, `note?` | A point inside a Leg; a CHECK enforces Mark-backed **or** course-local, never both ([ADR-0001](../../docs/adr/0001-course-route-point-persistence.md)) |
 | `courseGroup`  | `id`, `name`                                             | Optional grouping of courses                 |
 
 See [`../../CONTEXT.md`](../../CONTEXT.md) for what TWS/TWA/polar/etc. mean.
@@ -64,6 +70,14 @@ Workflow when you change `schema.ts`:
 
 Do **not** hand-edit generated migration files. `MigrationGate` also wires up
 `expo-drizzle-studio-plugin` for inspecting the DB in dev.
+
+**Foreign keys go on after migrations, not at connection open.** `lib/db.ts`
+exports `enableForeignKeys()` and `MigrationGate` calls it once migrations
+succeed, holding the UI until it has. Migrations must apply with enforcement
+off: drizzle's table-rebuild migrations drop and recreate a table while other
+tables still reference it, and 0009 clears orphaned `courseMark` rows that the
+constraints would otherwise reject. Everything the app does afterwards runs
+with `PRAGMA foreign_keys = ON`.
 
 ### Reading & writing
 

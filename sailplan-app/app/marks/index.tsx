@@ -1,11 +1,12 @@
 import { Link, router } from 'expo-router';
-import { View, FlatList } from 'react-native';
+import { Alert, View, FlatList } from 'react-native';
 import { Badge, Button, H2, Muted, Text } from '~/components/ui';
 import {
   useMarks,
   Mark,
   MarkListItem,
   deleteMark,
+  MarkInUseError,
   MarkShareDialog,
 } from '~/features/mark';
 import { useConfirm } from '~/hooks/useConfirm';
@@ -36,7 +37,12 @@ export default function Marks() {
 
     if (!proceed) return;
 
-    await deleteMark(mark.id);
+    try {
+      await deleteMark(mark.id);
+    } catch (error) {
+      if (!(error instanceof MarkInUseError)) throw error;
+      Alert.alert('Mark in use', error.message);
+    }
   };
 
   return (

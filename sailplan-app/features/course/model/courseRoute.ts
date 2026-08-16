@@ -7,6 +7,8 @@ export interface CourseMarkRoutePoint extends RouteCoordinates {
   kind: 'courseMark';
   courseMarkId: number;
   markId: number;
+  /** The persisted `courseMark.order`, not this point's position in the route. */
+  order: number;
   name: string;
   direction: 'port' | 'starboard' | null;
   note: string | null;

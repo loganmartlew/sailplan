@@ -10,7 +10,7 @@ import {
   Text,
 } from '~/components/ui';
 import { MapPin, Pencil, Route, Trash } from '~/lib/icons';
-import { useCourseMarks } from '../api/getCourses';
+import { useCourseMarks } from '../api/courseRoute';
 
 interface CourseListItemProps {
   course: Course;

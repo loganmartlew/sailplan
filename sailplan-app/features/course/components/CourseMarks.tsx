@@ -2,12 +2,14 @@ import { useConfirm } from '~/hooks/useConfirm';
 import { Course } from '../model/course';
 import { useMemo, useState } from 'react';
 import {
+  countViaPointsDestroyedByDeletion,
   createCourseMark,
   deleteCourseMark,
   reorderCourseMarks,
   updateCourseMark,
   useCourseRoute,
 } from '../api/courseRoute';
+import { toCourseMarkRows } from '../util/toCourseMarkRows';
 import { View } from 'react-native';
 import { Badge, Button, H3, Muted, Text } from '~/components/ui';
 import { Plus, MapPin } from '~/lib/icons';
@@ -35,28 +37,8 @@ export function CourseMarks({ course }: CourseMarksProps) {
   const confirm = useConfirm();
   const { data: route } = useCourseRoute(course.id);
   const courseMarks = useMemo<CourseMarkWithMark[]>(
-    () =>
-      route?.points.flatMap((point, order) =>
-        point.kind === 'courseMark'
-          ? [
-              {
-                id: point.courseMarkId,
-                courseId: course.id,
-                markId: point.markId,
-                order,
-                direction: point.direction,
-                note: point.note,
-                mark: {
-                  id: point.markId,
-                  name: point.name,
-                  latitude: point.latitude,
-                  longitude: point.longitude,
-                },
-              },
-            ]
-          : [],
-      ) ?? [],
-    [course.id, route],
+    () => (route ? toCourseMarkRows(route) : []),
+    [route],
   );
 
   const [newCourseMarkDialogOpen, setNewCourseMarkDialogOpen] = useState(false);
@@ -79,9 +61,20 @@ export function CourseMarks({ course }: CourseMarksProps) {
   });
 
   async function onCourseMarkDelete(courseMark: CourseMark) {
+    // Deleting a first or last Course Mark destroys a Leg that has nowhere to
+    // merge, taking its Via Points with it — name the loss before committing.
+    const destroyedViaPoints = await countViaPointsDestroyedByDeletion(
+      courseMark.id,
+    );
+
     const proceed = await confirm({
       title: 'Delete Course Mark',
-      message: 'Are you sure you want to delete this course mark?',
+      message:
+        destroyedViaPoints > 0
+          ? `Deleting this course mark also deletes ${destroyedViaPoints} via ${
+              destroyedViaPoints === 1 ? 'point' : 'points'
+            }. Are you sure?`
+          : 'Are you sure you want to delete this course mark?',
       confirmText: 'Delete',
       cancelText: 'Cancel',
       destructive: true,
