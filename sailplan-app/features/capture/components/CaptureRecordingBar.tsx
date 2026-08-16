@@ -1,12 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
-import {
-  FlatList,
-  Modal,
-  Pressable,
-  View,
-  type GestureResponderEvent,
-} from 'react-native';
-import { Button, H3, Text } from '~/components/ui';
+import { Pressable, View } from 'react-native';
+import { Button, Text } from '~/components/ui';
 import { useSails, type Sail } from '~/features/sail';
 import { CircleSmall, Plus } from '~/lib/icons';
 import { cn } from '~/lib/utils';
@@ -21,6 +15,7 @@ import {
   useCaptureRecordingStore,
   type CaptureStampHistory,
 } from '../store/captureRecordingStore';
+import { SailPickerSheet } from './SailPickerSheet';
 // Throwaway, ticket `07`.
 import { recordCaptureTimerTick } from '../util/captureDiagnostics';
 
@@ -31,82 +26,6 @@ type UndoStamp = {
   stamp: CaptureStampHistory;
   previous: CaptureStampHistory | null;
 };
-
-function SailStampSheet({
-  open,
-  sails,
-  isStamping,
-  onClose,
-  onStamp,
-}: {
-  open: boolean;
-  sails: Sail[];
-  isStamping: boolean;
-  onClose: () => void;
-  onStamp: (sail: Sail) => void;
-}) {
-  const stopPropagation = (event: GestureResponderEvent) =>
-    event.stopPropagation();
-
-  return (
-    <Modal
-      visible={open}
-      transparent
-      animationType='slide'
-      onRequestClose={onClose}
-      statusBarTranslucent
-    >
-      <Pressable
-        className='flex-1 justify-end bg-black/60'
-        onPress={onClose}
-        accessibilityRole='button'
-        accessibilityLabel='Close sail picker'
-      >
-        <Pressable
-          className='max-h-[72%] rounded-t-3xl bg-background px-4 pb-5 pt-4'
-          onPress={stopPropagation}
-        >
-          <View className='mb-4 items-center gap-3'>
-            <View className='h-1.5 w-12 rounded-full bg-muted' />
-            <H3 className='pb-0'>Stamp the sail that is up</H3>
-            <Text className='text-center text-sm text-muted-foreground'>
-              This records one instant only. It does not stay in force.
-            </Text>
-          </View>
-          <FlatList
-            data={sails}
-            numColumns={2}
-            keyExtractor={sail => String(sail.id)}
-            columnWrapperStyle={{ gap: 12 }}
-            contentContainerStyle={{ gap: 12, paddingBottom: 16 }}
-            showsVerticalScrollIndicator
-            renderItem={({ item }) => (
-              <Pressable
-                className='h-24 flex-1 overflow-hidden rounded-2xl border border-border active:opacity-80'
-                style={{ backgroundColor: item.color.toLowerCase() || '#888' }}
-                disabled={isStamping}
-                onPress={() => onStamp(item)}
-                accessibilityRole='button'
-                accessibilityLabel={`Stamp ${item.name}`}
-              >
-                <View className='flex-1 items-center justify-center bg-black/25 px-2'>
-                  <Text className='text-center text-xl font-bold text-white'>
-                    {item.name}
-                  </Text>
-                </View>
-              </Pressable>
-            )}
-            ListEmptyComponent={
-              <Text className='py-8 text-center text-muted-foreground'>
-                Add a sail before recording stamps.
-              </Text>
-            }
-          />
-        </Pressable>
-      </Pressable>
-    </Modal>
-  );
-}
 
 /**
  * Shown whether or not a recording is running: the failure it reports may come
@@ -342,12 +261,15 @@ export function CaptureRecordingBar() {
         </View>
       )}
 
-      <SailStampSheet
+      <SailPickerSheet
         open={sheetOpen}
         sails={sailsQuery?.data ?? []}
-        isStamping={isStamping}
+        heading='Stamp the sail that is up'
+        subtitle='This records one instant only. It does not stay in force.'
+        emptyMessage='Add a sail before recording stamps.'
+        disabled={isStamping}
         onClose={() => setSheetOpen(false)}
-        onStamp={sail => void stampSail(sail)}
+        onSelect={sail => void stampSail(sail)}
       />
     </>
   );

@@ -16,6 +16,7 @@ import {
   materializeCaptureReview,
   useSailedLegReview,
 } from '../api/captureReview';
+import { splitLegBand, unifyLegParts } from '../util/legBand';
 import { createGuardedDraftSpans } from '../util/sailedLegDetection';
 import type { EditableSailSpan } from '../util/spanEditing';
 import { SailSpanEditor } from './SailSpanEditor';
@@ -90,6 +91,16 @@ export function SailedLegReviewPager({ sessionId }: { sessionId: number }) {
     );
   }, [leg, presentation]);
 
+  const legSamples = useMemo(
+    () => presentation
+      ? samples.data.filter(sample =>
+          sample.timestamp >= presentation[0].startTime &&
+          sample.timestamp <= presentation.at(-1)!.endTime,
+        )
+      : [],
+    [presentation, samples.data],
+  );
+
   const sampleCount = useMemo(
     () => presentation
       ? samples.data.filter(sample =>
@@ -121,6 +132,10 @@ export function SailedLegReviewPager({ sessionId }: { sessionId: number }) {
   const visibleSpans = presentation.map(part =>
     draftSpans[part.id] ?? editableSpansForLeg(part),
   );
+  // A leg interrupted by a data gap is stored as several rows but reviewed as
+  // one: two bands and two control cards, each asking to be assigned
+  // separately, is the confusion this screen exists to remove.
+  const band = unifyLegParts(visibleSpans);
   const advance = () => {
     confirmSailedLegPresentation({
       name,
@@ -177,22 +192,21 @@ export function SailedLegReviewPager({ sessionId }: { sessionId: number }) {
           </View>
         </View>
 
-        {visibleSpans.map((partSpans, partIndex) => (
-          <View key={presentation[partIndex].id} className='gap-1'>
-            {partIndex > 0 && <Muted>Continued after data gap</Muted>}
-            <SailSpanEditor
-              spans={partSpans}
-              sails={sailsQuery?.data ?? []}
-              onChange={next => {
-                setDraftSpans(current => ({
-                  ...current,
-                  [presentation[partIndex].id]: next,
-                }));
-                if (next.some(span => span.sailId !== null)) setUsed(true);
-              }}
-            />
-          </View>
-        ))}
+        <SailSpanEditor
+          spans={band}
+          sails={sailsQuery?.data ?? []}
+          samples={legSamples}
+          onChange={next => {
+            const parts = splitLegBand(next, presentation.length);
+            setDraftSpans(current => ({
+              ...current,
+              ...Object.fromEntries(
+                presentation.map((part, partIndex) => [part.id, parts[partIndex]]),
+              ),
+            }));
+            if (next.some(span => span.sailId !== null)) setUsed(true);
+          }}
+        />
         {!used && (
           <Muted>
             These {sampleCount.toLocaleString('en-NZ')} samples will stay in the recording for later attribution.

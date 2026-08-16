@@ -3,68 +3,136 @@ import {
   type GestureResponderEvent,
   type LayoutChangeEvent,
   Pressable,
+  ScrollView,
   View,
 } from 'react-native';
 import { Button, Muted, Text } from '~/components/ui';
 import type { Sail } from '~/features/sail/model/sail';
+import { ChevronDown } from '~/lib/icons';
 import { cn } from '~/lib/utils';
 import {
   assignSpanSail,
-  canSpanHoldBin,
   type EditableSailSpan,
   findNearestDivider,
+  mergeSpan,
   MIN_SPAN_DURATION_MS,
   moveDivider,
   nudgeSpanEdge,
-  removeSpan,
+  spanFallsShortOfBin,
   splitSpan,
+  splitTime,
 } from '../util/spanEditing';
+import type { TraceSample } from '../util/traceGeometry';
 import { formatCaptureDuration } from '../util/formatCaptureDuration';
+import { SailPickerSheet } from './SailPickerSheet';
+import { SpanTrace } from './SpanTrace';
 
 interface SailSpanEditorProps {
   spans: readonly EditableSailSpan[];
   sails: readonly Pick<Sail, 'id' | 'name' | 'color'>[];
+  samples: readonly TraceSample[];
   onChange: (spans: readonly EditableSailSpan[]) => void;
 }
 
 const NUDGE_STEPS_MS = [-15_000, -5_000, 5_000, 15_000] as const;
+const BAND_HEIGHT = 40;
+const HANDLE_WIDTH = 20;
+/** Horizontal travel that distinguishes a divider drag from a page scroll. */
+const DRAG_SLOP_PX = 8;
+/** Below this a block's own label is unreadable, so it draws none — `..` is worse than silence. */
+const LABEL_MIN_WIDTH_PX = 34;
 
 function stepLabel(stepMs: number): string {
   return `${stepMs > 0 ? '+' : '−'}${Math.abs(stepMs) / 1_000}s`;
 }
 
-export function SailSpanEditor({ spans, sails, onChange }: SailSpanEditorProps) {
-  const [selectedIndex, setSelectedIndex] = useState(Math.min(1, spans.length - 1));
+function isEditable(span: EditableSailSpan | undefined): span is EditableSailSpan {
+  return span !== undefined && span.gap !== true;
+}
+
+/** The nearest block that can be selected — a no-data block never can. */
+function nearestEditableIndex(
+  spans: readonly EditableSailSpan[],
+  wanted: number,
+): number {
+  for (let offset = 0; offset < spans.length; offset += 1) {
+    for (const index of [wanted - offset, wanted + offset]) {
+      if (isEditable(spans[index])) return index;
+    }
+  }
+  return 0;
+}
+
+export function SailSpanEditor({ spans, sails, samples, onChange }: SailSpanEditorProps) {
+  const [selectedIndex, setSelectedIndex] = useState(() =>
+    nearestEditableIndex(spans, Math.min(1, spans.length - 1)),
+  );
   const [bandWidth, setBandWidth] = useState(0);
   const [dragPreview, setDragPreview] = useState<readonly EditableSailSpan[] | null>(null);
+  const [sheetOpen, setSheetOpen] = useState(false);
+  const band = useRef<View>(null);
+  const bandOriginX = useRef(0);
+  const touchStart = useRef<{ x: number; y: number } | null>(null);
   const draggedDivider = useRef<number | null>(null);
   const dragPreviewRef = useRef<readonly EditableSailSpan[] | null>(null);
 
   useEffect(() => {
-    setSelectedIndex(current => Math.max(0, Math.min(current, spans.length - 1)));
+    setSelectedIndex(current =>
+      nearestEditableIndex(spans, Math.max(0, Math.min(current, spans.length - 1))),
+    );
+    // Re-clamping on every span object would fight the drag preview; the block
+    // count is what can strand a selection.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [spans.length]);
 
   const visibleSpans = dragPreview ?? spans;
   const selected = visibleSpans[selectedIndex];
-  if (!selected) return null;
+  if (!isEditable(selected)) return null;
 
   const startTime = visibleSpans[0].startTime;
   const endTime = visibleSpans.at(-1)!.endTime;
   const duration = Math.max(1, endTime - startTime);
-  const timeAt = (event: GestureResponderEvent) =>
-    startTime + (event.nativeEvent.locationX / Math.max(1, bandWidth)) * duration;
-  const beginDrag = (event: GestureResponderEvent) => {
-    draggedDivider.current = findNearestDivider(visibleSpans, timeAt(event));
+  const fraction = (time: number) => (time - startTime) / duration;
+
+  // `locationX` is relative to whichever view received the touch, so it is only
+  // safe when that view is the band itself. Measuring the band's page-space
+  // origin at touch-down — which lands well before the drag threshold is
+  // crossed — keeps the divider under the finger wherever the page is scrolled.
+  const timeAtPage = (pageX: number) =>
+    startTime + ((pageX - bandOriginX.current) / Math.max(1, bandWidth)) * duration;
+  const measureBand = () => {
+    band.current?.measureInWindow(x => {
+      bandOriginX.current = x;
+    });
+  };
+
+  const rememberTouch = (event: GestureResponderEvent) => {
+    touchStart.current = {
+      x: event.nativeEvent.pageX,
+      y: event.nativeEvent.pageY,
+    };
+    measureBand();
+    return false;
+  };
+  const claimHorizontalDrag = (event: GestureResponderEvent) => {
+    const start = touchStart.current;
+    if (!start || visibleSpans.length < 2) return false;
+    const dx = event.nativeEvent.pageX - start.x;
+    const dy = event.nativeEvent.pageY - start.y;
+    return Math.abs(dx) > DRAG_SLOP_PX && Math.abs(dx) > Math.abs(dy);
+  };
+  const beginDrag = () => {
+    const grabbedAt = timeAtPage(touchStart.current?.x ?? 0);
+    draggedDivider.current = findNearestDivider(visibleSpans, grabbedAt);
     dragPreviewRef.current = visibleSpans;
     setDragPreview(visibleSpans);
-    if (draggedDivider.current !== null) setSelectedIndex(draggedDivider.current);
   };
   const moveDrag = (event: GestureResponderEvent) => {
     if (draggedDivider.current === null) return;
     const next = moveDivider(
       dragPreviewRef.current ?? visibleSpans,
       draggedDivider.current,
-      timeAt(event),
+      timeAtPage(event.nativeEvent.pageX),
     );
     dragPreviewRef.current = next;
     setDragPreview(next);
@@ -73,128 +141,214 @@ export function SailSpanEditor({ spans, sails, onChange }: SailSpanEditorProps) 
     if (dragPreviewRef.current) onChange(dragPreviewRef.current);
     draggedDivider.current = null;
     dragPreviewRef.current = null;
+    touchStart.current = null;
     setDragPreview(null);
   };
   const onBandLayout = (event: LayoutChangeEvent) => {
     setBandWidth(event.nativeEvent.layout.width);
+    measureBand();
+  };
+
+  const edit = (next: readonly EditableSailSpan[], nextIndex = selectedIndex) => {
+    onChange(next);
+    setSelectedIndex(
+      nearestEditableIndex(next, Math.max(0, Math.min(nextIndex, next.length - 1))),
+    );
   };
 
   const selectedSail = sails.find(sail => sail.id === selected.sailId);
-  const canSplit = selected.endTime - selected.startTime >= MIN_SPAN_DURATION_MS * 2;
-  const tooShortBlocks = visibleSpans.flatMap((span, index) =>
-    canSpanHoldBin(span) ? [] : [index + 1],
+  const selectedDuration = selected.endTime - selected.startTime;
+  const canSplit = selectedDuration >= MIN_SPAN_DURATION_MS * 2;
+  const canMergeLeft = isEditable(visibleSpans[selectedIndex - 1]);
+  const canMergeRight = isEditable(visibleSpans[selectedIndex + 1]);
+  const shortBlocks = visibleSpans.flatMap((span, index) =>
+    spanFallsShortOfBin(span) ? [index + 1] : [],
   );
 
   return (
-    <View className='gap-3'>
+    <View className='gap-2'>
+      <View onLayout={onBandLayout}>
+        <SpanTrace spans={visibleSpans} samples={samples} width={bandWidth} />
+      </View>
+
       <View
-        className='relative h-14 flex-row overflow-hidden rounded-xl border border-border'
-        onLayout={onBandLayout}
-        onMoveShouldSetResponderCapture={() => visibleSpans.length > 1}
+        ref={band}
+        style={{ height: BAND_HEIGHT }}
+        className='overflow-hidden rounded-xl border border-border bg-muted'
+        onStartShouldSetResponder={rememberTouch}
+        onMoveShouldSetResponder={claimHorizontalDrag}
         onResponderGrant={beginDrag}
         onResponderMove={moveDrag}
         onResponderRelease={endDrag}
         onResponderTerminate={endDrag}
-        accessibilityLabel='Sail attribution span band'
+        accessibilityLabel='Sail attribution band. Drag a handle to move a divider.'
       >
         {visibleSpans.map((span, index) => {
           const sail = sails.find(item => item.id === span.sailId);
+          const width = (fraction(span.endTime) - fraction(span.startTime)) * bandWidth;
           return (
-            <Pressable
-              key={`${span.startTime}-${span.endTime}-${index}`}
+            <View
+              key={`block-${index}-${span.startTime}`}
+              pointerEvents='none'
               className={cn(
-                'min-w-0 items-center justify-center border-r border-background/40 px-1',
-                span.sailId === null && 'bg-muted',
-                selectedIndex === index && 'border-2 border-foreground',
+                'absolute bottom-0 top-0 items-center justify-center',
+                span.gap === true && 'bg-foreground/15',
               )}
               style={{
-                flex: Math.max(1, span.endTime - span.startTime),
+                left: `${fraction(span.startTime) * 100}%`,
+                width: `${(fraction(span.endTime) - fraction(span.startTime)) * 100}%`,
                 backgroundColor: sail?.color || undefined,
               }}
+            >
+              {width >= LABEL_MIN_WIDTH_PX && (
+                <View className={cn('max-w-full rounded px-1', sail && 'bg-background/80')}>
+                  <Text className='text-xs font-semibold' numberOfLines={1}>
+                    {span.gap === true ? 'No data' : sail?.name ?? ''}
+                  </Text>
+                </View>
+              )}
+            </View>
+          );
+        })}
+        {visibleSpans.slice(1).map((span, index) => {
+          const fixed = !isEditable(visibleSpans[index]) || !isEditable(span);
+          return fixed ? (
+            <View
+              key={`seam-${span.startTime}`}
+              pointerEvents='none'
+              className='absolute bottom-0 top-0 w-0.5 bg-foreground/50'
+              style={{ left: `${fraction(span.startTime) * 100}%` }}
+            />
+          ) : (
+            <View
+              key={`handle-${span.startTime}`}
+              pointerEvents='none'
+              className='absolute items-center justify-center rounded-full border-2 border-background bg-foreground'
+              style={{
+                left: `${fraction(span.startTime) * 100}%`,
+                top: (BAND_HEIGHT - 28) / 2,
+                height: 28,
+                width: HANDLE_WIDTH,
+                marginLeft: -HANDLE_WIDTH / 2,
+              }}
+            />
+          );
+        })}
+      </View>
+
+      <ScrollView
+        horizontal
+        showsHorizontalScrollIndicator={false}
+        contentContainerStyle={{ gap: 6 }}
+      >
+        {visibleSpans.map((span, index) => {
+          const sail = sails.find(item => item.id === span.sailId);
+          const label = span.gap === true
+            ? 'No data'
+            : `${sail ? `${sail.name} ` : ''}${formatCaptureDuration(span.endTime - span.startTime)}`;
+          return (
+            <Pressable
+              key={`strip-${index}-${span.startTime}`}
+              disabled={span.gap === true}
+              className={cn(
+                'flex-row items-center gap-1.5 rounded-lg border border-border px-2 py-1.5',
+                span.gap === true && 'opacity-50',
+                selectedIndex === index && 'border-foreground bg-secondary',
+              )}
               onPress={() => setSelectedIndex(index)}
               accessibilityRole='button'
               accessibilityState={{ selected: selectedIndex === index }}
-              accessibilityLabel={`${sail?.name ?? 'Not used'} block, ${formatCaptureDuration(span.endTime - span.startTime)}`}
+              accessibilityLabel={`Block ${index + 1}, ${label}`}
             >
-              <View className={cn('max-w-full rounded px-1', sail && 'bg-background/80')}>
-                <Text className='text-xs font-semibold' numberOfLines={1}>
-                  {sail?.name ?? 'Not used'}
-                </Text>
-              </View>
+              <Muted className='text-xs'>{index + 1}</Muted>
+              {sail && (
+                <View
+                  className='h-2.5 w-2.5 rounded-full'
+                  style={{ backgroundColor: sail.color }}
+                />
+              )}
+              <Text className='text-xs font-medium'>{label}</Text>
             </Pressable>
           );
         })}
-        {visibleSpans.slice(1).map(span => (
-          <View
-            key={span.startTime}
-            pointerEvents='none'
-            className='absolute bottom-0 top-0 w-1 bg-foreground'
-            style={{ left: `${((span.startTime - startTime) / duration) * 100}%` }}
-          />
-        ))}
-      </View>
-      <Muted>Drag the band to move the nearest divider. Tap a block to edit it.</Muted>
-      {tooShortBlocks.length > 0 && (
+      </ScrollView>
+
+      <Muted>Drag a handle to move a divider. Tap a block to edit it.</Muted>
+      {shortBlocks.length > 0 && (
         <Text className='text-sm text-destructive'>
-          {`Block${tooShortBlocks.length === 1 ? '' : 's'} ${tooShortBlocks.join(', ')} ${tooShortBlocks.length === 1 ? 'is' : 'are'} too short to hold a 15 second polar bin.`}
+          {`Block${shortBlocks.length === 1 ? '' : 's'} ${shortBlocks.join(', ')} ${shortBlocks.length === 1 ? 'carries a sail but is' : 'carry sails but are'} too short to hold a 15 second polar bin.`}
         </Text>
       )}
 
       <View className='gap-3 rounded-xl border border-border p-3'>
         <View className='flex-row items-center justify-between gap-2'>
           <Text className='font-semibold'>
-            {selectedSail?.name ?? 'Not used'} · {formatCaptureDuration(selected.endTime - selected.startTime)}
+            {selectedSail?.name ?? 'No sail'} · {formatCaptureDuration(selectedDuration)}
           </Text>
           <Muted>Block {selectedIndex + 1} of {visibleSpans.length}</Muted>
         </View>
 
-        {!canSpanHoldBin(selected) && (
+        {spanFallsShortOfBin(selected) && (
           <Text className='text-sm text-destructive'>
             Too short to hold a 15 second polar bin. This block will not contribute a point.
           </Text>
         )}
 
-        <View className='flex-row flex-wrap gap-2'>
+        <View className='flex-row gap-2'>
+          <Button
+            className='flex-1 flex-row items-center justify-start gap-2'
+            size='sm'
+            variant='outline'
+            onPress={() => setSheetOpen(true)}
+            accessibilityLabel='Choose the sail for this block'
+          >
+            {selectedSail && (
+              <View
+                className='h-3 w-3 rounded-full'
+                style={{ backgroundColor: selectedSail.color }}
+              />
+            )}
+            <Text className='flex-1'>{selectedSail?.name ?? 'No sail'}</Text>
+            <ChevronDown className='text-muted-foreground' size={16} />
+          </Button>
           <Button
             size='sm'
             variant={selected.sailId === null ? 'secondary' : 'outline'}
             onPress={() => onChange(assignSpanSail(visibleSpans, selectedIndex, null))}
           >
-            <Text>Not used</Text>
+            <Text>No sail</Text>
           </Button>
-          {sails.map(sail => (
-            <Button
-              key={sail.id}
-              size='sm'
-              variant={selected.sailId === sail.id ? 'secondary' : 'outline'}
-              onPress={() => onChange(assignSpanSail(visibleSpans, selectedIndex, sail.id))}
-            >
-              <View className='mr-2 h-3 w-3 rounded-full' style={{ backgroundColor: sail.color }} />
-              <Text>{sail.name}</Text>
-            </Button>
-          ))}
         </View>
 
         {(['start', 'end'] as const).map(edge => {
-          const disabled = edge === 'start'
-            ? selectedIndex === 0
-            : selectedIndex === visibleSpans.length - 1;
+          const label = edge === 'start' ? 'Start' : 'End';
+          const neighbour = visibleSpans[selectedIndex + (edge === 'start' ? -1 : 1)];
+          // Four dead buttons refuse without saying why; the boundary itself is
+          // the explanation.
+          if (!isEditable(neighbour)) {
+            return (
+              <Muted key={edge} className='py-1.5 text-center text-sm'>
+                {label} · {neighbour === undefined ? `leg ${edge}` : 'data gap'}
+              </Muted>
+            );
+          }
+          const nudge = (step: number) => (
+            <Button
+              key={step}
+              className='flex-1 px-1'
+              size='sm'
+              variant='outline'
+              onPress={() => onChange(nudgeSpanEdge(visibleSpans, selectedIndex, edge, step))}
+              accessibilityLabel={`${edge} ${stepLabel(step)}`}
+            >
+              <Text className='text-sm'>{stepLabel(step)}</Text>
+            </Button>
+          );
           return (
             <View key={edge} className='flex-row items-center gap-1'>
-              <Muted className='w-10 capitalize'>{edge}</Muted>
-              {NUDGE_STEPS_MS.map(step => (
-                <Button
-                  key={step}
-                  className='flex-1 px-1'
-                  size='sm'
-                  variant='outline'
-                  disabled={disabled}
-                  onPress={() => onChange(nudgeSpanEdge(visibleSpans, selectedIndex, edge, step))}
-                  accessibilityLabel={`${edge} ${stepLabel(step)}`}
-                >
-                  <Text className='text-sm'>{stepLabel(step)}</Text>
-                </Button>
-              ))}
+              {NUDGE_STEPS_MS.filter(step => step < 0).map(nudge)}
+              <Muted className='w-12 text-center text-sm'>{label}</Muted>
+              {NUDGE_STEPS_MS.filter(step => step > 0).map(nudge)}
             </View>
           );
         })}
@@ -205,11 +359,7 @@ export function SailSpanEditor({ spans, sails, onChange }: SailSpanEditorProps) 
             size='sm'
             variant='outline'
             disabled={!canSplit}
-            onPress={() => {
-              const next = splitSpan(visibleSpans, selectedIndex);
-              onChange(next);
-              if (next !== visibleSpans) setSelectedIndex(selectedIndex + 1);
-            }}
+            onPress={() => edit(splitSpan(visibleSpans, selectedIndex), selectedIndex + 1)}
           >
             <Text>Split block</Text>
           </Button>
@@ -217,19 +367,40 @@ export function SailSpanEditor({ spans, sails, onChange }: SailSpanEditorProps) 
             className='flex-1'
             size='sm'
             variant='outline'
-            disabled={visibleSpans.length < 2}
-            onPress={() => {
-              onChange(removeSpan(visibleSpans, selectedIndex));
-              setSelectedIndex(Math.max(0, selectedIndex - 1));
-            }}
+            disabled={!canMergeLeft}
+            onPress={() => edit(mergeSpan(visibleSpans, selectedIndex, 'left'), selectedIndex - 1)}
           >
-            <Text>Delete divider</Text>
+            <Text>Merge left</Text>
+          </Button>
+          <Button
+            className='flex-1'
+            size='sm'
+            variant='outline'
+            disabled={!canMergeRight}
+            onPress={() => edit(mergeSpan(visibleSpans, selectedIndex, 'right'), selectedIndex)}
+          >
+            <Text>Merge right</Text>
           </Button>
         </View>
-        {!canSplit && (
-          <Muted>A block needs at least 30 seconds to split into two 15 second halves.</Muted>
-        )}
+        <Muted>
+          {canSplit
+            ? `Split cuts at the midpoint, ${formatCaptureDuration(splitTime(selected) - startTime)} into the leg, leaving two blocks of ${formatCaptureDuration(selectedDuration / 2)}.`
+            : 'A block needs at least 30 seconds to split into two 15 second halves.'}
+        </Muted>
       </View>
+
+      <SailPickerSheet
+        open={sheetOpen}
+        sails={sails}
+        heading='Which sail was flying?'
+        subtitle='This attributes the whole block, not one instant.'
+        emptyMessage='Add a sail before attributing blocks.'
+        onClose={() => setSheetOpen(false)}
+        onSelect={sail => {
+          onChange(assignSpanSail(visibleSpans, selectedIndex, sail.id));
+          setSheetOpen(false);
+        }}
+      />
     </View>
   );
 }
