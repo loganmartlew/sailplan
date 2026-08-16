@@ -14,6 +14,7 @@ import {
   assignSpanSail,
   type EditableSailSpan,
   findNearestDivider,
+  isEditableSpan,
   mergeSpan,
   MIN_SPAN_DURATION_MS,
   moveDivider,
@@ -22,7 +23,7 @@ import {
   splitSpan,
   splitTime,
 } from '../util/spanEditing';
-import type { TraceSample } from '../util/traceGeometry';
+import { axisFraction, type TraceSample } from '../util/traceGeometry';
 import { formatCaptureDuration } from '../util/formatCaptureDuration';
 import { SailPickerSheet } from './SailPickerSheet';
 import { SpanTrace } from './SpanTrace';
@@ -46,10 +47,6 @@ function stepLabel(stepMs: number): string {
   return `${stepMs > 0 ? '+' : '−'}${Math.abs(stepMs) / 1_000}s`;
 }
 
-function isEditable(span: EditableSailSpan | undefined): span is EditableSailSpan {
-  return span !== undefined && span.gap !== true;
-}
-
 /** The nearest block that can be selected — a no-data block never can. */
 function nearestEditableIndex(
   spans: readonly EditableSailSpan[],
@@ -57,7 +54,7 @@ function nearestEditableIndex(
 ): number {
   for (let offset = 0; offset < spans.length; offset += 1) {
     for (const index of [wanted - offset, wanted + offset]) {
-      if (isEditable(spans[index])) return index;
+      if (isEditableSpan(spans[index])) return index;
     }
   }
   return 0;
@@ -87,12 +84,12 @@ export function SailSpanEditor({ spans, sails, samples, onChange }: SailSpanEdit
 
   const visibleSpans = dragPreview ?? spans;
   const selected = visibleSpans[selectedIndex];
-  if (!isEditable(selected)) return null;
+  if (!isEditableSpan(selected)) return null;
 
   const startTime = visibleSpans[0].startTime;
   const endTime = visibleSpans.at(-1)!.endTime;
   const duration = Math.max(1, endTime - startTime);
-  const fraction = (time: number) => (time - startTime) / duration;
+  const fraction = (time: number) => axisFraction(startTime, endTime, time);
 
   // `locationX` is relative to whichever view received the touch, so it is only
   // safe when that view is the band itself. Measuring the band's page-space
@@ -149,7 +146,7 @@ export function SailSpanEditor({ spans, sails, samples, onChange }: SailSpanEdit
     measureBand();
   };
 
-  const edit = (next: readonly EditableSailSpan[], nextIndex = selectedIndex) => {
+  const applyEdit = (next: readonly EditableSailSpan[], nextIndex = selectedIndex) => {
     onChange(next);
     setSelectedIndex(
       nearestEditableIndex(next, Math.max(0, Math.min(nextIndex, next.length - 1))),
@@ -159,22 +156,24 @@ export function SailSpanEditor({ spans, sails, samples, onChange }: SailSpanEdit
   const selectedSail = sails.find(sail => sail.id === selected.sailId);
   const selectedDuration = selected.endTime - selected.startTime;
   const canSplit = selectedDuration >= MIN_SPAN_DURATION_MS * 2;
-  const canMergeLeft = isEditable(visibleSpans[selectedIndex - 1]);
-  const canMergeRight = isEditable(visibleSpans[selectedIndex + 1]);
+  const canMergeLeft = isEditableSpan(visibleSpans[selectedIndex - 1]);
+  const canMergeRight = isEditableSpan(visibleSpans[selectedIndex + 1]);
   const shortBlocks = visibleSpans.flatMap((span, index) =>
     spanFallsShortOfBin(span) ? [index + 1] : [],
   );
 
   return (
     <View className='gap-2'>
-      <View onLayout={onBandLayout}>
-        <SpanTrace spans={visibleSpans} samples={samples} width={bandWidth} />
-      </View>
+      {/* The trace draws at the band's own measured width: they are one axis,
+          and a divider a few pixels off the dip that justifies it is most of
+          the trace's value gone. */}
+      <SpanTrace spans={visibleSpans} samples={samples} width={bandWidth} />
 
       <View
         ref={band}
         style={{ height: BAND_HEIGHT }}
-        className='overflow-hidden rounded-xl border border-border bg-muted'
+        className='overflow-hidden rounded-xl bg-muted'
+        onLayout={onBandLayout}
         onStartShouldSetResponder={rememberTouch}
         onMoveShouldSetResponder={claimHorizontalDrag}
         onResponderGrant={beginDrag}
@@ -211,7 +210,7 @@ export function SailSpanEditor({ spans, sails, samples, onChange }: SailSpanEdit
           );
         })}
         {visibleSpans.slice(1).map((span, index) => {
-          const fixed = !isEditable(visibleSpans[index]) || !isEditable(span);
+          const fixed = !isEditableSpan(visibleSpans[index]) || !isEditableSpan(span);
           return fixed ? (
             <View
               key={`seam-${span.startTime}`}
@@ -273,7 +272,7 @@ export function SailSpanEditor({ spans, sails, samples, onChange }: SailSpanEdit
         })}
       </ScrollView>
 
-      <Muted>Drag a handle to move a divider. Tap a block to edit it.</Muted>
+      <Muted>Drag a handle to move a divider. Tap a numbered block to edit it.</Muted>
       {shortBlocks.length > 0 && (
         <Text className='text-sm text-destructive'>
           {`Block${shortBlocks.length === 1 ? '' : 's'} ${shortBlocks.join(', ')} ${shortBlocks.length === 1 ? 'carries a sail but is' : 'carry sails but are'} too short to hold a 15 second polar bin.`}
@@ -287,12 +286,6 @@ export function SailSpanEditor({ spans, sails, samples, onChange }: SailSpanEdit
           </Text>
           <Muted>Block {selectedIndex + 1} of {visibleSpans.length}</Muted>
         </View>
-
-        {spanFallsShortOfBin(selected) && (
-          <Text className='text-sm text-destructive'>
-            Too short to hold a 15 second polar bin. This block will not contribute a point.
-          </Text>
-        )}
 
         <View className='flex-row gap-2'>
           <Button
@@ -325,10 +318,10 @@ export function SailSpanEditor({ spans, sails, samples, onChange }: SailSpanEdit
           const neighbour = visibleSpans[selectedIndex + (edge === 'start' ? -1 : 1)];
           // Four dead buttons refuse without saying why; the boundary itself is
           // the explanation.
-          if (!isEditable(neighbour)) {
+          if (!isEditableSpan(neighbour)) {
             return (
               <Muted key={edge} className='py-1.5 text-center text-sm'>
-                {label} · {neighbour === undefined ? `leg ${edge}` : 'data gap'}
+                {neighbour === undefined ? `leg ${edge}` : 'data gap'}
               </Muted>
             );
           }
@@ -359,7 +352,7 @@ export function SailSpanEditor({ spans, sails, samples, onChange }: SailSpanEdit
             size='sm'
             variant='outline'
             disabled={!canSplit}
-            onPress={() => edit(splitSpan(visibleSpans, selectedIndex), selectedIndex + 1)}
+            onPress={() => applyEdit(splitSpan(visibleSpans, selectedIndex), selectedIndex + 1)}
           >
             <Text>Split block</Text>
           </Button>
@@ -368,7 +361,7 @@ export function SailSpanEditor({ spans, sails, samples, onChange }: SailSpanEdit
             size='sm'
             variant='outline'
             disabled={!canMergeLeft}
-            onPress={() => edit(mergeSpan(visibleSpans, selectedIndex, 'left'), selectedIndex - 1)}
+            onPress={() => applyEdit(mergeSpan(visibleSpans, selectedIndex, 'left'), selectedIndex - 1)}
           >
             <Text>Merge left</Text>
           </Button>
@@ -377,14 +370,14 @@ export function SailSpanEditor({ spans, sails, samples, onChange }: SailSpanEdit
             size='sm'
             variant='outline'
             disabled={!canMergeRight}
-            onPress={() => edit(mergeSpan(visibleSpans, selectedIndex, 'right'), selectedIndex)}
+            onPress={() => applyEdit(mergeSpan(visibleSpans, selectedIndex, 'right'), selectedIndex)}
           >
             <Text>Merge right</Text>
           </Button>
         </View>
         <Muted>
           {canSplit
-            ? `Split cuts at the midpoint, ${formatCaptureDuration(splitTime(selected) - startTime)} into the leg, leaving two blocks of ${formatCaptureDuration(selectedDuration / 2)}.`
+            ? `Split cuts at the block's midpoint, ${formatCaptureDuration(splitTime(selected) - startTime)} into the leg.`
             : 'A block needs at least 30 seconds to split into two 15 second halves.'}
         </Muted>
       </View>
@@ -393,6 +386,7 @@ export function SailSpanEditor({ spans, sails, samples, onChange }: SailSpanEdit
         open={sheetOpen}
         sails={sails}
         heading='Which sail was flying?'
+        action='Attribute this block to'
         subtitle='This attributes the whole block, not one instant.'
         emptyMessage='Add a sail before attributing blocks.'
         onClose={() => setSheetOpen(false)}

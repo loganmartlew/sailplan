@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { Pressable, View } from 'react-native';
 import { Button, Text } from '~/components/ui';
-import { useSails, type Sail } from '~/features/sail';
+import { useSails } from '~/features/sail';
 import { CircleSmall, Plus } from '~/lib/icons';
 import { cn } from '~/lib/utils';
 import { createSailStamp, deleteSailStamp } from '../api/sailStamp';
@@ -15,7 +15,7 @@ import {
   useCaptureRecordingStore,
   type CaptureStampHistory,
 } from '../store/captureRecordingStore';
-import { SailPickerSheet } from './SailPickerSheet';
+import { SailPickerSheet, type PickableSail } from './SailPickerSheet';
 // Throwaway, ticket `07`.
 import { recordCaptureTimerTick } from '../util/captureDiagnostics';
 
@@ -103,7 +103,7 @@ export function CaptureRecordingBar() {
     return <CaptureFailureBanner message={failure} onDismiss={dismissFailure} />;
   }
 
-  const stampSail = async (sail: Sail) => {
+  const stampSail = async (sail: PickableSail) => {
     if (isStamping) return;
     setIsStamping(true);
     try {
@@ -265,6 +265,7 @@ export function CaptureRecordingBar() {
         open={sheetOpen}
         sails={sailsQuery?.data ?? []}
         heading='Stamp the sail that is up'
+        action='Stamp'
         subtitle='This records one instant only. It does not stay in force.'
         emptyMessage='Add a sail before recording stamps.'
         disabled={isStamping}

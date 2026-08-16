@@ -10,31 +10,36 @@ import type { Sail } from '~/features/sail';
 
 export type PickableSail = Pick<Sail, 'id' | 'name' | 'color'>;
 
+interface SailPickerSheetProps {
+  open: boolean;
+  sails: readonly PickableSail[];
+  heading: string;
+  subtitle: string;
+  /** Verb the tiles announce, so a screen reader says what tapping does. */
+  action: string;
+  emptyMessage: string;
+  disabled?: boolean;
+  onClose: () => void;
+  onSelect: (sail: PickableSail) => void;
+}
+
 /**
  * Thumb-sized, colour-filled sail tiles. Shared by the two places the app asks
  * which sail was up: stamping on the recording bar ("this instant only") and
  * attributing a block in review ("this block"), which differ only in what they
  * are claiming — hence the heading and subtitle being props.
  */
-export function SailPickerSheet<TSail extends PickableSail>({
+export function SailPickerSheet({
   open,
   sails,
   heading,
   subtitle,
+  action,
   emptyMessage,
   disabled = false,
   onClose,
   onSelect,
-}: {
-  open: boolean;
-  sails: readonly TSail[];
-  heading: string;
-  subtitle: string;
-  emptyMessage: string;
-  disabled?: boolean;
-  onClose: () => void;
-  onSelect: (sail: TSail) => void;
-}) {
+}: SailPickerSheetProps) {
   const stopPropagation = (event: GestureResponderEvent) =>
     event.stopPropagation();
 
@@ -77,7 +82,7 @@ export function SailPickerSheet<TSail extends PickableSail>({
                 disabled={disabled}
                 onPress={() => onSelect(item)}
                 accessibilityRole='button'
-                accessibilityLabel={item.name}
+                accessibilityLabel={`${action} ${item.name}`}
               >
                 <View className='flex-1 items-center justify-center bg-black/25 px-2'>
                   <Text className='text-center text-xl font-bold text-white'>

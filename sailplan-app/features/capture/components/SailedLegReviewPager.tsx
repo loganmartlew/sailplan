@@ -94,23 +94,14 @@ export function SailedLegReviewPager({ sessionId }: { sessionId: number }) {
   const legSamples = useMemo(
     () => presentation
       ? samples.data.filter(sample =>
-          sample.timestamp >= presentation[0].startTime &&
-          sample.timestamp <= presentation.at(-1)!.endTime,
+          presentation.some(part =>
+            sample.timestamp >= part.startTime && sample.timestamp < part.endTime,
+          ),
         )
       : [],
     [presentation, samples.data],
   );
-
-  const sampleCount = useMemo(
-    () => presentation
-      ? samples.data.filter(sample =>
-          presentation.some(part =>
-            sample.timestamp >= part.startTime && sample.timestamp < part.endTime,
-          ),
-        ).length
-      : 0,
-    [presentation, samples.data],
-  );
+  const sampleCount = legSamples.length;
 
   if (legs.updatedAt === undefined || samples.updatedAt === undefined) {
     return <Muted>Preparing sailed legs…</Muted>;

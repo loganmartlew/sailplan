@@ -9,6 +9,20 @@ export interface TraceSample {
   stw: number | null;
 }
 
+/**
+ * Where a time sits on the leg's axis, 0–1. The trace and the band are
+ * contractually the same axis — a divider drawn anywhere but under the dip
+ * that justifies it is most of the trace's value gone — so both project
+ * through here.
+ */
+export function axisFraction(
+  startTime: number,
+  endTime: number,
+  time: number,
+): number {
+  return (time - startTime) / Math.max(1, endTime - startTime);
+}
+
 export interface TraceBox {
   startTime: number;
   endTime: number;
@@ -29,7 +43,6 @@ export function buildTracePath(
   samples: readonly TraceSample[],
   box: TraceBox,
 ): { d: string; topSpeed: number } {
-  const duration = Math.max(1, box.endTime - box.startTime);
   const inRange = samples.filter(
     sample => sample.timestamp >= box.startTime && sample.timestamp <= box.endTime,
   );
@@ -50,7 +63,7 @@ export function buildTracePath(
       pen = false;
       continue;
     }
-    const x = ((sample.timestamp - box.startTime) / duration) * box.width;
+    const x = axisFraction(box.startTime, box.endTime, sample.timestamp) * box.width;
     const y = box.height - (sample.stw / topSpeed) * box.height;
     d += `${pen ? 'L' : 'M'}${x.toFixed(1)} ${y.toFixed(1)}`;
     pen = true;

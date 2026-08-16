@@ -12,8 +12,15 @@ export interface EditableSailSpan {
 
 export const MIN_SPAN_DURATION_MS = 15_000;
 
+/** Every edit and every selection asks this: a no-data block answers no. */
+export function isEditableSpan(
+  span: EditableSailSpan | undefined,
+): span is EditableSailSpan {
+  return span !== undefined && span.gap !== true;
+}
+
 function isFixed(span: EditableSailSpan | undefined): boolean {
-  return span === undefined || span.gap === true;
+  return !isEditableSpan(span);
 }
 
 /**
