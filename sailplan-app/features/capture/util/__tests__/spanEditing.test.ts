@@ -1,11 +1,11 @@
 import {
   assignSpanSail,
-  canSpanHoldBin,
   deleteDivider,
   findNearestDivider,
+  mergeSpan,
   moveDivider,
   nudgeSpanEdge,
-  removeSpan,
+  spanFallsShortOfBin,
   splitSpan,
 } from '../spanEditing';
 
@@ -29,6 +29,12 @@ describe('splitSpan', () => {
 
     expect(splitSpan(spans, 0)).toBe(spans);
   });
+
+  it('refuses to split a no-data block', () => {
+    const spans = [{ startTime: 0, endTime: 90 * SECOND, sailId: null, gap: true }];
+
+    expect(splitSpan(spans, 0)).toBe(spans);
+  });
 });
 
 describe('findNearestDivider', () => {
@@ -42,21 +48,40 @@ describe('findNearestDivider', () => {
     expect(findNearestDivider(spans, 12 * SECOND)).toBe(1);
     expect(findNearestDivider(spans, 52 * SECOND)).toBe(2);
   });
+
+  it('never offers a divider that bounds a no-data block', () => {
+    const spans = [
+      { startTime: 0, endTime: 20 * SECOND, sailId: 7 },
+      { startTime: 20 * SECOND, endTime: 60 * SECOND, sailId: null, gap: true },
+      { startTime: 60 * SECOND, endTime: 90 * SECOND, sailId: null },
+      { startTime: 90 * SECOND, endTime: 120 * SECOND, sailId: 8 },
+    ];
+
+    expect(findNearestDivider(spans, 21 * SECOND)).toBe(3);
+    expect(findNearestDivider(spans.slice(0, 2), 21 * SECOND)).toBeNull();
+  });
 });
 
-describe('canSpanHoldBin', () => {
-  it('identifies a block shorter than the 15 second bin window', () => {
-    expect(canSpanHoldBin({ startTime: 0, endTime: 14_999, sailId: 7 })).toBe(false);
-    expect(canSpanHoldBin({ startTime: 0, endTime: 15_000, sailId: 7 })).toBe(true);
+describe('spanFallsShortOfBin', () => {
+  it('warns only about a block carrying a sail — a trim is meant to be short', () => {
+    expect(spanFallsShortOfBin({ startTime: 0, endTime: 14_999, sailId: 7 })).toBe(true);
+    expect(spanFallsShortOfBin({ startTime: 0, endTime: 15_000, sailId: 7 })).toBe(false);
+    expect(spanFallsShortOfBin({ startTime: 0, endTime: 6_000, sailId: null })).toBe(false);
   });
 });
 
 describe('assignSpanSail', () => {
-  it('uses the same block interaction for a sail and not used', () => {
+  it('uses the same block interaction for a sail and no sail', () => {
     const spans = [{ startTime: 0, endTime: 30 * SECOND, sailId: null }];
 
     expect(assignSpanSail(spans, 0, 7)[0].sailId).toBe(7);
     expect(assignSpanSail(spans, 0, null)[0].sailId).toBeNull();
+  });
+
+  it('refuses to put a sail on a no-data block', () => {
+    const spans = [{ startTime: 0, endTime: 30 * SECOND, sailId: null, gap: true }];
+
+    expect(assignSpanSail(spans, 0, 7)).toBe(spans);
   });
 });
 
@@ -73,16 +98,43 @@ describe('deleteDivider', () => {
   });
 });
 
-describe('removeSpan', () => {
-  it('can remove the first block by retaining the block to its right', () => {
-    expect(removeSpan([
-      { startTime: 0, endTime: 20 * SECOND, sailId: null },
-      { startTime: 20 * SECOND, endTime: 60 * SECOND, sailId: 7 },
-      { startTime: 60 * SECOND, endTime: 90 * SECOND, sailId: null },
-    ], 0)).toEqual([
-      { startTime: 0, endTime: 60 * SECOND, sailId: 7 },
-      { startTime: 60 * SECOND, endTime: 90 * SECOND, sailId: null },
+describe('mergeSpan', () => {
+  const spans = [
+    { startTime: 0, endTime: 30 * SECOND, sailId: 7 },
+    { startTime: 30 * SECOND, endTime: 50 * SECOND, sailId: null },
+    { startTime: 50 * SECOND, endTime: 90 * SECOND, sailId: 8 },
+  ];
+
+  it('gives a merged block the time of both and the sail of the absorbing neighbour', () => {
+    expect(mergeSpan(spans, 1, 'left')).toEqual([
+      { startTime: 0, endTime: 50 * SECOND, sailId: 7 },
+      { startTime: 50 * SECOND, endTime: 90 * SECOND, sailId: 8 },
     ]);
+    expect(mergeSpan(spans, 1, 'right')).toEqual([
+      { startTime: 0, endTime: 30 * SECOND, sailId: 7 },
+      { startTime: 30 * SECOND, endTime: 90 * SECOND, sailId: 8 },
+    ]);
+  });
+
+  it('can remove the first block, which merge-into-previous alone could not', () => {
+    expect(mergeSpan(spans, 0, 'right')).toEqual([
+      { startTime: 0, endTime: 50 * SECOND, sailId: null },
+      { startTime: 50 * SECOND, endTime: 90 * SECOND, sailId: 8 },
+    ]);
+    expect(mergeSpan(spans, 0, 'left')).toBe(spans);
+    expect(mergeSpan(spans, 2, 'right')).toBe(spans);
+  });
+
+  it('never merges through a no-data block', () => {
+    const gapped = [
+      { startTime: 0, endTime: 30 * SECOND, sailId: 7 },
+      { startTime: 30 * SECOND, endTime: 50 * SECOND, sailId: null, gap: true },
+      { startTime: 50 * SECOND, endTime: 90 * SECOND, sailId: 8 },
+    ];
+
+    expect(mergeSpan(gapped, 0, 'right')).toBe(gapped);
+    expect(mergeSpan(gapped, 2, 'left')).toBe(gapped);
+    expect(mergeSpan(gapped, 1, 'left')).toBe(gapped);
   });
 });
 
@@ -139,5 +191,16 @@ describe('moveDivider', () => {
       { startTime: 0, endTime: 85 * SECOND, sailId: 7 },
       { startTime: 85 * SECOND, endTime: 100 * SECOND, sailId: null },
     ]);
+  });
+
+  it('holds the edges of a no-data block fixed', () => {
+    const gapped = [
+      { startTime: 0, endTime: 40 * SECOND, sailId: 7 },
+      { startTime: 40 * SECOND, endTime: 80 * SECOND, sailId: null, gap: true },
+      { startTime: 80 * SECOND, endTime: 120 * SECOND, sailId: 8 },
+    ];
+
+    expect(moveDivider(gapped, 1, 55 * SECOND)).toBe(gapped);
+    expect(moveDivider(gapped, 2, 95 * SECOND)).toBe(gapped);
   });
 });

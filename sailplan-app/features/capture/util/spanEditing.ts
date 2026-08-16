@@ -2,22 +2,41 @@ export interface EditableSailSpan {
   startTime: number;
   endTime: number;
   sailId: number | null;
+  /**
+   * A stretch between two stored parts of one leg that no data covers. It is
+   * shown so the leg reads as one row of blocks, and is fixed: never selected,
+   * moved, split, assigned a sail, or merged through.
+   */
+  gap?: boolean;
 }
 
 export const MIN_SPAN_DURATION_MS = 15_000;
 
-export function canSpanHoldBin(span: EditableSailSpan): boolean {
-  return span.endTime - span.startTime >= MIN_SPAN_DURATION_MS;
+function isFixed(span: EditableSailSpan | undefined): boolean {
+  return span === undefined || span.gap === true;
+}
+
+/**
+ * A block carrying no sail is *expected* to be short — a trim is what the head
+ * and tail guards are for, and a cut is meant to be small. Only a block the
+ * sailor put a sail on can disappoint by contributing no polar point.
+ */
+export function spanFallsShortOfBin(span: EditableSailSpan): boolean {
+  return (
+    span.gap !== true &&
+    span.sailId !== null &&
+    span.endTime - span.startTime < MIN_SPAN_DURATION_MS
+  );
 }
 
 export function findNearestDivider(
   spans: readonly EditableSailSpan[],
   targetTime: number,
 ): number | null {
-  if (spans.length < 2) return null;
-  let nearestIndex = 1;
-  let nearestDistance = Math.abs(spans[1].startTime - targetTime);
-  for (let index = 2; index < spans.length; index += 1) {
+  let nearestIndex: number | null = null;
+  let nearestDistance = Number.POSITIVE_INFINITY;
+  for (let index = 1; index < spans.length; index += 1) {
+    if (isFixed(spans[index - 1]) || isFixed(spans[index])) continue;
     const distance = Math.abs(spans[index].startTime - targetTime);
     if (distance < nearestDistance) {
       nearestIndex = index;
@@ -32,7 +51,7 @@ export function assignSpanSail(
   spanIndex: number,
   sailId: number | null,
 ): readonly EditableSailSpan[] {
-  if (!spans[spanIndex]) return spans;
+  if (isFixed(spans[spanIndex])) return spans;
   return spans.map((span, index) => index === spanIndex ? { ...span, sailId } : span);
 }
 
@@ -43,7 +62,7 @@ export function moveDivider(
 ): readonly EditableSailSpan[] {
   const left = spans[dividerIndex - 1];
   const right = spans[dividerIndex];
-  if (!left || !right) return spans;
+  if (isFixed(left) || isFixed(right)) return spans;
 
   const currentTime = right.startTime;
   const earliestTime = Math.min(
@@ -84,7 +103,7 @@ export function deleteDivider(
 ): readonly EditableSailSpan[] {
   const left = spans[dividerIndex - 1];
   const right = spans[dividerIndex];
-  if (!left || !right) return spans;
+  if (isFixed(left) || isFixed(right)) return spans;
 
   return [
     ...spans.slice(0, dividerIndex - 1),
@@ -93,18 +112,26 @@ export function deleteDivider(
   ];
 }
 
-export function removeSpan(
+/**
+ * Deleting the divider on one side of a block, named by the neighbour that
+ * absorbs it. Every block is removable — including the first, which a single
+ * "merge into previous" could never reach.
+ */
+export function mergeSpan(
   spans: readonly EditableSailSpan[],
   spanIndex: number,
+  direction: 'left' | 'right',
 ): readonly EditableSailSpan[] {
   const span = spans[spanIndex];
-  if (!span || spans.length < 2) return spans;
-  if (spanIndex > 0) return deleteDivider(spans, spanIndex);
+  if (isFixed(span)) return spans;
+  if (direction === 'left') return deleteDivider(spans, spanIndex);
 
-  const right = spans[1];
+  const right = spans[spanIndex + 1];
+  if (isFixed(right)) return spans;
   return [
+    ...spans.slice(0, spanIndex),
     { ...right, startTime: span.startTime },
-    ...spans.slice(2),
+    ...spans.slice(spanIndex + 2),
   ];
 }
 
@@ -113,15 +140,20 @@ export function splitSpan(
   spanIndex: number,
 ): readonly EditableSailSpan[] {
   const span = spans[spanIndex];
-  if (!span || span.endTime - span.startTime < MIN_SPAN_DURATION_MS * 2) {
+  if (isFixed(span) || span.endTime - span.startTime < MIN_SPAN_DURATION_MS * 2) {
     return spans;
   }
 
-  const dividerTime = Math.round((span.startTime + span.endTime) / 2);
+  const dividerTime = splitTime(span);
   return [
     ...spans.slice(0, spanIndex),
     { ...span, endTime: dividerTime },
     { ...span, startTime: dividerTime },
     ...spans.slice(spanIndex + 1),
   ];
+}
+
+/** Where `splitSpan` would cut — the midpoint, so the editor can say so. */
+export function splitTime(span: EditableSailSpan): number {
+  return Math.round((span.startTime + span.endTime) / 2);
 }
