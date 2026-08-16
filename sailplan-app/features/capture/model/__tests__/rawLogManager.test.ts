@@ -20,6 +20,7 @@ function session(
     resumeDismissedAt: null,
     rawLogPath,
     windFrame: null,
+    reviewMaterializedAt: null,
     healthCounters: '{}',
     notes: '',
   };

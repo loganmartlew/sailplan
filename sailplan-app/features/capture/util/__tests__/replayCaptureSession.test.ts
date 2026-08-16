@@ -21,6 +21,34 @@ const at = (monotonicElapsedMs: number, ...texts: string[]): TimedNmeaChunk => (
 const start = 1_700_000_000_000;
 
 describe('replayCaptureSession', () => {
+  it('returns sailed legs from the same replay entry point', () => {
+    const sentences = Array.from({ length: 600 }, (_, second) =>
+      at(
+        second * 1_000,
+        sentence(`WIMWV,${second < 300 ? '45.0' : '135.0'},T,12.0,N,A`),
+      ),
+    );
+
+    const result = replayCaptureSession({ sessionStartWallClock: start, sentences });
+
+    expect(result.sailedLegs).toHaveLength(2);
+    expect(result.sailedLegs.map(leg => leg.name)).toEqual(['Beat 1', 'Run 2']);
+  });
+
+  it('detects 20 sailed legs in the windward-leeward simulator race without splitting its tacks', () => {
+    // Compact deterministic fixture generated from scripts/wl-race.json; it
+    // retains the 1 Hz true-wind sentence and TAG timestamp from each second.
+    const result = replayCaptureSession({
+      sessionStartWallClock: start,
+      sentences: [fs.readFileSync(path.join(__dirname, 'fixtures/wl-race-true-wind.log'), 'utf8')],
+    });
+
+    expect(result.sailedLegs).toHaveLength(20);
+    expect(result.sailedLegs.map(leg => leg.name)).toEqual(
+      Array.from({ length: 20 }, (_, index) => `${index % 2 === 0 ? 'Beat' : 'Run'} ${index + 1}`),
+    );
+  }, 30_000);
+
   it('coalesces both anchor types into true 1 Hz measurement rows', () => {
     const result = replayCaptureSession({
       sessionStartWallClock: start,

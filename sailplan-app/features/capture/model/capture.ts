@@ -33,12 +33,13 @@ export const captureSessionSchema: z.ZodType<CaptureSession> = z.object({
   id: z.number(), boatProfileId: z.number(), name: z.string(), courseId: z.number().nullable(),
   startedAt: z.number(), endedAt: z.number().nullable(), status: captureSessionStatusSchema,
   resumeDismissedAt: z.number().nullable(), rawLogPath: z.string().nullable(), windFrame: windFrameSchema,
-  healthCounters: z.string(), notes: z.string(),
+  reviewMaterializedAt: z.number().nullable(), healthCounters: z.string(), notes: z.string(),
 });
 export const captureSessionInsertSchema: z.ZodType<CaptureSessionInsert> = z.object({
   boatProfileId: z.number(), name: z.string(), courseId: z.number().nullable(), startedAt: z.number(),
   endedAt: z.number().nullable(), status: captureSessionStatusSchema, resumeDismissedAt: z.number().nullable(),
-  rawLogPath: z.string().nullable(), windFrame: windFrameSchema, healthCounters: z.string(), notes: z.string(),
+  rawLogPath: z.string().nullable(), windFrame: windFrameSchema, reviewMaterializedAt: z.number().nullable(),
+  healthCounters: z.string(), notes: z.string(),
 });
 
 const nullableNumber = z.number().nullable();

@@ -2,6 +2,11 @@
 // Importing it explicitly is what keeps byte-length accounting working on
 // device, and matches what react-native-tcp-socket itself does.
 import { Buffer } from 'buffer';
+import {
+  detectSailedLegs,
+  type DetectedSailedLeg,
+  type SailedLegCourseMark,
+} from './sailedLegDetection';
 
 export type WindFrame =
   | 'water'
@@ -46,7 +51,7 @@ export type ReplayCaptureInput = {
   sessionStartWallClock: number;
   assumedSentencePeriodMs?: number;
   stamps?: readonly unknown[];
-  courseMarks?: readonly unknown[];
+  courseMarks?: readonly SailedLegCourseMark[];
   spanEdits?: readonly unknown[];
 };
 
@@ -54,6 +59,7 @@ export type ReplayCaptureResult = {
   samples: ReplayCaptureSample[];
   health: CaptureHealth;
   windFrame: WindFrame;
+  sailedLegs: DetectedSailedLeg[];
 };
 
 type FieldName = keyof Omit<ReplayCaptureSample, 'timestamp' | 'rawOffset'>;
@@ -496,5 +502,10 @@ export function replayCaptureSession(input: ReplayCaptureInput): ReplayCaptureRe
     }
   }
   parser.finish();
-  return { samples: parser.samples, health: parser.health, windFrame: classifyWindFrame(parser.samples) };
+  return {
+    samples: parser.samples,
+    health: parser.health,
+    windFrame: classifyWindFrame(parser.samples),
+    sailedLegs: detectSailedLegs(parser.samples, input.courseMarks),
+  };
 }

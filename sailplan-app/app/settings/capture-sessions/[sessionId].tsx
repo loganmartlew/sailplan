@@ -4,6 +4,7 @@ import { Badge, Card, CardContent, H2, H3, Muted, Text } from '~/components/ui';
 import { useBoatProfile } from '~/features/boatProfile';
 import {
   captureWindFrameLabel,
+  SailedLegReviewPager,
   formatCaptureDuration,
   formatCaptureWindRange,
   useCaptureInset,
@@ -80,15 +81,7 @@ export default function CaptureSessionScreen() {
           </CardContent>
         </Card>
       ) : (
-        <Card>
-          <CardContent className='gap-2 py-5'>
-            <H3>Ready to review</H3>
-            <Text>
-              This session has usable wind and boat-speed samples. Sailed-leg
-              review starts here.
-            </Text>
-          </CardContent>
-        </Card>
+        <SailedLegReviewPager sessionId={sessionId} />
       )}
 
       {session.warnsGroundWind && (

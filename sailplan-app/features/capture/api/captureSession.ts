@@ -95,6 +95,7 @@ export async function createActiveCaptureSession({
         resumeDismissedAt: null,
         rawLogPath: null,
         windFrame: null,
+        reviewMaterializedAt: null,
         healthCounters: '{}',
         notes: '',
       })

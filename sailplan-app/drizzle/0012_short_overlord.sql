@@ -1,0 +1,1 @@
+ALTER TABLE `captureSession` ADD `reviewMaterializedAt` integer;

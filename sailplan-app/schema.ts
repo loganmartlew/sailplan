@@ -167,6 +167,7 @@ export const captureSession = sqliteTable('captureSession', {
   resumeDismissedAt: integer('resumeDismissedAt'),
   rawLogPath: text('rawLogPath'),
   windFrame: text('windFrame', { enum: ['water', 'ground', 'instrument-corrected', 'unknown'] }),
+  reviewMaterializedAt: integer('reviewMaterializedAt'),
   healthCounters: text('healthCounters').notNull(),
   notes: text('notes').notNull(),
 });

@@ -16,6 +16,7 @@ function session(overrides: Partial<CaptureSession> = {}): CaptureSession {
     resumeDismissedAt: null,
     rawLogPath: null,
     windFrame: 'water',
+    reviewMaterializedAt: null,
     healthCounters: '{}',
     notes: '',
     ...overrides,

@@ -71,6 +71,7 @@ describe('capture recording store', () => {
         resumeDismissedAt: null,
         rawLogPath: 'file:///capture-42.nmea',
         windFrame: 'water',
+        reviewMaterializedAt: null,
         healthCounters: '{}',
         notes: '',
       },
