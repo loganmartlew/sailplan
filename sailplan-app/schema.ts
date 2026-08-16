@@ -1,5 +1,5 @@
-import { relations } from 'drizzle-orm';
-import { sqliteTable, text, integer, real } from 'drizzle-orm/sqlite-core';
+import { relations, sql } from 'drizzle-orm';
+import { check, sqliteTable, text, integer, real } from 'drizzle-orm/sqlite-core';
 
 export const boatProfile = sqliteTable('boatProfile', {
   id: integer('id').primaryKey(),
@@ -19,6 +19,7 @@ export const mark = sqliteTable('mark', {
 
 export const markRelations = relations(mark, ({ many }) => ({
   courseMarks: many(courseMark),
+  courseViaPoints: many(courseViaPoint),
 }));
 
 export const sail = sqliteTable('sail', {
@@ -107,16 +108,51 @@ export const courseMark = sqliteTable('courseMark', {
     .notNull()
     .references(() => mark.id),
   order: integer('order').notNull(),
-  direction: text('direction'),
+  direction: text('direction', { enum: ['port', 'starboard'] }),
+  note: text('note'),
 });
 
-export const courseMarkRelations = relations(courseMark, ({ one }) => ({
+export const courseMarkRelations = relations(courseMark, ({ one, many }) => ({
   course: one(course, {
     fields: [courseMark.courseId],
     references: [course.id],
   }),
   mark: one(mark, {
     fields: [courseMark.markId],
+    references: [mark.id],
+  }),
+  viaPoints: many(courseViaPoint),
+}));
+
+export const courseViaPoint = sqliteTable(
+  'courseViaPoint',
+  {
+    id: integer('id').primaryKey(),
+    legStartCourseMarkId: integer('legStartCourseMarkId')
+      .notNull()
+      .references(() => courseMark.id),
+    order: integer('order').notNull(),
+    markId: integer('markId').references(() => mark.id),
+    name: text('name'),
+    latitude: real('latitude'),
+    longitude: real('longitude'),
+    note: text('note'),
+  },
+  table => [
+    check(
+      'courseViaPoint_representation_check',
+      sql`(${table.markId} is not null and ${table.name} is null and ${table.latitude} is null and ${table.longitude} is null) or (${table.markId} is null and ${table.name} is not null and ${table.latitude} is not null and ${table.longitude} is not null)`,
+    ),
+  ],
+);
+
+export const courseViaPointRelations = relations(courseViaPoint, ({ one }) => ({
+  legStartCourseMark: one(courseMark, {
+    fields: [courseViaPoint.legStartCourseMarkId],
+    references: [courseMark.id],
+  }),
+  mark: one(mark, {
+    fields: [courseViaPoint.markId],
     references: [mark.id],
   }),
 }));

@@ -11,7 +11,6 @@ import {
   Label,
   Text,
 } from '~/components/ui';
-import { CourseMarkWithMark } from '~/features/course';
 import { TWA } from '~/features/coordinate';
 import {
   createSailPolar,
@@ -29,6 +28,7 @@ import {
   type SailSuggestionData,
 } from '~/features/sailSuggestion';
 import Color from 'color';
+import { PlanRoutePoint } from '../util/planRoute';
 
 function SailSuggestionBadges({
   suggested,
@@ -71,30 +71,31 @@ function SailSuggestionBadges({
 }
 
 interface CourseLegCardProps {
-  from: CourseMarkWithMark;
-  to: CourseMarkWithMark;
+  from: PlanRoutePoint;
+  to: PlanRoutePoint;
   bearing: number;
   twa: TWA;
   tws: number;
   suggestionData: SailSuggestionData | null;
 }
 
-function MarkTitle({ mark }: { mark: CourseMarkWithMark }) {
+function MarkTitle({ mark }: { mark: PlanRoutePoint }) {
   return (
     <CardTitle
       className='flex-row items-center shrink text-foreground'
       showBullet={false}
     >
-      {mark.mark.name}
+      {mark.name}
       <Text
         className={cn({
-          'text-green-400': mark.direction === 'starboard',
-          'text-red-400': mark.direction === 'port',
+          'text-green-400':
+            mark.kind === 'courseMark' && mark.direction === 'starboard',
+          'text-red-400': mark.kind === 'courseMark' && mark.direction === 'port',
         })}
       >
-        {mark.direction === 'starboard'
+        {mark.kind === 'courseMark' && mark.direction === 'starboard'
           ? ' S'
-          : mark.direction === 'port'
+          : mark.kind === 'courseMark' && mark.direction === 'port'
             ? ' P'
             : ''}
       </Text>
@@ -118,12 +119,15 @@ export function CourseLegCard({
   function openLegDetails() {
     const legData: CourseLegData = {
       from: {
-        name: from.mark.name,
-        direction: from.direction as CourseLegData['from']['direction'],
+        name: from.name,
+        direction:
+          from.kind === 'courseMark'
+            ? from.direction
+            : null,
       },
       to: {
-        name: to.mark.name,
-        direction: to.direction as CourseLegData['to']['direction'],
+        name: to.name,
+        direction: to.kind === 'courseMark' ? to.direction : null,
       },
       bearing,
       twa,

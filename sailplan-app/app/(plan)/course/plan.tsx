@@ -3,28 +3,17 @@ import { useMemo } from 'react';
 import { ActivityIndicator, ScrollView, View } from 'react-native';
 import { Badge, H2, Text } from '~/components/ui';
 import { useBoatProfile } from '~/features/boatProfile';
-import { coordsToBearing, getTwa, TWA } from '~/features/coordinate';
-import {
-  CourseMarkWithMark,
-  useCourse,
-  useCourseMarks,
-} from '~/features/course';
+import { coordsToBearing, getTwa } from '~/features/coordinate';
+import { useCourse, useCourseRoute } from '~/features/course';
 import {
   CourseLegCard,
   CourseMarkListDialog,
+  buildPlanRoute,
   deserializeCoursePlanData,
   TrueWindInputCard,
   usePlanState,
 } from '~/features/plan';
 import { useSailSuggestionData } from '~/features/sailSuggestion';
-
-interface Leg {
-  from: CourseMarkWithMark;
-  to: CourseMarkWithMark;
-  key: string;
-  bearing: number;
-  twa: TWA;
-}
 
 export default function CoursePlanResults() {
   const { planData: data } = useLocalSearchParams<{ planData: string }>();
@@ -37,72 +26,36 @@ export default function CoursePlanResults() {
   const suggestionData = useSailSuggestionData(boatProfile?.id ?? null);
 
   const { data: course, error: courseError } = useCourse(planData.courseId);
-  const { data: courseMarks, error: courseMarksError } = useCourseMarks(
+  const { data: courseRoute, error: courseRouteError } = useCourseRoute(
     planData.courseId,
   );
 
   const isLoading =
-    !course || (!courseMarks && !courseError && !courseMarksError);
-  const isError = !!courseError || !!courseMarksError;
+    !course || (!courseRoute && !courseError && !courseRouteError);
+  const isError = !!courseError || !!courseRouteError;
 
-  const legs = useMemo(() => {
-    if (!courseMarks) return [];
+  const planRoute = useMemo(
+    () =>
+      courseRoute
+        ? buildPlanRoute({
+            route: courseRoute,
+            startLocation: planData.startLocation,
+            finishLocation: planData.finishLocation,
+          })
+        : undefined,
+    [courseRoute, planData],
+  );
 
-    const marks: CourseMarkWithMark[] = [
-      ...(planData.startLocation
-        ? [
-            {
-              id: -1,
-              courseId: planData.courseId,
-              markId: -1,
-              order: courseMarks[0]?.order - 1,
-              direction: null,
-              mark: {
-                id: -1,
-                name: planData.startLocation.name,
-                latitude: planData.startLocation.latitude,
-                longitude: planData.startLocation.longitude,
-              },
-            },
-          ]
-        : []),
-      ...courseMarks,
-      ...(planData.finishLocation
-        ? [
-            {
-              id: -2,
-              courseId: planData.courseId,
-              markId: -2,
-              order: courseMarks[courseMarks.length - 1]?.order + 1,
-              direction: null,
-              mark: {
-                id: -2,
-                name: planData.finishLocation.name,
-                latitude: planData.finishLocation.latitude,
-                longitude: planData.finishLocation.longitude,
-              },
-            },
-          ]
-        : []),
-    ];
-
-    const legs: Leg[] = [];
-    for (let i = 0; i < marks.length - 1; i++) {
-      const from = marks[i];
-      const to = marks[i + 1];
-      const bearing = coordsToBearing({ from: from.mark, to: to.mark });
-      const twa = getTwa({ bearing, twd });
-      legs.push({
-        from,
-        to,
-        bearing,
-        twa,
-        key: `${from.mark.id}-${to.mark.id}-[${i}]`,
-      });
-    }
-
-    return legs;
-  }, [planData, courseMarks, twd]);
+  const segments = useMemo(
+    () =>
+      planRoute?.legs.flatMap(leg =>
+        leg.segments.map(segment => {
+          const bearing = coordsToBearing({ from: segment.from, to: segment.to });
+          return { ...segment, bearing, twa: getTwa({ bearing, twd }) };
+        }),
+      ) ?? [],
+    [planRoute, twd],
+  );
 
   if (isLoading) {
     return (
@@ -113,7 +66,7 @@ export default function CoursePlanResults() {
   }
 
   if (isError) {
-    console.error(courseError, courseMarksError);
+    console.error(courseError, courseRouteError);
     return (
       <View>
         <Text>Error loading data</Text>
@@ -137,18 +90,24 @@ export default function CoursePlanResults() {
             <Text className='text-sm'>Course: {course?.name}</Text>
           </Badge>
         </View>
-        <CourseMarkListDialog courseMarks={courseMarks} />
+        <CourseMarkListDialog
+          courseMarks={
+            courseRoute?.points.filter(
+              point => point.kind === 'courseMark',
+            ) ?? []
+          }
+        />
       </View>
       <TrueWindInputCard twd tws />
       <ScrollView>
         <View className='flex gap-4 pb-4'>
-          {legs.map(leg => (
+          {segments.map(segment => (
             <CourseLegCard
-              key={leg.key}
-              from={leg.from}
-              to={leg.to}
-              bearing={leg.bearing}
-              twa={leg.twa}
+              key={segment.key}
+              from={segment.from}
+              to={segment.to}
+              bearing={segment.bearing}
+              twa={segment.twa}
               tws={currentState?.tws ?? 0}
               suggestionData={suggestionData}
             />

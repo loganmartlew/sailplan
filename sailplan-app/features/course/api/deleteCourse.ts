@@ -1,10 +1,23 @@
 import { db } from '~/lib/db';
-import { course, courseGroup, courseMark } from '~/schema';
-import { eq } from 'drizzle-orm';
+import { course, courseGroup, courseMark, courseViaPoint } from '~/schema';
+import { eq, inArray } from 'drizzle-orm';
 
 export async function deleteCourse(id: number): Promise<void> {
-  await db.delete(courseMark).where(eq(courseMark.courseId, id));
-  await db.delete(course).where(eq(course.id, id));
+  await db.transaction(async tx => {
+    const courseMarks = await tx
+      .select({ id: courseMark.id })
+      .from(courseMark)
+      .where(eq(courseMark.courseId, id));
+
+    if (courseMarks.length > 0) {
+      await tx
+        .delete(courseViaPoint)
+        .where(inArray(courseViaPoint.legStartCourseMarkId, courseMarks.map(mark => mark.id)));
+    }
+
+    await tx.delete(courseMark).where(eq(courseMark.courseId, id));
+    await tx.delete(course).where(eq(course.id, id));
+  });
 }
 
 export async function deleteCourseGroup(id: number): Promise<void> {
@@ -13,8 +26,4 @@ export async function deleteCourseGroup(id: number): Promise<void> {
     throw new Error('Cannot delete course group with existing courses');
   }
   await db.delete(courseGroup).where(eq(courseGroup.id, id));
-}
-
-export async function deleteCourseMark(id: number): Promise<void> {
-  await db.delete(courseMark).where(eq(courseMark.id, id));
 }

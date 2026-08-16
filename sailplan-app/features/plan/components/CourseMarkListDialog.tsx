@@ -8,12 +8,12 @@ import {
   DialogTrigger,
   Text,
 } from '~/components/ui';
-import { CourseMarkWithMark } from '~/features/course';
+import { CourseMarkRoutePoint } from '~/features/course';
 import { TackDirectionBadge } from './TackDirectionBadge';
 import { Route } from '~/lib/icons';
 
 interface CourseMarkListDialogProps {
-  courseMarks: CourseMarkWithMark[];
+  courseMarks: CourseMarkRoutePoint[];
 }
 
 export function CourseMarkListDialog({
@@ -33,19 +33,19 @@ export function CourseMarkListDialog({
         <View className='flex gap-5'>
           {courseMarks.map((cm, index) => (
             <View
-              key={cm.id}
+              key={cm.courseMarkId}
               className='flex flex-row items-center justify-between py-1'
             >
               <View className='flex flex-row items-center gap-2'>
                 <Text className='text-muted-foreground w-5 text-right'>
                   {index + 1}.
                 </Text>
-                <Text className='text-base font-medium'>{cm.mark.name}</Text>
+                <Text className='text-base font-medium'>{cm.name}</Text>
               </View>
               {cm.direction &&
                 (cm.direction === 'port' || cm.direction === 'starboard') && (
                   <TackDirectionBadge
-                    tack={cm.direction as 'port' | 'starboard'}
+                    tack={cm.direction}
                   />
                 )}
             </View>
