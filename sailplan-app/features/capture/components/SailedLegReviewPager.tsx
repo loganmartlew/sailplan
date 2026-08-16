@@ -6,19 +6,24 @@ import { Input } from '~/components/ui/input';
 import { Text } from '~/components/ui/text';
 import { H3, Muted } from '~/components/ui/typography';
 import { Toggle } from '~/components/ui/toggle';
+import { useSails } from '~/features/sail';
 import {
   confirmSailedLegPresentation,
   materializeCaptureReview,
   useSailedLegReview,
 } from '../api/captureReview';
 import { createGuardedDraftSpans } from '../util/sailedLegDetection';
+import type { EditableSailSpan } from '../util/spanEditing';
+import { SailSpanEditor } from './SailSpanEditor';
 
 export function SailedLegReviewPager({ sessionId }: { sessionId: number }) {
   const { legs, samples } = useSailedLegReview(sessionId);
+  const sailsQuery = useSails();
   const [index, setIndex] = useState(0);
   const [name, setName] = useState('');
   const [used, setUsed] = useState(true);
   const [finished, setFinished] = useState(false);
+  const [draftSpans, setDraftSpans] = useState<Record<number, readonly EditableSailSpan[]>>({});
   const positioned = useRef(false);
 
   useEffect(() => {
@@ -26,7 +31,22 @@ export function SailedLegReviewPager({ sessionId }: { sessionId: number }) {
     positioned.current = false;
     setIndex(0);
     setFinished(false);
+    setDraftSpans({});
   }, [sessionId]);
+
+  useEffect(() => {
+    setDraftSpans(current => {
+      let next = current;
+      for (const item of legs.data) {
+        if (next[item.id]) continue;
+        if (next === current) next = { ...current };
+        next[item.id] = item.sailSpans.length > 0
+          ? item.sailSpans
+          : createGuardedDraftSpans(item.startTime, item.endTime);
+      }
+      return next;
+    });
+  }, [legs.data]);
 
   const presentations = useMemo(
     () => legs.data.reduce<(typeof legs.data)[]>((groups, item) => {
@@ -52,10 +72,9 @@ export function SailedLegReviewPager({ sessionId }: { sessionId: number }) {
   useEffect(() => {
     if (!leg || !presentation) return;
     setName(leg.name ?? `Leg ${leg.ordinal}`);
-    // A confirmed leg with no spans is the durable whole-leg "not used" state.
     setUsed(
       presentation.some(part => part.confirmedAt === null) ||
-      presentation.some(part => part.sailSpans.length > 0),
+      presentation.some(part => part.sailSpans.some(span => span.sailId !== null)),
     );
   }, [leg, presentation]);
 
@@ -88,9 +107,9 @@ export function SailedLegReviewPager({ sessionId }: { sessionId: number }) {
 
   const isLast = index === presentations.length - 1;
   const visibleSpans = presentation.map(part =>
-    part.sailSpans.length > 0
+    draftSpans[part.id] ?? (part.sailSpans.length > 0
       ? part.sailSpans
-      : createGuardedDraftSpans(part.startTime, part.endTime),
+      : createGuardedDraftSpans(part.startTime, part.endTime)),
   );
   const advance = () => {
     confirmSailedLegPresentation({
@@ -151,22 +170,17 @@ export function SailedLegReviewPager({ sessionId }: { sessionId: number }) {
         {visibleSpans.map((partSpans, partIndex) => (
           <View key={presentation[partIndex].id} className='gap-1'>
             {partIndex > 0 && <Muted>Continued after data gap</Muted>}
-            <View className='flex-row overflow-hidden rounded-xl border border-border'>
-              {partSpans.map((span, spanIndex) => {
-                const duration = Math.max(1, span.endTime - span.startTime);
-                return (
-                  <View
-                    key={`${span.startTime}-${span.endTime}`}
-                    className={spanIndex === 1 ? 'items-center bg-secondary px-2 py-4' : 'items-center bg-muted px-2 py-4'}
-                    style={{ flex: duration }}
-                  >
-                    <Text className='text-xs' numberOfLines={1}>
-                      {spanIndex === 1 ? 'Unattributed' : 'Not used'}
-                    </Text>
-                  </View>
-                );
-              })}
-            </View>
+            <SailSpanEditor
+              spans={partSpans}
+              sails={sailsQuery?.data ?? []}
+              onChange={next => {
+                setDraftSpans(current => ({
+                  ...current,
+                  [presentation[partIndex].id]: next,
+                }));
+                if (next.some(span => span.sailId !== null)) setUsed(true);
+              }}
+            />
           </View>
         ))}
         {!used && (

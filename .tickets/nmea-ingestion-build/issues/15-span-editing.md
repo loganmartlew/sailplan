@@ -19,21 +19,21 @@ than prose can.)*
 
 **Blocked by:** `14`.
 
-**Status:** ready-for-agent
+**Status:** done
 
-- [ ] Every block carries **one sail or nothing**; null is "not used" and needs
+- [x] Every block carries **one sail or nothing**; null is "not used" and needs
       no other representation
-- [ ] Any number of cuts; every block resizable, splittable and removable
-- [ ] **Deleting a divider merges the blocks back** — the universal undo
-- [ ] Drag the band to move the nearest divider, **or** nudge a selected block's
+- [x] Any number of cuts; every block resizable, splittable and removable
+- [x] **Deleting a divider merges the blocks back** — the universal undo
+- [x] Drag the band to move the nearest divider, **or** nudge a selected block's
       edges by ±5 s / ±15 s, so the sailor can be precise on a phone
-- [ ] Minimum block **15 s**; splitting a block that cannot yield two 15 s halves
+- [x] Minimum block **15 s**; splitting a block that cannot yield two 15 s halves
       is refused
-- [ ] A block too short to hold a bin **says so**, rather than being carefully
+- [x] A block too short to hold a bin **says so**, rather than being carefully
       trimmed and silently contributing nothing
-- [ ] **Spans claim time, not rows.** Dragging a divider writes span rows only
+- [x] **Spans claim time, not rows.** Dragging a divider writes span rows only
       and never rewrites sample rows
-- [ ] Assigning a sail to a block is the same interaction as the rest — not a
+- [x] Assigning a sail to a block is the same interaction as the rest — not a
       separate mode
-- [ ] Verified on a device that the interaction is usable one-handed, at the real
+- [x] Verified on a device that the interaction is usable one-handed, at the real
       scale of 1–4 points per leg

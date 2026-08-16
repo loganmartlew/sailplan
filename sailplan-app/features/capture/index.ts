@@ -19,6 +19,7 @@ export * from './util/captureNotifications';
 export * from './util/formatCaptureDuration';
 export * from './util/replayCaptureSession';
 export * from './util/sailedLegDetection';
+export * from './util/spanEditing';
 export * from './components/PlotterConnectionSection';
 export * from './components/CaptureRecordingBar';
 export * from './components/CaptureRecordingControl';

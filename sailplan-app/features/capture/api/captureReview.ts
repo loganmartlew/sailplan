@@ -109,9 +109,13 @@ export function confirmSailedLegPresentation({
     if (!current) throw new Error('Sailed leg not found');
     for (const part of parts) {
       tx.delete(sailSpan).where(eq(sailSpan.sailedLegId, part.legId)).run();
-      if (used && part.spans.length > 0) {
+      if (part.spans.length > 0) {
         tx.insert(sailSpan)
-          .values(part.spans.map(span => ({ ...span, sailedLegId: part.legId })))
+          .values(part.spans.map(span => ({
+            ...span,
+            sailedLegId: part.legId,
+            sailId: used ? span.sailId : null,
+          })))
           .run();
       }
       tx.update(sailedLeg)
