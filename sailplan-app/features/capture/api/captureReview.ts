@@ -9,8 +9,9 @@ import {
   sailedLeg,
   sailSpan,
 } from '~/schema';
-import type { SailSpan } from '../model/capture';
 import { detectSailedLegs } from '../util/sailedLegDetection';
+import type { EditableSailSpan } from '../util/spanEditing';
+import { sailSpanInsertsFor } from '../util/spanPersistence';
 
 export function useSailedLegReview(sessionId: number) {
   const legs = useLiveQuery(
@@ -90,7 +91,7 @@ export function confirmSailedLegPresentation({
 }: {
   parts: readonly {
     legId: number;
-    spans: readonly Pick<SailSpan, 'startTime' | 'endTime' | 'sailId'>[];
+    spans: readonly EditableSailSpan[];
   }[];
   name: string;
   used: boolean;
@@ -109,15 +110,12 @@ export function confirmSailedLegPresentation({
     if (!current) throw new Error('Sailed leg not found');
     for (const part of parts) {
       tx.delete(sailSpan).where(eq(sailSpan.sailedLegId, part.legId)).run();
-      if (part.spans.length > 0) {
-        tx.insert(sailSpan)
-          .values(part.spans.map(span => ({
-            ...span,
-            sailedLegId: part.legId,
-            sailId: used ? span.sailId : null,
-          })))
-          .run();
-      }
+      const rows = sailSpanInsertsFor({
+        sailedLegId: part.legId,
+        spans: part.spans,
+        used,
+      });
+      if (rows.length > 0) tx.insert(sailSpan).values(rows).run();
       tx.update(sailedLeg)
         .set({ confirmedAt })
         .where(eq(sailedLeg.id, part.legId))

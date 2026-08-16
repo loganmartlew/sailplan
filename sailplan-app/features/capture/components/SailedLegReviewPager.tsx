@@ -26,8 +26,15 @@ function editableSpansForLeg(item: {
   endTime: number;
   sailSpans: readonly EditableSailSpan[];
 }) {
+  // Stored rows come in carrying their `id`, and every block made from another
+  // one inherits whatever it was spread from. Dropping identity at the door
+  // keeps a block on screen from claiming to be a row.
   return item.sailSpans.length > 0
-    ? item.sailSpans
+    ? item.sailSpans.map(({ startTime, endTime, sailId }) => ({
+        startTime,
+        endTime,
+        sailId,
+      }))
     : createGuardedDraftSpans(item.startTime, item.endTime);
 }
 
