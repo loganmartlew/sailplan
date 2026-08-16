@@ -14,6 +14,12 @@ import type { EditableSailSpan } from '../util/spanEditing';
 import { sailSpanInsertsFor } from '../util/spanPersistence';
 
 export function useSailedLegReview(sessionId: number) {
+  const session = useLiveQuery(
+    db.query.captureSession.findFirst({
+      where: eq(captureSession.id, sessionId),
+    }),
+    [sessionId],
+  );
   const legs = useLiveQuery(
     db.query.sailedLeg.findMany({
       where: eq(sailedLeg.captureSessionId, sessionId),
@@ -29,7 +35,22 @@ export function useSailedLegReview(sessionId: number) {
     }),
     [sessionId],
   );
-  return { legs, samples };
+  const courseMarks = useLiveQuery(
+    db
+      .select({
+        id: courseMark.id,
+        order: courseMark.order,
+        name: mark.name,
+        latitude: mark.latitude,
+        longitude: mark.longitude,
+      })
+      .from(courseMark)
+      .innerJoin(mark, eq(mark.id, courseMark.markId))
+      .where(eq(courseMark.courseId, session.data?.courseId ?? -1))
+      .orderBy(asc(courseMark.order)),
+    [session.data?.courseId],
+  );
+  return { legs, samples, courseMarks };
 }
 
 /** Materialise claims once. Later opens always read the stored legs and spans. */

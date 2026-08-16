@@ -40,7 +40,7 @@ function editableSpansForLeg(item: {
 }
 
 export function SailedLegReviewPager({ sessionId }: { sessionId: number }) {
-  const { legs, samples } = useSailedLegReview(sessionId);
+  const { legs, samples, courseMarks } = useSailedLegReview(sessionId);
   const sailsQuery = useSails();
   const [index, setIndex] = useState(0);
   const [name, setName] = useState('');
@@ -111,7 +111,11 @@ export function SailedLegReviewPager({ sessionId }: { sessionId: number }) {
   );
   const sampleCount = legSamples.length;
 
-  if (legs.updatedAt === undefined || samples.updatedAt === undefined) {
+  if (
+    legs.updatedAt === undefined ||
+    samples.updatedAt === undefined ||
+    courseMarks.updatedAt === undefined
+  ) {
     return <Muted>Preparing sailed legs…</Muted>;
   }
   if (!leg) {
@@ -199,6 +203,8 @@ export function SailedLegReviewPager({ sessionId }: { sessionId: number }) {
           samples={samples.data}
           spans={allVisibleSpans}
           sails={sailsQuery?.data ?? []}
+          courseMarks={courseMarks.data}
+          destinationCourseMarkId={leg.courseMarkId}
           legStartTime={presentation[0].startTime}
           legEndTime={presentation.at(-1)!.endTime}
         />
