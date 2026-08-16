@@ -9,6 +9,7 @@ import type { CaptureSample } from '../model/capture';
 import {
   type ReviewMapFocus,
   type ReviewMapMark,
+  selectReviewMapFrame,
   selectReviewMapMarks,
 } from '../util/reviewMapMarks';
 import type { EditableSailSpan } from '../util/spanEditing';
@@ -72,13 +73,13 @@ export function ReviewTrackMap({
     [courseMarks, destinationCourseMarkId, focus],
   );
   const frameCoordinates = useMemo(
-    () => [
-      ...coordinates,
-      ...visibleMarks.map(mark => ({
+    () => selectReviewMapFrame(
+      coordinates,
+      visibleMarks.map(mark => ({
         latitude: mark.latitude,
         longitude: mark.longitude,
       })),
-    ],
+    ),
     [coordinates, visibleMarks],
   );
   const frameTrack = () => {
@@ -91,7 +92,7 @@ export function ReviewTrackMap({
       }, 0);
       return;
     }
-    map.current?.fitToCoordinates(frameCoordinates, {
+    map.current?.fitToCoordinates([...frameCoordinates], {
       edgePadding: EDGE_PADDING,
       animated: false,
     });

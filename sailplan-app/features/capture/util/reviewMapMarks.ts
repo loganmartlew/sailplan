@@ -8,6 +8,11 @@ export interface ReviewMapMark {
   longitude: number;
 }
 
+export interface ReviewMapCoordinate {
+  latitude: number;
+  longitude: number;
+}
+
 export function selectReviewMapMarks(
   focus: ReviewMapFocus,
   courseMarks: readonly ReviewMapMark[],
@@ -19,4 +24,16 @@ export function selectReviewMapMarks(
   if (destinationIndex < 0) return [];
   const fromIndex = (destinationIndex - 1 + courseMarks.length) % courseMarks.length;
   return [courseMarks[fromIndex], courseMarks[destinationIndex]];
+}
+
+/**
+ * Recorded fixes define what the sailor is reviewing. Planned marks can be
+ * stale or from a differently georeferenced course, so they must never expand
+ * the camera far enough to make the recorded track disappear.
+ */
+export function selectReviewMapFrame<T extends ReviewMapCoordinate>(
+  trackCoordinates: readonly T[],
+  markCoordinates: readonly ReviewMapCoordinate[],
+): readonly ReviewMapCoordinate[] {
+  return trackCoordinates.length > 0 ? trackCoordinates : markCoordinates;
 }

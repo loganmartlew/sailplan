@@ -1,4 +1,4 @@
-import { selectReviewMapMarks } from '../reviewMapMarks';
+import { selectReviewMapFrame, selectReviewMapMarks } from '../reviewMapMarks';
 
 const marks = [
   { id: 11, order: 0, name: 'Start', latitude: -36.8, longitude: 174.7 },
@@ -23,5 +23,29 @@ describe('selectReviewMapMarks', () => {
 
   it('shows no marks when the sailed leg is not linked to a course mark', () => {
     expect(selectReviewMapMarks('leg', marks, null)).toEqual([]);
+  });
+});
+
+describe('selectReviewMapFrame', () => {
+  it('keeps the recorded GPS track authoritative when course marks are far away', () => {
+    const track = [
+      { latitude: -36.8, longitude: 174.7 },
+      { latitude: -36.79, longitude: 174.71 },
+    ];
+    const distantMarks = [
+      { latitude: 51.5, longitude: -0.1 },
+      { latitude: 51.51, longitude: -0.11 },
+    ];
+
+    expect(selectReviewMapFrame(track, distantMarks)).toEqual(track);
+  });
+
+  it('falls back to course marks when no continuous GPS track exists', () => {
+    const markCoordinates = marks.map(mark => ({
+      latitude: mark.latitude,
+      longitude: mark.longitude,
+    }));
+
+    expect(selectReviewMapFrame([], markCoordinates)).toEqual(markCoordinates);
   });
 });
