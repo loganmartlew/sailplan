@@ -273,6 +273,9 @@ violation, but a 30-second change with no behavioural risk.
 
 ## P2 — Not worth fixing now
 
+**The cheap half was taken anyway; the refactors were left** — see
+[Resolution](#resolution-17-august-2026).
+
 - **Duplicated guard shape** — `sailedLegDetection.ts:115 createGuardedDraftSpans`
   and `draftAttribution.ts:25-64 guardedSpans`/`withGuards` must stay in lockstep
   with `LEG_HEAD_GUARD_MS`/`LEG_TAIL_GUARD_MS` with no shared call. The strongest
@@ -392,6 +395,38 @@ have been a no-op against the grain of a compiler-enabled codebase.
 
 The general lesson for reviews of this repo: **do not report render-identity
 findings without checking the compiler's output first.**
+
+### P2, taken 17 August 2026
+
+Taken because each was a few lines and removed something real:
+
+- **Guard arithmetic** — new `legInterior(startTime, endTime)` in
+  `sailedLegDetection.ts` is now the only place `+ LEG_HEAD_GUARD_MS` /
+  `- LEG_TAIL_GUARD_MS` is written; `createGuardedDraftSpans` and
+  `draftAttribution`'s `interiorBounds` both call it. Note the constants were
+  *already* single-sourced, so the original "must stay in lockstep" risk was
+  smaller than reported — the duplication was the arithmetic, not the values.
+- **Clamping** — a local `clamp(value, lowest, highest)` replaces the nested
+  `Math.min(Math.max(…))` at every site. The report's "~9 identical clamps" was
+  overstated: only one was a true interior clamp, the rest have meaningful lower
+  bounds (the running cursor, the span's own start), which is why this is a
+  plain clamp and not the `clampToInterior(leg, t)` the report suggested.
+- **`traceGeometry.ts`** — `Math.max(MIN_TOP_SPEED, ...speeds)` reduced instead
+  of spread, so a long leg cannot hit the argument-count limit.
+- **`legBand.ts`** — the one-seam-per-part invariant is now checked and warned
+  about under `__DEV__` (precedent: `captureDiagnostics.ts:27`). Deliberately a
+  warning, not a throw: `splitLegBand` runs from an edit handler, and P0 `3` was
+  exactly the cost of throwing out of a render path.
+- **`SailSpanEditor.tsx`** — imports `Sail` from `~/features/sail`, matching
+  `SailPickerSheet.tsx`.
+- **`replayCaptureSession.ts`** — the unused `spanEdits?: readonly unknown[]`
+  placeholder deleted.
+- **Ticket 16** — the basemap reversal and the course-mark scope creep are now
+  both recorded as criteria, so neither is a surprise later.
+
+Left alone, as judged: the four near-identical span types, the reshaping logic
+in the pager, the barrel export split, and the `api/` verb naming. Each is a
+refactor rather than a few lines, and none is a defect.
 
 ### Follow-on for ticket 18
 

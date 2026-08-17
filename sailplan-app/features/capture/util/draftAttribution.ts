@@ -1,8 +1,7 @@
 import type { ReplayCaptureSample } from './replayCaptureSession';
 import {
   getReviewBand,
-  LEG_HEAD_GUARD_MS,
-  LEG_TAIL_GUARD_MS,
+  legInterior,
   type DetectedSailedLeg,
 } from './sailedLegDetection';
 import { findSteadyStretches } from './steadyState';
@@ -31,11 +30,17 @@ function guardedSpans(
 }
 
 function interiorBounds(leg: DetectedSailedLeg) {
-  return {
-    interiorStart: leg.startTime + LEG_HEAD_GUARD_MS,
-    interiorEnd: leg.endTime - LEG_TAIL_GUARD_MS,
-  };
+  return legInterior(leg.startTime, leg.endTime);
 }
+
+/**
+ * Every span edge here is pinned between something and the end of the leg
+ * interior — the lower bound varies (the interior start, the running cursor,
+ * the span's own start), which is why this is a plain clamp and not an
+ * interior-specific helper.
+ */
+const clamp = (value: number, lowest: number, highest: number) =>
+  Math.min(Math.max(value, lowest), highest);
 
 function withGuards(
   leg: DetectedSailedLeg,
@@ -45,8 +50,8 @@ function withGuards(
   const normalized: DetectedSailedLeg['draftSpans'] = [];
   let cursor = interiorStart;
   for (const span of interiorSpans) {
-    const startTime = Math.min(Math.max(span.startTime, cursor, interiorStart), interiorEnd);
-    const endTime = Math.min(Math.max(span.endTime, startTime), interiorEnd);
+    const startTime = clamp(Math.max(span.startTime, cursor), interiorStart, interiorEnd);
+    const endTime = clamp(span.endTime, startTime, interiorEnd);
     if (startTime > cursor) {
       normalized.push({ startTime: cursor, endTime: startTime, sailId: null });
     }
@@ -205,10 +210,10 @@ function stampSupportedSpans(
     const regimeEnd = boundaries
       .find(boundary => boundary.transitionStart > stamp.timestamp)?.transitionStart ?? interiorEnd;
     const startTime = index === 0
-      ? Math.min(Math.max(regimeStart, interiorStart), interiorEnd)
-      : Math.min(Math.max(stamp.timestamp, cursor), interiorEnd);
+      ? clamp(regimeStart, interiorStart, interiorEnd)
+      : clamp(stamp.timestamp, cursor, interiorEnd);
     const endTime = index === supportedStamps.length - 1
-      ? Math.min(Math.max(regimeEnd, startTime), interiorEnd)
+      ? clamp(regimeEnd, startTime, interiorEnd)
       : Math.min(
           stamp.timestamp + 1_000,
           supportedStamps[index + 1].timestamp,
@@ -265,12 +270,14 @@ function spansBetweenStampedSails(
   let cursor = interiorStart;
   for (let index = 0; index < selected.length; index += 1) {
     const laterStampTime = supportedSailChanges[index + 1].timestamp;
-    const transitionStart = Math.min(
-      Math.max(Math.min(selected[index].transitionStart, laterStampTime), cursor),
+    const transitionStart = clamp(
+      Math.min(selected[index].transitionStart, laterStampTime),
+      cursor,
       interiorEnd,
     );
-    const transitionEnd = Math.min(
-      Math.max(selected[index].transitionEnd, laterStampTime, transitionStart),
+    const transitionEnd = clamp(
+      Math.max(selected[index].transitionEnd, laterStampTime),
+      transitionStart,
       interiorEnd,
     );
     if (transitionStart > cursor) {

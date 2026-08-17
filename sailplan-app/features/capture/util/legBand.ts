@@ -37,6 +37,18 @@ export function splitLegBand(
     if (span.gap === true) parts.push([]);
     else parts.at(-1)!.push(span);
   }
+  // One seam per stored part is the invariant `unifyLegParts` establishes, and
+  // confirm deletes every part's rows before reinserting. A band with too few
+  // seams therefore hands one part another's spans and leaves the other empty —
+  // silent loss, not an error. Detection keeps this unreachable by requiring a
+  // gap longer than `DATA_GAP_MS` to split a leg at all; say so loudly if that
+  // ever stops being true.
+  if (__DEV__ && parts.length !== partCount) {
+    console.warn(
+      `splitLegBand: band split into ${parts.length} parts for ${partCount} stored legs. `
+      + 'A stored part is about to lose its spans.',
+    );
+  }
   while (parts.length < partCount) parts.push([]);
   return parts;
 }

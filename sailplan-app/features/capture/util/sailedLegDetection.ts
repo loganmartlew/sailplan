@@ -112,11 +112,25 @@ function makeSegments(values: readonly ValidSample[]): Segment[] {
   }
 }
 
+/**
+ * The part of a leg that may carry a sail: everything but the head and tail
+ * guards. The only place the guard arithmetic is written — draft attribution
+ * bounds its spans by the same edges, and two copies of `+ HEAD` / `- TAIL`
+ * are two things to keep in step.
+ */
+export function legInterior(startTime: number, endTime: number) {
+  return {
+    interiorStart: startTime + LEG_HEAD_GUARD_MS,
+    interiorEnd: endTime - LEG_TAIL_GUARD_MS,
+  };
+}
+
 export function createGuardedDraftSpans(startTime: number, endTime: number): DetectedSailSpan[] {
+  const { interiorStart, interiorEnd } = legInterior(startTime, endTime);
   return [
-    { startTime, endTime: startTime + LEG_HEAD_GUARD_MS, sailId: null },
-    { startTime: startTime + LEG_HEAD_GUARD_MS, endTime: endTime - LEG_TAIL_GUARD_MS, sailId: null },
-    { startTime: endTime - LEG_TAIL_GUARD_MS, endTime, sailId: null },
+    { startTime, endTime: interiorStart, sailId: null },
+    { startTime: interiorStart, endTime: interiorEnd, sailId: null },
+    { startTime: interiorEnd, endTime, sailId: null },
   ];
 }
 

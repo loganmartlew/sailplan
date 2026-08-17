@@ -49,7 +49,12 @@ export function buildTracePath(
   const speeds = inRange
     .map(sample => sample.stw)
     .filter((stw): stw is number => stw !== null);
-  const topSpeed = Math.max(MIN_TOP_SPEED, ...speeds) * HEADROOM;
+  // Reduced rather than spread: a long leg's samples would be passed to
+  // `Math.max` as arguments, and that has a limit.
+  const topSpeed = speeds.reduce(
+    (highest, stw) => Math.max(highest, stw),
+    MIN_TOP_SPEED,
+  ) * HEADROOM;
   const stride = Math.max(
     1,
     Math.ceil(inRange.length / Math.max(1, box.width * POINTS_PER_PIXEL)),

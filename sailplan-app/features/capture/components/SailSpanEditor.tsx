@@ -7,7 +7,7 @@ import {
   View,
 } from 'react-native';
 import { Button, Muted, Text } from '~/components/ui';
-import type { Sail } from '~/features/sail/model/sail';
+import type { Sail } from '~/features/sail';
 import { ChevronDown } from '~/lib/icons';
 import { cn } from '~/lib/utils';
 import {

@@ -56,7 +56,6 @@ export type ReplayCaptureInput = {
   assumedSentencePeriodMs?: number;
   stamps?: readonly SailStampEvidence[];
   courseMarks?: readonly SailedLegCourseMark[];
-  spanEdits?: readonly unknown[];
 };
 
 export type ReplayCaptureResult = {

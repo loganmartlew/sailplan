@@ -15,7 +15,13 @@ remembered mode.
 - [x] The map is **read-only** and follows the pager
 - [x] Each sail-attribution span draws in its own colour, matching the span row
 - [x] A chip on the map switches focus-leg ⟷ whole-course
-- [x] Standard road/land basemap behind the GPS track
+- [x] Standard road/land basemap behind the GPS track — reversed from the
+      original "GPS only, no chart tiles, no land" on 17 August 2026: a bare
+      track gave no sense of place. `nmea-ingestion/issues/10` updated to match.
+- [x] The focused leg's from/to course marks are drawn, and every ordered mark
+      under whole-course focus — added beyond the original criteria, kept
+      because orienting on a mark is the point of the whole-course view
+      (`reviewMapMarks.ts`)
 - [x] It never becomes a second navigable surface: no selection, no
       panning-driven state, nothing to get lost in
 - [x] Reads correctly when a leg has no GPS fix for part of its range (TTL-null
