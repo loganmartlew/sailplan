@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { View } from 'react-native';
+import { InteractionManager, View } from 'react-native';
 import {
   Button,
   Card,
@@ -39,7 +39,11 @@ function editableSpansForLeg(item: {
     : createGuardedDraftSpans(item.startTime, item.endTime);
 }
 
-export function SailedLegReviewPager({ sessionId }: { sessionId: number }) {
+interface SailedLegReviewPagerProps {
+  sessionId: number;
+}
+
+export function SailedLegReviewPager({ sessionId }: SailedLegReviewPagerProps) {
   const { legs, samples, courseMarks } = useSailedLegReview(sessionId);
   const sailsQuery = useSails();
   const [index, setIndex] = useState(0);
@@ -47,15 +51,32 @@ export function SailedLegReviewPager({ sessionId }: { sessionId: number }) {
   const [used, setUsed] = useState(true);
   const [finished, setFinished] = useState(false);
   const [sessionMissing, setSessionMissing] = useState(false);
+  const [materializing, setMaterializing] = useState(true);
   const [draftSpans, setDraftSpans] = useState<Record<number, readonly EditableSailSpan[]>>({});
   const positioned = useRef(false);
 
   useEffect(() => {
-    setSessionMissing(!materializeCaptureReview(sessionId));
     positioned.current = false;
+    setMaterializing(true);
     setIndex(0);
     setFinished(false);
     setDraftSpans({});
+    // Leg detection and draft attribution run synchronously inside a SQLite
+    // transaction, and a multi-hour session is a lot of samples. Running that
+    // straight from the effect blocks the screen's entry animation on a blank
+    // frame; deferring it lets "Preparing sailed legs…" paint first, and lets
+    // the push settle before the thread is taken. The work itself is still
+    // synchronous once it starts.
+    let cancelled = false;
+    const task = InteractionManager.runAfterInteractions(() => {
+      if (cancelled) return;
+      setSessionMissing(!materializeCaptureReview(sessionId));
+      setMaterializing(false);
+    });
+    return () => {
+      cancelled = true;
+      task.cancel();
+    };
   }, [sessionId]);
 
   useEffect(() => {
@@ -122,6 +143,7 @@ export function SailedLegReviewPager({ sessionId }: { sessionId: number }) {
     );
   }
   if (
+    materializing ||
     legs.updatedAt === undefined ||
     samples.updatedAt === undefined ||
     courseMarks.updatedAt === undefined

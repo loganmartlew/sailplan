@@ -161,7 +161,10 @@ positions or course geometry needs the script built to close.
 
 - **Legs 9 and 10 are both "Leeward → Windward"** — the 2-minute dropout split
   one beat in two and nothing notices that a leg is a *continuation*.
-- The map is GPS-only: no chart, no land. Whether it needs real tiles is next.
+- ~~The map is GPS-only: no chart, no land. Whether it needs real tiles is
+  next.~~ **Answered 17 August 2026:** it carries a standard road/land basemap
+  behind the GPS track. A bare track gave no sense of place. Ticket `16`'s
+  criterion was reversed to match.
 - Reversal is still a stub (`commit` alerts).
 
 <details>

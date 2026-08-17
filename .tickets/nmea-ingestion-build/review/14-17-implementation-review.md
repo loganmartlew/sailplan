@@ -170,6 +170,9 @@ way to recover except paging away.
 
 ## P1 — Should fix
 
+**All fixed except `8`, which was withdrawn on evidence** — see
+[Resolution](#resolution-17-august-2026).
+
 Real, but neither silent nor destructive.
 
 ### 7. Leg fallback names use the wrong counter
@@ -355,6 +358,40 @@ splitting. It was checked against the pre-fix code and **fails 3 of 7 there**,
 so it is not vacuous. `spanPersistence.test.ts`'s *"clears sails on a leg the
 sailor marked not used"* asserted the destructive behaviour and was rewritten to
 assert preservation.
+
+### P1, fixed 17 August 2026
+
+| # | Fix |
+| - | --- |
+| 7 | `sailedLegDetection.ts` counts beats and runs in their own sequences, so the third beat and the third run are each "3". Both tests that asserted the ordinal-based names were corrected, and a new case covers the spec's own `Beat 3 / Run 3` example. |
+| 8 | **Withdrawn — not a defect.** See below. |
+| 9 | Materialisation deferred behind `InteractionManager.runAfterInteractions`, with a `materializing` state so "Preparing sailed legs…" paints before the thread is taken. *Mitigation, not elimination:* the work is still synchronous once it starts. Chunking it, or moving it off the JS thread, is a separate job if long sessions still stutter. |
+| 10 | `speedBoundaries` → `regimeTransitions`, its `{ oldEnd, newStart }` → `{ transitionStart, transitionEnd }`, and `stampSupportedSpansWithoutBoundary` → `stampSupportedSpans`. Both functions gained a doc comment saying what a transition *is*. |
+| 11 | `docs/data-layer.md` now describes what actually writes to the capture tables, carries the `used` column, and corrects the `sailSpan` note: a null `sailId` is "unattributed", **not** "not used". |
+| 12 | Ruled by the author: the basemap stays and `10-review-and-promotion-screen.md:164` was updated to match (a bare track gave no sense of place); §8's narrowing stands and story 55 was aligned to it. |
+| 13 | Ticket 14's point-count box and ticket 17's confirmed-spans box unticked, each annotated with what is actually built and what `18` owns. |
+| 14 | `interface SailedLegReviewPagerProps` extracted. |
+
+### On finding 8 — withdrawn
+
+The report was written against plain React semantics, in which `visibleSpans`
+and `allVisibleSpans` rebuild every render and refire the map camera on each
+keystroke. **This project has React Compiler enabled** (`app.config.js:70`), and
+the compiler does not bail out on this component — compiling
+`SailedLegReviewPager.tsx` with `babel-plugin-react-compiler` emits
+`useMemoCache`, and the emitted code guards exactly these values:
+
+```js
+if ($[22] !== draftSpans || $[23] !== presentation || $[24] !== presentations) {
+```
+
+Typing in the leg-name field changes `name` alone, so none of those three
+change, the cached arrays are returned, `ReviewTrackMap` sees a stable `spans`
+prop, and `fitToCoordinates` does not refire. Adding manual `useMemo` here would
+have been a no-op against the grain of a compiler-enabled codebase.
+
+The general lesson for reviews of this repo: **do not report render-identity
+findings without checking the compiler's output first.**
 
 ### Follow-on for ticket 18
 

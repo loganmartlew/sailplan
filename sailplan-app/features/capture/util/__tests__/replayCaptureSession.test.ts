@@ -402,7 +402,7 @@ describe('replayCaptureSession', () => {
     const result = replayCaptureSession({ sessionStartWallClock: start, sentences });
 
     expect(result.sailedLegs).toHaveLength(2);
-    expect(result.sailedLegs.map(leg => leg.name)).toEqual(['Beat 1', 'Run 2']);
+    expect(result.sailedLegs.map(leg => leg.name)).toEqual(['Beat 1', 'Run 1']);
   });
 
   it('detects 20 sailed legs in the windward-leeward simulator race without splitting its tacks', () => {
@@ -414,8 +414,13 @@ describe('replayCaptureSession', () => {
     });
 
     expect(result.sailedLegs).toHaveLength(20);
+    // Ten beats and ten runs, each counted in its own sequence: the race reads
+    // Beat 1, Run 1, Beat 2, Run 2 … not Beat 1, Run 2, Beat 3.
     expect(result.sailedLegs.map(leg => leg.name)).toEqual(
-      Array.from({ length: 20 }, (_, index) => `${index % 2 === 0 ? 'Beat' : 'Run'} ${index + 1}`),
+      Array.from(
+        { length: 20 },
+        (_, index) => `${index % 2 === 0 ? 'Beat' : 'Run'} ${Math.floor(index / 2) + 1}`,
+      ),
     );
   }, 30_000);
 

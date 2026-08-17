@@ -83,7 +83,13 @@ function speedChangeRatio(from: number, to: number): number | null {
   return from === to ? 0 : null;
 }
 
-function speedBoundaries(steady: ReturnType<typeof findSteadyStretches>) {
+/**
+ * Where boat speed changed regime, as the window between the last qualifying
+ * steady stretch of the old regime and the first of the new. Nobody sails a
+ * transition at a settled speed — it is a hoist, a drop or a manoeuvre — so it
+ * is the interval that feeds neither sail.
+ */
+function regimeTransitions(steady: ReturnType<typeof findSteadyStretches>) {
   return steady.slice(0, -1).flatMap((stretch, index) => {
     const next = steady[index + 1];
     const speedShift = speedChangeRatio(stretch.medianBoatSpeed, next.medianBoatSpeed);
@@ -95,19 +101,19 @@ function speedBoundaries(steady: ReturnType<typeof findSteadyStretches>) {
     // transition nobody sails through, never carrying a sail across one.
     const shifted = speedShift === null || speedShift > SPEED_REGIME_SHIFT;
     return shifted && conditionsRemainSimilar
-      ? [{ oldEnd: stretch.endTime, newStart: next.startTime }]
+      ? [{ transitionStart: stretch.endTime, transitionEnd: next.startTime }]
       : [];
   });
 }
 
 function stampsOutsideTransitions(
   stamps: readonly SailStampEvidence[],
-  boundaries: ReturnType<typeof speedBoundaries>,
+  boundaries: ReturnType<typeof regimeTransitions>,
 ) {
   return stamps.filter(stamp =>
     !boundaries.some(boundary =>
-      stamp.timestamp >= boundary.oldEnd
-      && stamp.timestamp < boundary.newStart,
+      stamp.timestamp >= boundary.transitionStart
+      && stamp.timestamp < boundary.transitionEnd,
     ),
   );
 }
@@ -117,18 +123,18 @@ function spansForOneStampedSail(
   legStamps: readonly SailStampEvidence[],
   steady: ReturnType<typeof findSteadyStretches>,
 ) {
-  const boundaries = speedBoundaries(steady);
+  const boundaries = regimeTransitions(steady);
   if (boundaries.length === 0) return guardedSpans(leg, legStamps[0].sailId);
 
   const { interiorStart, interiorEnd } = interiorBounds(leg);
   const regions = boundaries.map((boundary, index) => ({
     startTime: Math.max(
-      index === 0 ? interiorStart : boundaries[index - 1].newStart,
+      index === 0 ? interiorStart : boundaries[index - 1].transitionEnd,
       interiorStart,
     ),
-    endTime: Math.min(boundary.oldEnd, interiorEnd),
+    endTime: Math.min(boundary.transitionStart, interiorEnd),
   })).filter(region => region.endTime > region.startTime);
-  const finalStart = Math.max(boundaries.at(-1)!.newStart, interiorStart);
+  const finalStart = Math.max(boundaries.at(-1)!.transitionEnd, interiorStart);
   if (finalStart < interiorEnd) {
     regions.push({ startTime: finalStart, endTime: interiorEnd });
   }
@@ -176,10 +182,15 @@ function spansForOneStampedSail(
   return withGuards(leg, spans);
 }
 
-function stampSupportedSpansWithoutBoundary(
+/**
+ * Spans for stamps that survive their transitions, each reaching as far as the
+ * regime it sits in allows. With no transitions passed, a stamp's regime is the
+ * whole leg interior.
+ */
+function stampSupportedSpans(
   leg: DetectedSailedLeg,
   sailChanges: readonly SailStampEvidence[],
-  boundaries: ReturnType<typeof speedBoundaries> = [],
+  boundaries: ReturnType<typeof regimeTransitions> = [],
 ) {
   const { interiorStart, interiorEnd } = interiorBounds(leg);
   const supportedStamps = stampsOutsideTransitions(sailChanges, boundaries);
@@ -189,10 +200,10 @@ function stampSupportedSpansWithoutBoundary(
   for (let index = 0; index < supportedStamps.length; index += 1) {
     const stamp = supportedStamps[index];
     const regimeStart = boundaries
-      .filter(boundary => boundary.newStart <= stamp.timestamp)
-      .at(-1)?.newStart ?? interiorStart;
+      .filter(boundary => boundary.transitionEnd <= stamp.timestamp)
+      .at(-1)?.transitionEnd ?? interiorStart;
     const regimeEnd = boundaries
-      .find(boundary => boundary.oldEnd > stamp.timestamp)?.oldEnd ?? interiorEnd;
+      .find(boundary => boundary.transitionStart > stamp.timestamp)?.transitionStart ?? interiorEnd;
     const startTime = index === 0
       ? Math.min(Math.max(regimeStart, interiorStart), interiorEnd)
       : Math.min(Math.max(stamp.timestamp, cursor), interiorEnd);
@@ -221,30 +232,30 @@ function spansBetweenStampedSails(
   const sailChanges = orderedStamps.filter((stamp, index) =>
     index === 0 || stamp.sailId !== orderedStamps[index - 1].sailId,
   );
-  const candidates = speedBoundaries(steady);
+  const candidates = regimeTransitions(steady);
   const supportedSailChanges = stampsOutsideTransitions(sailChanges, candidates);
   if (supportedSailChanges.length < 2) {
-    return stampSupportedSpansWithoutBoundary(leg, supportedSailChanges, candidates);
+    return stampSupportedSpans(leg, supportedSailChanges, candidates);
   }
   if (candidates.length < supportedSailChanges.length - 1) {
-    return stampSupportedSpansWithoutBoundary(leg, supportedSailChanges, candidates);
+    return stampSupportedSpans(leg, supportedSailChanges, candidates);
   }
 
   const selected: typeof candidates = [];
   for (let index = 1; index < supportedSailChanges.length; index += 1) {
-    const previousEnd = selected.at(-1)?.newStart ?? -Infinity;
+    const previousEnd = selected.at(-1)?.transitionEnd ?? -Infinity;
     const earlierStampTime = supportedSailChanges[index - 1].timestamp;
     const boundary = candidates
       .filter(candidate =>
-        candidate.oldEnd >= previousEnd
-        && candidate.oldEnd >= earlierStampTime,
+        candidate.transitionStart >= previousEnd
+        && candidate.transitionStart >= earlierStampTime,
       )
       .sort((first, second) =>
-        Math.abs(first.newStart - supportedSailChanges[index].timestamp)
-          - Math.abs(second.newStart - supportedSailChanges[index].timestamp),
+        Math.abs(first.transitionEnd - supportedSailChanges[index].timestamp)
+          - Math.abs(second.transitionEnd - supportedSailChanges[index].timestamp),
       )[0];
     if (!boundary) {
-      return stampSupportedSpansWithoutBoundary(leg, supportedSailChanges, candidates);
+      return stampSupportedSpans(leg, supportedSailChanges, candidates);
     }
     selected.push(boundary);
   }
@@ -254,23 +265,23 @@ function spansBetweenStampedSails(
   let cursor = interiorStart;
   for (let index = 0; index < selected.length; index += 1) {
     const laterStampTime = supportedSailChanges[index + 1].timestamp;
-    const oldEnd = Math.min(
-      Math.max(Math.min(selected[index].oldEnd, laterStampTime), cursor),
+    const transitionStart = Math.min(
+      Math.max(Math.min(selected[index].transitionStart, laterStampTime), cursor),
       interiorEnd,
     );
-    const newStart = Math.min(
-      Math.max(selected[index].newStart, laterStampTime, oldEnd),
+    const transitionEnd = Math.min(
+      Math.max(selected[index].transitionEnd, laterStampTime, transitionStart),
       interiorEnd,
     );
-    if (oldEnd > cursor) {
+    if (transitionStart > cursor) {
       spans.push({
         startTime: cursor,
-        endTime: oldEnd,
+        endTime: transitionStart,
         sailId: supportedSailChanges[index].sailId,
       });
     }
-    if (newStart > oldEnd) spans.push({ startTime: oldEnd, endTime: newStart, sailId: null });
-    cursor = newStart;
+    if (transitionEnd > transitionStart) spans.push({ startTime: transitionStart, endTime: transitionEnd, sailId: null });
+    cursor = transitionEnd;
   }
   if (interiorEnd > cursor) {
     spans.push({
@@ -313,8 +324,8 @@ export function proposeDraftAttribution(
       || target.medianTws === null
       || source.steady.length === 0
       || target.steady.length === 0
-      || speedBoundaries(source.steady).length > 0
-      || speedBoundaries(target.steady).length > 0
+      || regimeTransitions(source.steady).length > 0
+      || regimeTransitions(target.steady).length > 0
       || getReviewBand(legs[sourceIndex].medianAbsTwa)
         !== getReviewBand(legs[targetIndex].medianAbsTwa)
       || Math.abs(source.medianTws - target.medianTws) > 2

@@ -136,6 +136,10 @@ export function detectSailedLegs(
 
   const raw = groups.flatMap(makeSegments);
   let ordinal = 0;
+  // Fallback names count each point of sail separately, so the third beat and
+  // the third run are both "3" (spec §6, story 48). The leg ordinal is a
+  // different number and naming from it makes the first run read "Run 2".
+  const sailed = { Beat: 0, Run: 0 };
   let previousBand: number | null = null;
   let previousGroupEnd: number | null = null;
   let previousName = '';
@@ -158,7 +162,9 @@ export function detectSailedLegs(
       name = `${from.name} → ${to.name}`;
       courseMarkId = to.id;
     } else {
-      name = `${absTwa < 90 ? 'Beat' : 'Run'} ${ordinal}`;
+      const pointOfSail = absTwa < 90 ? 'Beat' : 'Run';
+      sailed[pointOfSail] += 1;
+      name = `${pointOfSail} ${sailed[pointOfSail]}`;
     }
 
     previousBand = band;

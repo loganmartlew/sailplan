@@ -45,7 +45,10 @@ would launder an inference into evidence.
 - [x] **Three categorical states only** — draft, confirmed, not used. No numeric
       attribution confidence: a second trust knob competing with the evidence
       rules is the pathology `03` and `15` already threw out
-- [x] Only **confirmed** spans can produce polar points
+- [ ] Only **confirmed** spans can produce polar points
+      — *nothing gates on this yet: no code reads `confirmedAt` to decide what
+      feeds the polar, because promotion is `18`. The gate must be `confirmedAt`
+      **and** `sailedLeg.used` — a null `sailId` no longer means "struck out".*
 - [x] `replayCaptureSession` extended to return `draftSpans`
 - [x] Tested against the race script with the deliberately bad stamps: the late
       hoist is excluded by the head guard; the early peel produces separate

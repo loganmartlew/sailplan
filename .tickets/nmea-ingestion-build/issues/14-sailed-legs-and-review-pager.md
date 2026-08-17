@@ -43,8 +43,11 @@ the detection tolerance are one decision; retune them together or not at all.
 - [x] Leaving review half-finished keeps already-advanced legs confirmed and the
       current and later legs as drafts; revisiting and changing a confirmed leg
       **replaces** its confirmation
-- [x] A leg is **used by default**, with the toggle beside its point count where
+- [ ] A leg is **used by default**, with the toggle beside its point count where
       the consequence of skipping it is visible while deciding
+      — *partial: the toggle is built and `used` is stored on `sailedLeg`, but
+      it sits beside the raw **sample** count, not the point count. Bins do not
+      exist until `18`, which owns the rest.*
 - [x] Unattributed and not-used samples stay in the recording, available for a
       better attribution later
 - [x] `replayCaptureSession` extended to return `sailedLegs`

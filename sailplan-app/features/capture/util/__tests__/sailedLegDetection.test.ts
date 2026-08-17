@@ -48,10 +48,28 @@ describe('detectSailedLegs', () => {
 
     expect(result.map(leg => ({ ordinal: leg.ordinal, name: leg.name }))).toEqual([
       { ordinal: 1, name: 'Beat 1' },
-      { ordinal: 2, name: 'Run 2' },
+      // The ordinal is 2 — this is the second leg — but it is the *first* run.
+      { ordinal: 2, name: 'Run 1' },
     ]);
     expect(result[0].endTime).toBeGreaterThanOrEqual(start + 450_000);
     expect(result[0].endTime).toBeLessThanOrEqual(start + 510_000);
+  });
+
+  it('counts beats and runs in their own sequences', () => {
+    // Spec §6 / story 48: "legs fall back to Beat 3 / Run 3" — the third beat
+    // and the third run are each "3", so the name cannot be the leg ordinal.
+    const samples = samplesFor([
+      { seconds: 240, twa: 45 },
+      { seconds: 240, twa: -135 },
+      { seconds: 240, twa: -45 },
+      { seconds: 240, twa: 135 },
+      { seconds: 240, twa: 45 },
+      { seconds: 240, twa: -135 },
+    ]);
+
+    expect(detectSailedLegs(samples).map(leg => leg.name)).toEqual([
+      'Beat 1', 'Run 1', 'Beat 2', 'Run 2', 'Beat 3', 'Run 3',
+    ]);
   });
 
   it('does not create a leg shorter than three minutes', () => {

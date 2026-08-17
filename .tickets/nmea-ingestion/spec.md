@@ -232,8 +232,10 @@ blended at an explicit, named weight where measured data has coverage.
     small fixed steps, so that I can be precise on a phone.
 54. As a sailor, I want deleting a divider to merge the blocks back together, so
     that every edit has an obvious undo.
-55. As a sailor, I want a block too short to produce anything to say so, so that I
-    do not carefully trim something that was never going to count.
+55. As a sailor, I want a block *carrying a sail* that is too short to produce
+    anything to say so, so that I do not carefully trim something that was never
+    going to count. An unattributed or no-data block stays quiet — it was never
+    going to contribute, and saying so on every one of them is noise.
 56. As a sailor, I want a read-only map that follows the pager and draws each
     span in its own colour, so that I can recognise the leg on the water without
     the map becoming another thing to navigate.
