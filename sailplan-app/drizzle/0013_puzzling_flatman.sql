@@ -1,0 +1,1 @@
+ALTER TABLE `sailedLeg` ADD `used` integer DEFAULT true NOT NULL;

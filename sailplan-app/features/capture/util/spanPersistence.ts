@@ -10,15 +10,17 @@ import type { EditableSailSpan } from './spanEditing';
  * id, and spreading a span straight into an insert fails with
  * `UNIQUE constraint failed: sailSpan.id`. Naming the columns is what stops
  * that: identity belongs to the table, never to a block on screen.
+ *
+ * Whether the leg is used at all is `sailedLeg.used`, not something these rows
+ * encode. Striking a leg out must not cost the sailor the sail assignments
+ * they made on it.
  */
 export function sailSpanInsertsFor({
   sailedLegId,
   spans,
-  used,
 }: {
   sailedLegId: number;
   spans: readonly EditableSailSpan[];
-  used: boolean;
 }): SailSpanInsert[] {
   return spans
     // A no-data block is a picture of time no row covers.
@@ -27,6 +29,6 @@ export function sailSpanInsertsFor({
       sailedLegId,
       startTime: span.startTime,
       endTime: span.endTime,
-      sailId: used ? span.sailId : null,
+      sailId: span.sailId,
     }));
 }

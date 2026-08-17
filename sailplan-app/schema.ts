@@ -227,6 +227,12 @@ export const sailedLeg = sqliteTable(
     name: text('name'),
     courseMarkId: integer('courseMarkId').references(() => courseMark.id),
     confirmedAt: integer('confirmedAt'),
+    // The sailor's own call on whether this leg feeds the polar. It cannot be
+    // inferred from the spans: a leg confirmed as used whose spans are all
+    // still the unattributed default is indistinguishable from a leg struck
+    // out, and inferring it both misreports the leg on revisit and licenses
+    // erasing the sail assignments to record the answer.
+    used: integer('used', { mode: 'boolean' }).notNull().default(true),
   },
   table => [index('sailedLeg_captureSessionId_startTime_idx').on(table.captureSessionId, table.startTime)],
 );

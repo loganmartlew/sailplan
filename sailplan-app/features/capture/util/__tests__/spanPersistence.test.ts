@@ -10,7 +10,7 @@ describe('sailSpanInsertsFor', () => {
       { id: 42, sailedLegId: 3, startTime: 30 * SECOND, endTime: 60 * SECOND, sailId: 7 },
     ];
 
-    expect(sailSpanInsertsFor({ sailedLegId: 3, spans: split, used: true })).toEqual([
+    expect(sailSpanInsertsFor({ sailedLegId: 3, spans: split })).toEqual([
       { sailedLegId: 3, startTime: 0, endTime: 30 * SECOND, sailId: 7 },
       { sailedLegId: 3, startTime: 30 * SECOND, endTime: 60 * SECOND, sailId: 7 },
     ]);
@@ -23,15 +23,16 @@ describe('sailSpanInsertsFor', () => {
         { startTime: 0, endTime: 30 * SECOND, sailId: 7 },
         { startTime: 30 * SECOND, endTime: 60 * SECOND, sailId: null, gap: true },
       ],
-      used: true,
     })).toEqual([{ sailedLegId: 3, startTime: 0, endTime: 30 * SECOND, sailId: 7 }]);
   });
 
-  it('clears sails on a leg the sailor marked not used', () => {
+  it('keeps the sail assignments on a leg the sailor marked not used', () => {
+    // "Not used" is `sailedLeg.used`, a column. Encoding it by erasing sailIds
+    // destroyed the sailor's work on a race they cannot sail again, and left a
+    // confirmed-but-unattributed leg indistinguishable from a struck-out one.
     expect(sailSpanInsertsFor({
       sailedLegId: 3,
       spans: [{ startTime: 0, endTime: 30 * SECOND, sailId: 7 }],
-      used: false,
-    })).toEqual([{ sailedLegId: 3, startTime: 0, endTime: 30 * SECOND, sailId: null }]);
+    })).toEqual([{ sailedLegId: 3, startTime: 0, endTime: 30 * SECOND, sailId: 7 }]);
   });
 });

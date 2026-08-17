@@ -55,15 +55,26 @@ export function useSailedLegReview(sessionId: number) {
   return { legs, samples, courseMarks };
 }
 
-/** Materialise claims once. Later opens always read the stored legs and spans. */
-export function materializeCaptureReview(sessionId: number): void {
+/**
+ * Materialise claims once. Later opens always read the stored legs and spans.
+ *
+ * Returns `false` when the session is gone. A review screen can be mounted
+ * while its session is deleted from elsewhere, so a missing row is an ordinary
+ * outcome to render, not an exception — and this runs from an effect, where a
+ * throw escapes uncaught and takes the app down.
+ */
+export function materializeCaptureReview(sessionId: number): boolean {
+  let found = true;
   db.transaction(tx => {
     const session = tx
       .select()
       .from(captureSession)
       .where(eq(captureSession.id, sessionId))
       .get();
-    if (!session) throw new Error('Capture session not found');
+    if (!session) {
+      found = false;
+      return;
+    }
     if (session.reviewMaterializedAt !== null) return;
     const samples = tx
       .select()
@@ -115,6 +126,7 @@ export function materializeCaptureReview(sessionId: number): void {
       .where(eq(captureSession.id, sessionId))
       .run();
   });
+  return found;
 }
 
 export function confirmSailedLegPresentation({
@@ -147,11 +159,10 @@ export function confirmSailedLegPresentation({
       const rows = sailSpanInsertsFor({
         sailedLegId: part.legId,
         spans: part.spans,
-        used,
       });
       if (rows.length > 0) tx.insert(sailSpan).values(rows).run();
       tx.update(sailedLeg)
-        .set({ confirmedAt })
+        .set({ confirmedAt, used })
         .where(eq(sailedLeg.id, part.legId))
         .run();
     }

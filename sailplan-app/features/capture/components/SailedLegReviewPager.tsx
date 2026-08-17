@@ -46,11 +46,12 @@ export function SailedLegReviewPager({ sessionId }: { sessionId: number }) {
   const [name, setName] = useState('');
   const [used, setUsed] = useState(true);
   const [finished, setFinished] = useState(false);
+  const [sessionMissing, setSessionMissing] = useState(false);
   const [draftSpans, setDraftSpans] = useState<Record<number, readonly EditableSailSpan[]>>({});
   const positioned = useRef(false);
 
   useEffect(() => {
-    materializeCaptureReview(sessionId);
+    setSessionMissing(!materializeCaptureReview(sessionId));
     positioned.current = false;
     setIndex(0);
     setFinished(false);
@@ -93,10 +94,9 @@ export function SailedLegReviewPager({ sessionId }: { sessionId: number }) {
   useEffect(() => {
     if (!leg || !presentation) return;
     setName(leg.name ?? `Leg ${leg.ordinal}`);
-    setUsed(
-      presentation.some(part => part.confirmedAt === null) ||
-      presentation.some(part => part.sailSpans.some(span => span.sailId !== null)),
-    );
+    // Stored, never inferred: a leg confirmed as used whose spans are all still
+    // unattributed looks exactly like one struck out.
+    setUsed(leg.used);
   }, [leg, presentation]);
 
   const legSamples = useMemo(
@@ -111,6 +111,16 @@ export function SailedLegReviewPager({ sessionId }: { sessionId: number }) {
   );
   const sampleCount = legSamples.length;
 
+  if (sessionMissing) {
+    return (
+      <Card>
+        <CardContent className='gap-2 py-5'>
+          <H3>Capture session not found</H3>
+          <Text>It was deleted while this screen was open.</Text>
+        </CardContent>
+      </Card>
+    );
+  }
   if (
     legs.updatedAt === undefined ||
     samples.updatedAt === undefined ||
@@ -210,6 +220,11 @@ export function SailedLegReviewPager({ sessionId }: { sessionId: number }) {
         />
 
         <SailSpanEditor
+          // Selection is an index into this leg's blocks, so it must not
+          // survive a page-turn: leg B can have the same block count as leg A
+          // with a gap where A had an editable block, which leaves the editor
+          // holding an unselectable index and rendering nothing at all.
+          key={leg.ordinal}
           spans={band}
           sails={sailsQuery?.data ?? []}
           samples={legSamples}

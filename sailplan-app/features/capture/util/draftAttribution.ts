@@ -63,15 +63,38 @@ function withGuards(
   ];
 }
 
+const SPEED_REGIME_SHIFT = 0.05;
+
+/**
+ * How far boat speed moved between two steady stretches, as a fraction of the
+ * reference speed — or `null` when that fraction is undefined.
+ *
+ * A stalled or fouled log reading exactly 0.00 for a whole stretch is the
+ * steadiest signal there is (`isSteady` asks every sample to sit within 5 % of
+ * the mean, and 5 % of zero is zero), so a zero reference speed is reachable.
+ * Dividing by it yields `Infinity` or `NaN`, and letting those fall through to
+ * a comparison decides a boundary or a carry by accident: `NaN > 0.05` and
+ * `NaN <= 0.05` are *both* false, so the same non-answer silently means "no
+ * boundary" in one place and "refuse to carry" in the other. Naming the
+ * undefined case makes each caller state its own conservative choice.
+ */
+function speedChangeRatio(from: number, to: number): number | null {
+  if (from > 0) return Math.abs(to - from) / from;
+  return from === to ? 0 : null;
+}
+
 function speedBoundaries(steady: ReturnType<typeof findSteadyStretches>) {
   return steady.slice(0, -1).flatMap((stretch, index) => {
     const next = steady[index + 1];
-    const speedShift = Math.abs(next.medianBoatSpeed - stretch.medianBoatSpeed)
-      / stretch.medianBoatSpeed;
+    const speedShift = speedChangeRatio(stretch.medianBoatSpeed, next.medianBoatSpeed);
     const conditionsRemainSimilar =
       getReviewBand(stretch.medianAbsTwa) === getReviewBand(next.medianAbsTwa)
       && Math.abs(stretch.medianTws - next.medianTws) <= 2;
-    return speedShift > 0.05 && conditionsRemainSimilar
+    // An immeasurable shift — the boat left a dead-stop stretch — is a regime
+    // change, so it becomes a boundary. Failing closed here means proposing a
+    // transition nobody sails through, never carrying a sail across one.
+    const shifted = speedShift === null || speedShift > SPEED_REGIME_SHIFT;
+    return shifted && conditionsRemainSimilar
       ? [{ oldEnd: stretch.endTime, newStart: next.startTime }]
       : [];
   });
@@ -110,7 +133,12 @@ function spansForOneStampedSail(
     regions.push({ startTime: finalStart, endTime: interiorEnd });
   }
   const claimed = new Set<number>();
-  for (const stamp of legStamps) {
+  // A stamp made inside a transition claims nothing. Mid-peel the sailor may be
+  // recording the sail coming down or the one going up, so neither neighbouring
+  // regime is safe to hand it to — and handing it to the *nearest* one by
+  // distance can attribute time to a sail that was not yet up. Transients feed
+  // neither sail; the other two attribution paths already filter the same way.
+  for (const stamp of stampsOutsideTransitions(legStamps, boundaries)) {
     const containing = regions.findIndex(region =>
       stamp.timestamp >= region.startTime && stamp.timestamp < region.endTime,
     );
@@ -118,6 +146,8 @@ function spansForOneStampedSail(
       claimed.add(containing);
       continue;
     }
+    // Still reachable for a stamp sitting in the head or tail guard, which is
+    // outside every region but inside no transition.
     const nearest = regions
       .map((region, index) => ({
         index,
@@ -295,8 +325,13 @@ export function proposeDraftAttribution(
     const targetStretch = sourceIndex < targetIndex
       ? target.steady[0]
       : target.steady.at(-1)!;
-    return Math.abs(sourceStretch.medianBoatSpeed - targetStretch.medianBoatSpeed)
-      / sourceStretch.medianBoatSpeed <= 0.05;
+    // Carrying a sail one hop is an inference, so an immeasurable difference
+    // is not licence to make it: no ratio, no carry.
+    const speedShift = speedChangeRatio(
+      sourceStretch.medianBoatSpeed,
+      targetStretch.medianBoatSpeed,
+    );
+    return speedShift !== null && speedShift <= SPEED_REGIME_SHIFT;
   };
 
   const carryOffers = legs.map(() => [] as number[]);

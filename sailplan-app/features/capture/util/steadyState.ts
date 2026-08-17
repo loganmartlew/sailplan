@@ -109,12 +109,21 @@ export function findSteadyStretches(
     const windows: SteadyStretch[] = [];
     let start = 0;
     for (let end = 0; end < smoothed.length; end += 1) {
-      while (smoothed[end].timestamp - smoothed[start].timestamp + 1_000 > STEADY_MIN_MS) {
+      // Keep `start` at the newest sample whose window still covers the
+      // minimum, so the window grows to *at least* `STEADY_MIN_MS` rather than
+      // having to land on it exactly. Sample arrival is jittery — timestamps
+      // come from wire-arrival time (`replayCaptureSession.ts`) and are never
+      // on a 1 s grid — so an equality test here finds nothing outside a
+      // synthetic fixture, and every leg falls through unattributed.
+      while (
+        start < end
+        && smoothed[end].timestamp - smoothed[start + 1].timestamp + 1_000 >= STEADY_MIN_MS
+      ) {
         start += 1;
       }
       const window = smoothed.slice(start, end + 1);
       if (
-        smoothed[end].timestamp - smoothed[start].timestamp + 1_000 === STEADY_MIN_MS
+        smoothed[end].timestamp - smoothed[start].timestamp + 1_000 >= STEADY_MIN_MS
         && isSteady(window)
       ) {
         windows.push({
