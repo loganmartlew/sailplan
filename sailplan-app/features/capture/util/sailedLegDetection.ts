@@ -1,4 +1,5 @@
 import type { ReplayCaptureSample } from './replayCaptureSession';
+import { median } from './statistics';
 
 export const LEG_WINDOW_MS = 90_000;
 export const LEG_CHANGE_DEGREES = 25;
@@ -32,18 +33,10 @@ export type DetectedSailedLeg = {
 type ValidSample = ReplayCaptureSample & { twa: number };
 type Segment = { startTime: number; endTime: number; values: ValidSample[] };
 
-function median(values: readonly number[]): number {
-  const sorted = [...values].sort((a, b) => a - b);
-  const middle = Math.floor(sorted.length / 2);
-  return sorted.length % 2 === 0
-    ? (sorted[middle - 1] + sorted[middle]) / 2
-    : sorted[middle];
-}
-
 const medianTwa = (values: readonly ValidSample[]) =>
   median(values.map(sample => Math.abs(sample.twa)));
 
-const reviewBand = (twa: number) => Math.floor(twa / 10);
+export const getReviewBand = (twa: number) => Math.floor(twa / 10);
 
 function candidateBoundaries(values: readonly ValidSample[]): number[] {
   const candidates: { at: number; change: number }[] = [];
@@ -107,7 +100,7 @@ function makeSegments(values: readonly ValidSample[]): Segment[] {
     if (shortIndex > 0 && shortIndex < segments.length - 1) {
       const left = medianTwa(segments[shortIndex - 1].values);
       const right = medianTwa(segments[shortIndex + 1].values);
-      if (reviewBand(left) === reviewBand(right)) {
+      if (getReviewBand(left) === getReviewBand(right)) {
         boundaries.splice(shortIndex - 1, 2);
         continue;
       }
@@ -149,7 +142,7 @@ export function detectSailedLegs(
   let previousCourseMarkId: number | null = null;
   return raw.map(segment => {
     const absTwa = medianTwa(segment.values);
-    const band = reviewBand(absTwa);
+    const band = getReviewBand(absTwa);
     const followsGap = previousGroupEnd !== null && segment.startTime - previousGroupEnd > DATA_GAP_MS;
     const continuation = followsGap && band === previousBand;
     if (!continuation) ordinal += 1;

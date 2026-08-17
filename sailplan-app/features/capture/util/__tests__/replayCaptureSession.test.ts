@@ -20,7 +20,377 @@ const at = (monotonicElapsedMs: number, ...texts: string[]): TimedNmeaChunk => (
 });
 const start = 1_700_000_000_000;
 
+function steadyLegSentences({
+  seconds,
+  twa,
+  tws = 12,
+  stw = 6,
+  startSecond = 0,
+}: {
+  seconds: number;
+  twa: number;
+  tws?: number;
+  stw?: number;
+  startSecond?: number;
+}): TimedNmeaChunk[] {
+  const nmeaTwa = ((twa % 360) + 360) % 360;
+  return Array.from({ length: seconds }, (_, second) => {
+    const elapsed = (startSecond + second) * 1_000;
+    return at(
+      elapsed,
+      sentence('SDHDG,100.0,,,0.0,E'),
+      sentence(`WIMWV,${nmeaTwa.toFixed(1)},T,${tws.toFixed(1)},N,A`),
+      sentence(`SDVHW,100.0,T,100.0,M,${stw.toFixed(1)},N,11.1,K`),
+    );
+  });
+}
+
+function windwardLeewardRaceSentences(): TimedNmeaChunk[] {
+  const lines = fs.readFileSync(
+    path.join(__dirname, 'fixtures/wl-race-true-wind.log'),
+    'utf8',
+  ).trim().split('\n');
+  const firstEpoch = Number(/c:(\d+)/.exec(lines[0])![1]);
+  return lines.map(line => {
+    const epoch = Number(/c:(\d+)/.exec(line)![1]);
+    const payload = /\\(\$.*)$/.exec(line.trim())![1];
+    return at(
+      epoch - firstEpoch,
+      sentence('SDHDG,100.0,,,0.0,E'),
+      payload,
+      sentence('SDVHW,100.0,T,100.0,M,6.0,N,11.1,K'),
+    );
+  });
+}
+
 describe('replayCaptureSession', () => {
+  it('keeps the head guard when a sail is stamped during a late hoist', () => {
+    const result = replayCaptureSession({
+      sessionStartWallClock: start,
+      sentences: steadyLegSentences({ seconds: 240, twa: 45 }),
+      stamps: [{ timestamp: start + 20_000, sailId: 7 }],
+    });
+
+    expect(result.draftSpans).toEqual([
+      { startTime: start, endTime: start + 25_000, sailId: null },
+      { startTime: start + 25_000, endTime: start + 230_000, sailId: 7 },
+      { startTime: start + 230_000, endTime: start + 240_000, sailId: null },
+    ]);
+  });
+
+  it('carries a stamp one similar sign-flipped leg, but never recursively', () => {
+    const result = replayCaptureSession({
+      sessionStartWallClock: start,
+      sentences: [
+        ...steadyLegSentences({ seconds: 240, twa: 45 }),
+        ...steadyLegSentences({ seconds: 240, twa: -45, startSecond: 250 }),
+        ...steadyLegSentences({ seconds: 240, twa: 45, startSecond: 500 }),
+      ],
+      stamps: [{ timestamp: start + 120_000, sailId: 7 }],
+    });
+
+    expect(result.sailedLegs).toHaveLength(3);
+    expect(result.sailedLegs.map(leg => leg.draftSpans[1].sailId)).toEqual([
+      7,
+      7,
+      null,
+    ]);
+  });
+
+  it('lets one stamp seed only one of its two adjacent unstamped legs', () => {
+    const result = replayCaptureSession({
+      sessionStartWallClock: start,
+      sentences: [
+        ...steadyLegSentences({ seconds: 240, twa: 45 }),
+        ...steadyLegSentences({ seconds: 240, twa: -45, startSecond: 250 }),
+        ...steadyLegSentences({ seconds: 240, twa: 45, startSecond: 500 }),
+      ],
+      stamps: [{ timestamp: start + 370_000, sailId: 7 }],
+    });
+
+    expect(result.sailedLegs.map(leg => leg.draftSpans[1].sailId)).toEqual([
+      null,
+      7,
+      7,
+    ]);
+  });
+
+  it('fails closed when an adjacent leg has a sustained speed regime change', () => {
+    const result = replayCaptureSession({
+      sessionStartWallClock: start,
+      sentences: [
+        ...steadyLegSentences({ seconds: 240, twa: 45, stw: 6 }),
+        ...steadyLegSentences({ seconds: 240, twa: -45, stw: 6.4, startSecond: 250 }),
+      ],
+      stamps: [{ timestamp: start + 120_000, sailId: 7 }],
+    });
+
+    expect(result.sailedLegs[1].draftSpans.every(span => span.sailId === null)).toBe(true);
+  });
+
+  it.each([
+    { difference: 'TWA review band', twa: -55, tws: 12 },
+    { difference: 'TWS tolerance', twa: -45, tws: 14.1 },
+  ])('fails closed when an adjacent leg disagrees on $difference', ({ twa, tws }) => {
+    const result = replayCaptureSession({
+      sessionStartWallClock: start,
+      sentences: [
+        ...steadyLegSentences({ seconds: 240, twa: 45 }),
+        ...steadyLegSentences({ seconds: 240, twa, tws, startSecond: 250 }),
+      ],
+      stamps: [{ timestamp: start + 120_000, sailId: 7 }],
+    });
+
+    expect(result.sailedLegs[1].draftSpans.every(span => span.sailId === null)).toBe(true);
+  });
+
+  it('fails closed when an adjacent leg has no qualifying steady stretch', () => {
+    const target = Array.from({ length: 240 }, (_, second) => at(
+      (250 + second) * 1_000,
+      sentence('WIMWV,315.0,T,12.0,N,A'),
+      sentence('SDVHW,100.0,T,100.0,M,6.0,N,11.1,K'),
+    ));
+    const result = replayCaptureSession({
+      sessionStartWallClock: start,
+      sentences: [
+        ...steadyLegSentences({ seconds: 240, twa: 45 }),
+        ...target,
+      ],
+      stamps: [{ timestamp: start + 120_000, sailId: 7 }],
+    });
+
+    expect(result.sailedLegs[1].draftSpans.every(span => span.sailId === null)).toBe(true);
+  });
+
+  it('does not count observations around a missing second as consecutive', () => {
+    const target = Array.from({ length: 240 }, (_, second) => {
+      if (second === 8) return [];
+      const heading = second <= 15 ? 100 : second % 2 === 0 ? 90 : 110;
+      return [at(
+        (250 + second) * 1_000,
+        sentence(`SDHDG,${heading.toFixed(1)},,,0.0,E`),
+        sentence('WIMWV,315.0,T,12.0,N,A'),
+        sentence('SDVHW,100.0,T,100.0,M,6.0,N,11.1,K'),
+      )];
+    }).flat();
+    const result = replayCaptureSession({
+      sessionStartWallClock: start,
+      sentences: [
+        ...steadyLegSentences({ seconds: 240, twa: 45 }),
+        ...target,
+      ],
+      stamps: [{ timestamp: start + 120_000, sailId: 7 }],
+    });
+
+    expect(result.sailedLegs[1].draftSpans.every(span => span.sailId === null)).toBe(true);
+  });
+
+  it('uses a sustained speed boundary between different-sail stamps, not their midpoint', () => {
+    const result = replayCaptureSession({
+      sessionStartWallClock: start,
+      sentences: [
+        ...steadyLegSentences({ seconds: 140, twa: 45, stw: 6 }),
+        ...steadyLegSentences({ seconds: 10, twa: 45, stw: 4, startSecond: 140 }),
+        ...steadyLegSentences({ seconds: 150, twa: 45, stw: 7, startSecond: 150 }),
+      ],
+      stamps: [
+        { timestamp: start + 60_000, sailId: 7 },
+        { timestamp: start + 100_000, sailId: 8 },
+      ],
+    });
+
+    const spans = result.sailedLegs[0].draftSpans;
+    expect(spans.map(span => span.sailId)).toEqual([null, 7, null, 8, null]);
+    expect(spans[1].endTime).toBeLessThanOrEqual(start + 100_000);
+    expect(spans[2].endTime).toBeGreaterThanOrEqual(start + 150_000);
+  });
+
+  it('ignores an unrelated speed boundary while retaining stamp-supported regions', () => {
+    const result = replayCaptureSession({
+      sessionStartWallClock: start,
+      sentences: [
+        ...steadyLegSentences({ seconds: 90, twa: 45, stw: 6 }),
+        ...steadyLegSentences({ seconds: 10, twa: 45, stw: 4, startSecond: 90 }),
+        ...steadyLegSentences({ seconds: 200, twa: 45, stw: 7, startSecond: 100 }),
+      ],
+      stamps: [
+        { timestamp: start + 200_000, sailId: 7 },
+        { timestamp: start + 250_000, sailId: 8 },
+      ],
+    });
+
+    const spans = result.sailedLegs[0].draftSpans;
+    const oldSail = spans.find(span => span.sailId === 7)!;
+    const newSail = spans.find(span => span.sailId === 8)!;
+    expect(oldSail.startTime).toBeGreaterThanOrEqual(start + 100_000);
+    expect(oldSail.startTime).toBeLessThanOrEqual(start + 200_000);
+    expect(oldSail.endTime).toBeGreaterThan(start + 200_000);
+    expect(spans.some(span =>
+      span.sailId === null
+      && span.startTime === oldSail.endTime
+      && span.endTime === newSail.startTime,
+    )).toBe(true);
+  });
+
+  it('leaves a transition-contained stamp unused without discarding other evidence', () => {
+    const result = replayCaptureSession({
+      sessionStartWallClock: start,
+      sentences: [
+        ...steadyLegSentences({ seconds: 140, twa: 45, stw: 6 }),
+        ...steadyLegSentences({ seconds: 10, twa: 45, stw: 4, startSecond: 140 }),
+        ...steadyLegSentences({ seconds: 150, twa: 45, stw: 7, startSecond: 150 }),
+      ],
+      stamps: [
+        { timestamp: start + 145_000, sailId: 7 },
+        { timestamp: start + 200_000, sailId: 8 },
+      ],
+    });
+
+    const spans = result.sailedLegs[0].draftSpans;
+    expect(spans.some(span => span.sailId === 7)).toBe(false);
+    expect(spans.some(span =>
+      span.sailId === null
+      && span.startTime <= start + 145_000
+      && span.endTime > start + 145_000,
+    )).toBe(true);
+    expect(spans.some(span => span.sailId === 8)).toBe(true);
+  });
+
+  it('clips transition stamps when sail changes outnumber credible boundaries', () => {
+    const result = replayCaptureSession({
+      sessionStartWallClock: start,
+      sentences: [
+        ...steadyLegSentences({ seconds: 140, twa: 45, stw: 6 }),
+        ...steadyLegSentences({ seconds: 10, twa: 45, stw: 4, startSecond: 140 }),
+        ...steadyLegSentences({ seconds: 150, twa: 45, stw: 7, startSecond: 150 }),
+      ],
+      stamps: [
+        { timestamp: start + 60_000, sailId: 7 },
+        { timestamp: start + 145_000, sailId: 8 },
+        { timestamp: start + 200_000, sailId: 9 },
+      ],
+    });
+
+    const spans = result.sailedLegs[0].draftSpans;
+    const oldSail = spans.find(span => span.sailId === 7)!;
+    expect(oldSail.endTime).toBeGreaterThan(start + 120_000);
+    expect(spans.some(span => span.sailId === 8)).toBe(false);
+    expect(spans.some(span => span.sailId === 9)).toBe(true);
+    expect(spans.some(span =>
+      span.sailId === null
+      && span.startTime <= start + 145_000
+      && span.endTime > start + 145_000,
+    )).toBe(true);
+  });
+
+  it('caps sub-second stamp support at the start of a transition', () => {
+    const result = replayCaptureSession({
+      sessionStartWallClock: start,
+      sentences: [
+        ...steadyLegSentences({ seconds: 140, twa: 45, stw: 6 }),
+        ...steadyLegSentences({ seconds: 10, twa: 45, stw: 4, startSecond: 140 }),
+        ...steadyLegSentences({ seconds: 150, twa: 45, stw: 7, startSecond: 150 }),
+      ],
+      stamps: [
+        { timestamp: start + 139_500, sailId: 7 },
+        { timestamp: start + 200_000, sailId: 8 },
+        { timestamp: start + 250_000, sailId: 9 },
+      ],
+    });
+
+    const oldSail = result.sailedLegs[0].draftSpans.find(span => span.sailId === 7)!;
+    expect(oldSail.endTime).toBeLessThanOrEqual(start + 140_000);
+  });
+
+  it('stops a lone stamped sail at a later sustained speed boundary', () => {
+    const result = replayCaptureSession({
+      sessionStartWallClock: start,
+      sentences: [
+        ...steadyLegSentences({ seconds: 140, twa: 45, stw: 6 }),
+        ...steadyLegSentences({ seconds: 10, twa: 45, stw: 4, startSecond: 140 }),
+        ...steadyLegSentences({ seconds: 150, twa: 45, stw: 7, startSecond: 150 }),
+      ],
+      stamps: [{ timestamp: start + 60_000, sailId: 7 }],
+    });
+
+    const attributed = result.sailedLegs[0].draftSpans.filter(span => span.sailId === 7);
+    expect(attributed).toHaveLength(1);
+    expect(attributed[0].endTime).toBeGreaterThan(start + 120_000);
+    expect(attributed[0].endTime).toBeLessThan(start + 150_000);
+    expect(result.sailedLegs[0].draftSpans.at(-2)?.sailId).toBeNull();
+  });
+
+  it('does not treat a speed shift under a different TWA band as a sail boundary', () => {
+    const result = replayCaptureSession({
+      sessionStartWallClock: start,
+      sentences: [
+        ...steadyLegSentences({ seconds: 140, twa: 45, stw: 6 }),
+        ...steadyLegSentences({ seconds: 10, twa: 50, stw: 4, startSecond: 140 }),
+        ...steadyLegSentences({ seconds: 150, twa: 55, stw: 7, startSecond: 150 }),
+      ],
+      stamps: [{ timestamp: start + 60_000, sailId: 7 }],
+    });
+
+    expect(result.sailedLegs[0].draftSpans.map(span => span.sailId)).toEqual([
+      null,
+      7,
+      null,
+    ]);
+  });
+
+  it('honours repeated same-sail stamps on both sides of a speed boundary', () => {
+    const result = replayCaptureSession({
+      sessionStartWallClock: start,
+      sentences: [
+        ...steadyLegSentences({ seconds: 140, twa: 45, stw: 6 }),
+        ...steadyLegSentences({ seconds: 10, twa: 45, stw: 4, startSecond: 140 }),
+        ...steadyLegSentences({ seconds: 150, twa: 45, stw: 7, startSecond: 150 }),
+      ],
+      stamps: [
+        { timestamp: start + 60_000, sailId: 7 },
+        { timestamp: start + 200_000, sailId: 7 },
+      ],
+    });
+
+    expect(result.sailedLegs[0].draftSpans.map(span => span.sailId)).toEqual([
+      null,
+      7,
+      null,
+      7,
+      null,
+    ]);
+  });
+
+  it('does not carry into a leg containing an internal sustained speed change', () => {
+    const result = replayCaptureSession({
+      sessionStartWallClock: start,
+      sentences: [
+        ...steadyLegSentences({ seconds: 240, twa: 45, stw: 6 }),
+        ...steadyLegSentences({ seconds: 100, twa: -45, stw: 6, startSecond: 250 }),
+        ...steadyLegSentences({ seconds: 140, twa: -45, stw: 7, startSecond: 350 }),
+      ],
+      stamps: [{ timestamp: start + 120_000, sailId: 7 }],
+    });
+
+    expect(result.sailedLegs[1].draftSpans.every(span => span.sailId === null)).toBe(true);
+  });
+
+  it('leaves the interval between conflicting stamps unused when no speed boundary exists', () => {
+    const result = replayCaptureSession({
+      sessionStartWallClock: start,
+      sentences: steadyLegSentences({ seconds: 240, twa: 45, stw: 6 }),
+      stamps: [
+        { timestamp: start + 60_000, sailId: 7 },
+        { timestamp: start + 180_000, sailId: 8 },
+      ],
+    });
+
+    const spans = result.sailedLegs[0].draftSpans;
+    expect(spans.map(span => span.sailId)).toEqual([null, 7, null, 8, null]);
+    expect(spans[1].endTime).toBeLessThanOrEqual(start + 61_000);
+    expect(spans[3].startTime).toBe(start + 180_000);
+  });
+
   it('returns sailed legs from the same replay entry point', () => {
     const sentences = Array.from({ length: 600 }, (_, second) =>
       at(
@@ -47,6 +417,30 @@ describe('replayCaptureSession', () => {
     expect(result.sailedLegs.map(leg => leg.name)).toEqual(
       Array.from({ length: 20 }, (_, index) => `${index % 2 === 0 ? 'Beat' : 'Run'} ${index + 1}`),
     );
+  }, 30_000);
+
+  it('fails safely against the race script with late, early, and missing stamps', () => {
+    const result = replayCaptureSession({
+      sessionStartWallClock: start,
+      sentences: windwardLeewardRaceSentences(),
+      stamps: [
+        { timestamp: start + 20_000, sailId: 7 },
+        { timestamp: start + 800_000, sailId: 7 },
+        { timestamp: start + 1_190_000, sailId: 8 },
+      ],
+    });
+
+    const firstLeg = result.sailedLegs[0].draftSpans;
+    expect(firstLeg.map(span => span.sailId)).toEqual([null, 7, null]);
+    expect(firstLeg[1].startTime).toBe(start + 25_000);
+    expect(result.sailedLegs[1].draftSpans.every(span => span.sailId === null)).toBe(true);
+    expect(result.sailedLegs[2].draftSpans.map(span => span.sailId)).toEqual([
+      null,
+      7,
+      null,
+      8,
+      null,
+    ]);
   }, 30_000);
 
   it('coalesces both anchor types into true 1 Hz measurement rows', () => {

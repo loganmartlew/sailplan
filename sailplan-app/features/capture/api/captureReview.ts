@@ -8,7 +8,9 @@ import {
   mark,
   sailedLeg,
   sailSpan,
+  sailStamp,
 } from '~/schema';
+import { proposeDraftAttribution } from '../util/draftAttribution';
 import { detectSailedLegs } from '../util/sailedLegDetection';
 import type { EditableSailSpan } from '../util/spanEditing';
 import { sailSpanInsertsFor } from '../util/spanPersistence';
@@ -78,8 +80,19 @@ export function materializeCaptureReview(sessionId: number): void {
           .where(eq(courseMark.courseId, session.courseId))
           .orderBy(asc(courseMark.order))
           .all();
+    const stamps = tx
+      .select({ timestamp: sailStamp.timestamp, sailId: sailStamp.sailId })
+      .from(sailStamp)
+      .where(eq(sailStamp.captureSessionId, sessionId))
+      .orderBy(asc(sailStamp.timestamp))
+      .all();
 
-    for (const detected of detectSailedLegs(samples, courseMarks)) {
+    const detectedLegs = proposeDraftAttribution(
+      samples,
+      detectSailedLegs(samples, courseMarks),
+      stamps,
+    );
+    for (const detected of detectedLegs) {
       const row = tx
         .insert(sailedLeg)
         .values({

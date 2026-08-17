@@ -7,6 +7,10 @@ import {
   type DetectedSailedLeg,
   type SailedLegCourseMark,
 } from './sailedLegDetection';
+import {
+  proposeDraftAttribution,
+  type SailStampEvidence,
+} from './draftAttribution';
 
 export type WindFrame =
   | 'water'
@@ -50,7 +54,7 @@ export type ReplayCaptureInput = {
   sentences: readonly (string | TimedNmeaChunk)[];
   sessionStartWallClock: number;
   assumedSentencePeriodMs?: number;
-  stamps?: readonly unknown[];
+  stamps?: readonly SailStampEvidence[];
   courseMarks?: readonly SailedLegCourseMark[];
   spanEdits?: readonly unknown[];
 };
@@ -60,6 +64,7 @@ export type ReplayCaptureResult = {
   health: CaptureHealth;
   windFrame: WindFrame;
   sailedLegs: DetectedSailedLeg[];
+  draftSpans: DetectedSailedLeg['draftSpans'];
 };
 
 type FieldName = keyof Omit<ReplayCaptureSample, 'timestamp' | 'rawOffset'>;
@@ -502,10 +507,16 @@ export function replayCaptureSession(input: ReplayCaptureInput): ReplayCaptureRe
     }
   }
   parser.finish();
+  const sailedLegs = proposeDraftAttribution(
+    parser.samples,
+    detectSailedLegs(parser.samples, input.courseMarks),
+    input.stamps ?? [],
+  );
   return {
     samples: parser.samples,
     health: parser.health,
     windFrame: classifyWindFrame(parser.samples),
-    sailedLegs: detectSailedLegs(parser.samples, input.courseMarks),
+    sailedLegs,
+    draftSpans: sailedLegs.flatMap(leg => leg.draftSpans),
   };
 }

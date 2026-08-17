@@ -15,39 +15,46 @@ would launder an inference into evidence.
 
 **Blocked by:** `06`, `15`.
 
-**Status:** ready-for-agent
+**Status:** done
 
-- [ ] A stamp seeds a draft span in the sailed leg containing it, keeping the
+- [x] A stamp seeds a draft span in the sailed leg containing it, keeping the
       default unused head and tail guards
-- [ ] It may seed **one immediately adjacent unstamped leg** when *all* of: the
+- [x] It may seed **one immediately adjacent unstamped leg** when *all* of: the
       two legs' median `|TWA|` fall in the same **10° review band**; their median
       TWS values are within **2 kn**; there is no conflicting stamp; and there is
       no sustained boat-speed regime change
-- [ ] **One hop from evidence, never recursive** — a missed sail change cannot
+- [x] **One hop from evidence, never recursive** — a missed sail change cannot
       walk the wrong sail through the whole race
-- [ ] TWA **sign is ignored**, so a tack or gybe does not stop attribution when
+- [x] TWA **sign is ignored**, so a tack or gybe does not stop attribution when
       the point of sail is unchanged (measured necessity: 5 of 17 legs in the
       reference race had no stamp, every one was the leg straight after a tack,
       and carry-forward scored 5/5 against truth)
-- [ ] Boat speed **finds boundaries; it does not identify sails.** A speed shift
+- [x] Boat speed **finds boundaries; it does not identify sails.** A speed shift
       >5 % becomes a candidate boundary only when the new regime forms a **≥15 s
       steady stretch** on the same 3 s rolling medians the steadiness filter uses
-- [ ] The interval between the last qualifying stretch of the old regime and the
+- [x] The interval between the last qualifying stretch of the old regime and the
       first of the new is proposed **not used** — hoists, drops and manoeuvre
       transients feed neither sail
-- [ ] Two different-sail stamps in one leg: each sail extends toward a credible
+- [x] Two different-sail stamps in one leg: each sail extends toward a credible
       boundary; with no credible boundary the interval between them stays
       unattributed and is **never split at an invented midpoint**
-- [ ] **Fails closed.** No stamp, only a distant stamp, no qualifying steady
+- [x] **Fails closed.** No stamp, only a distant stamp, no qualifying steady
       stretch, or disagreeing similarity tests → propose **not used**
-- [ ] The rule **never** selects a sail because that sail's existing polar
+- [x] The rule **never** selects a sail because that sail's existing polar
       predicts the observed speed — the polars cannot confirm themselves
-- [ ] **Three categorical states only** — draft, confirmed, not used. No numeric
+- [x] **Three categorical states only** — draft, confirmed, not used. No numeric
       attribution confidence: a second trust knob competing with the evidence
       rules is the pathology `03` and `15` already threw out
-- [ ] Only **confirmed** spans can produce polar points
-- [ ] `replayCaptureSession` extended to return `draftSpans`
-- [ ] Tested against the race script with the deliberately bad stamps: the late
+- [x] Only **confirmed** spans can produce polar points
+- [x] `replayCaptureSession` extended to return `draftSpans`
+- [x] Tested against the race script with the deliberately bad stamps: the late
       hoist is excluded by the head guard; the early peel produces separate
       regions with an unused transition; the missed hoist leaves the leg **not
       used** rather than wrongly attributed
+
+## Verification
+
+- `npx jest features/capture/util/__tests__/replayCaptureSession.test.ts --runInBand`
+- `npx tsc --noEmit`
+- `npm run lint` (0 errors; 19 pre-existing warnings outside this change)
+- `npx jest --runInBand` (36 suites, 388 tests)

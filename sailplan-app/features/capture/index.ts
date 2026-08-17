@@ -19,6 +19,8 @@ export * from './util/captureNotifications';
 export * from './util/formatCaptureDuration';
 export * from './util/replayCaptureSession';
 export * from './util/sailedLegDetection';
+export * from './util/draftAttribution';
+export * from './util/steadyState';
 export * from './util/spanEditing';
 export * from './util/reviewTrack';
 export * from './util/reviewMapMarks';
