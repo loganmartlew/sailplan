@@ -76,9 +76,9 @@ Settled 18 August 2026, before implementation.
       inline frame (`measureInWindow` at press time, not layout — the frame is
       stale after a scroll), and collapses back into it
 - [x] The track does not move when expanding or collapsing: the fullscreen map
-      opens at the inline map's exact region, is revealed only once it has drawn
-      (`onMapLoaded`, fading in over 140 ms), and each delta is scaled by its own
-      dimension's growth
+      opens at the inline map's exact region, fades in over 220 ms once it has
+      drawn (`onMapLoaded`), and each delta is scaled by its own dimension's
+      growth
 - [x] The leg ⟷ course chips and the fullscreen controls fade in only once the
       frame has finished growing, and fade out before it starts shrinking
 - [x] Fullscreen carries the leg ⟷ course toggle and the same sail-coloured
@@ -146,3 +146,16 @@ From the first run on device:
   inside it, and measured once at press time. It is now the map's own rect,
   re-measured on the way out as well as in, so a scroll between opening and
   closing cannot leave the frame shrinking towards where the map used to be.
+
+## Third pass, 18 August 2026
+
+- **The frame no longer waits for the map.** Holding the animation until
+  `onMapLoaded` made the expand control feel dead for as long as the tiles took.
+  The frame now grows on the press and the map fades in when it has something to
+  show, so the control answers immediately and the grey-then-black surface a
+  `MapView` paints before its tiles never appears at full opacity.
+- **The frame lands where the inline map is**, by measuring the portal host's
+  own window position and subtracting it — `measureInWindow` reports window
+  coordinates while the frame is laid out inside the host, and a status bar or
+  header between the two origins was landing it high by exactly that much.
+- Chips and fullscreen controls sit tighter to the edges.

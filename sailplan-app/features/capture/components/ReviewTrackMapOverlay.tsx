@@ -20,15 +20,16 @@ import { ReviewTrackMapCanvas } from './ReviewTrackMapCanvas';
 const INLINE_CORNER_RADIUS = 12;
 const EXPAND_MS = 260;
 const COLLAPSE_MS = 220;
-const FADE_MS = 140;
+/** The map itself, in once it has something to show. */
+const MAP_FADE_MS = 220;
 /** The chips and controls, in and out at the ends of the frame animation. */
 const CHROME_MS = 120;
 /**
- * `onMapLoaded` is Android-only and `onMapReady` can be swallowed on a warm
- * map. Without a backstop the overlay would stay invisible and the expand
- * control would look broken, so reveal anyway once this has passed.
+ * `onMapLoaded` is Android-only, so on iOS nothing would ever fade the map in.
+ * This is the backstop, and it no longer holds the animation up — only how long
+ * the frame can stay empty.
  */
-const REVEAL_BACKSTOP_MS = 900;
+const MAP_FADE_BACKSTOP_MS = 900;
 
 export interface ScreenRect extends FrameSize {
   x: number;
@@ -95,9 +96,14 @@ export function ReviewTrackMapOverlay({
 }: ReviewTrackMapOverlayProps) {
   const insets = useSafeAreaInsets();
   const progress = useSharedValue(0);
-  const revealed = useSharedValue(0);
   const chrome = useSharedValue(0);
-  const hasRevealed = useRef(false);
+  /**
+   * The map's own surface paints grey or black before its tiles arrive, so it
+   * stays fully transparent until it says it has drawn. The frame does not wait
+   * for it: expanding starts on the press, and the map arrives into it.
+   */
+  const mapOpacity = useSharedValue(0);
+  const hasFaded = useRef(false);
   /**
    * Where the portal host sits in window coordinates. `measureInWindow` gives
    * the inline map's rect in the window, but the frame is laid out inside the
@@ -110,32 +116,24 @@ export function ReviewTrackMapOverlay({
 
   const full: ScreenRect = { x: 0, y: 0, width: screen.width, height: screen.height };
 
-  /**
-   * Held until the map has drawn something. Revealing on `onMapReady` showed a
-   * blank frame over the inline map while the tiles were still coming, which is
-   * the flash the animation is supposed to hide; `onMapLoaded` fires once there
-   * is something to see, and the backstop covers iOS, which does not send it.
-   */
-  const reveal = useCallback(() => {
-    if (hasRevealed.current) return;
-    hasRevealed.current = true;
-    // A frame's grace after the map says it has drawn, then fade in on top of
-    // the inline map — which it matches exactly, so there is nothing to see —
-    // and only start growing once that fade is done.
-    requestAnimationFrame(() => {
-      revealed.value = withTiming(1, { duration: FADE_MS }, faded => {
-        if (!faded) return;
-        progress.value = withTiming(1, { duration: EXPAND_MS }, grown => {
-          if (grown) chrome.value = withTiming(1, { duration: CHROME_MS });
-        });
-      });
-    });
-  }, [chrome, progress, revealed]);
+  const fadeMapIn = useCallback(() => {
+    if (hasFaded.current) return;
+    hasFaded.current = true;
+    mapOpacity.value = withTiming(1, { duration: MAP_FADE_MS });
+  }, [mapOpacity]);
 
   useEffect(() => {
-    const timer = setTimeout(reveal, REVEAL_BACKSTOP_MS);
+    const timer = setTimeout(fadeMapIn, MAP_FADE_BACKSTOP_MS);
     return () => clearTimeout(timer);
-  }, [reveal]);
+  }, [fadeMapIn]);
+
+  // The frame grows on the press, not on the map. Waiting for tiles made the
+  // control feel dead for as long as they took to arrive.
+  useEffect(() => {
+    progress.value = withTiming(1, { duration: EXPAND_MS }, grown => {
+      if (grown) chrome.value = withTiming(1, { duration: CHROME_MS });
+    });
+  }, [chrome, progress]);
 
   useEffect(() => {
     if (!closing) return;
@@ -162,10 +160,10 @@ export function ReviewTrackMapOverlay({
       width: rect.width,
       height: rect.height,
       borderRadius: INLINE_CORNER_RADIUS * (1 - progress.value),
-      opacity: revealed.value,
     };
   });
   const chromeStyle = useAnimatedStyle(() => ({ opacity: chrome.value }));
+  const mapStyle = useAnimatedStyle(() => ({ opacity: mapOpacity.value }));
   const canvasStyle = useAnimatedStyle(() => {
     const rect = interpolateRect(origin, full, progress.value);
     return {
@@ -194,7 +192,11 @@ export function ReviewTrackMapOverlay({
       >
         <Animated.View
           className='absolute'
-          style={[{ width: screen.width, height: screen.height }, canvasStyle]}
+          style={[
+            { width: screen.width, height: screen.height },
+            canvasStyle,
+            mapStyle,
+          ]}
         >
           <ReviewTrackMapCanvas
             ref={mapRef}
@@ -205,21 +207,21 @@ export function ReviewTrackMapOverlay({
             style={{ flex: 1 }}
             onLayout={onLayout}
             onMapReady={onMapReady}
-            onMapLoaded={reveal}
+            onMapLoaded={fadeMapIn}
             onRegionChangeComplete={onRegionChangeComplete}
             accessibilityLabel={accessibilityLabel}
           />
         </Animated.View>
         <Animated.View
           className='absolute left-3 right-3'
-          style={[{ top: insets.top + 12 }, chromeStyle]}
+          style={[{ top: insets.top + 4 }, chromeStyle]}
           pointerEvents='box-none'
         >
           {focusToggle}
         </Animated.View>
         <Animated.View
           className='absolute right-3 gap-2'
-          style={[{ bottom: insets.bottom + 16 }, chromeStyle]}
+          style={[{ bottom: insets.bottom + 32 }, chromeStyle]}
         >
           <ReviewMapControl
             label='Close fullscreen GPS track'
