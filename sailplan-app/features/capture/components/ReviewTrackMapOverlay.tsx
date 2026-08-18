@@ -1,5 +1,12 @@
 import { Portal } from '@rn-primitives/portal';
-import { type ReactNode, type RefObject, useCallback, useEffect, useRef } from 'react';
+import {
+  type ReactNode,
+  type RefObject,
+  useCallback,
+  useEffect,
+  useId,
+  useRef,
+} from 'react';
 import { BackHandler, StyleSheet, View } from 'react-native';
 import type MapView from 'react-native-maps';
 import type { Region } from 'react-native-maps';
@@ -102,6 +109,13 @@ export function ReviewTrackMapOverlay({
   onRegionChangeComplete,
 }: ReviewTrackMapOverlayProps) {
   const insets = useSafeAreaInsets();
+  /**
+   * Unique per instance. The portal host keys its contents by name, and a leg
+   * change mounts the next map before the last one unmounts — under a shared
+   * name the outgoing overlay's cleanup deletes the entry the incoming one has
+   * just written, and the two racing store writes land inside a commit.
+   */
+  const portalName = useId();
   const progress = useSharedValue(0);
   const chrome = useSharedValue(0);
   /**
@@ -195,7 +209,7 @@ export function ReviewTrackMapOverlay({
   });
 
   return (
-    <Portal name='review-track-map'>
+    <Portal name={portalName}>
       <View
         ref={host}
         style={StyleSheet.absoluteFill}
