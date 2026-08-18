@@ -32,12 +32,15 @@ selection, nothing to get lost in, nothing to undo.
 
 Settled 18 August 2026, before implementation.
 
-- **Inline gets pinch-zoom, not pan.** The review map lives inside the session
-  screen's vertical `ScrollView`. A pannable map there is a gesture fight: a
-  vertical drag is ambiguous, and whichever way it resolves, a third of the
-  review screen becomes a place where scrolling does not work. Pinch is
-  unambiguous — the `ScrollView` never claims a two-finger gesture. Panning
-  lives fullscreen, where the map owns the whole surface.
+- **The inline map takes no touches at all.** First tried as pinch-zoom inline
+  with panning reserved for fullscreen — the review map lives inside the session
+  screen's vertical `ScrollView`, where a pannable map is a gesture fight and a
+  third of the review screen stops scrolling. Tried on device, pinch alone read
+  as broken rather than restrained: 224 px is not enough frame for a zoom to
+  land somewhere useful, and the map still competed for touches it could do
+  nothing with. So `16`'s read-only thumbnail stands after all, and **all**
+  interaction moves behind the expand control. Only the controls floated over
+  the inline map take touches.
 - **Fullscreen is a second `MapView`, opened at the inline map's exact region
   — not a route.** React Native cannot move a mounted view between parents:
   `@rn-primitives/portal` stores portalled children and re-renders them under
@@ -62,8 +65,8 @@ Settled 18 August 2026, before implementation.
 
 ## Acceptance criteria
 
-- [x] Pinch-zoom works on the inline map, and scrolling the review screen with a
-      thumb on the map still scrolls the screen
+- [x] The inline map stays read-only — `pointerEvents='none'`, no pan, no zoom —
+      so the review screen scrolls normally under a thumb anywhere on it
 - [x] Auto-fit fires on mount/layout, on focus change, and on recenter — and
       **not** on span edits. Today's `useEffect(frameTrack, [frameCoordinates])`
       re-frames whenever a divider moves, which would yank the camera out from
@@ -73,8 +76,11 @@ Settled 18 August 2026, before implementation.
       inline frame (`measureInWindow` at press time, not layout — the frame is
       stale after a scroll), and collapses back into it
 - [x] The track does not move when expanding or collapsing: the fullscreen map
-      opens at the inline map's exact region, is revealed only once loaded, and
-      each delta is scaled by its own dimension's growth
+      opens at the inline map's exact region, is revealed only once it has drawn
+      (`onMapLoaded`, fading in over 140 ms), and each delta is scaled by its own
+      dimension's growth
+- [x] The leg ⟷ course chips and the fullscreen controls fade in only once the
+      frame has finished growing, and fade out before it starts shrinking
 - [x] Fullscreen carries the leg ⟷ course toggle and the same sail-coloured
       span rendering, including unsaved draft spans
 - [x] Camera state is local to the map; leaving and returning to a leg does not
@@ -108,12 +114,9 @@ trap), the 600 ms reveal backstop above, and a recenter control inside
 fullscreen as well as inline — having panned the fullscreen frame, the sailor
 needs the way back that the inline frame already has.
 
-Four things the test suite cannot reach, because the repo has no component or
+Three things the test suite cannot reach, because the repo has no component or
 device harness, and which want a look on the water:
 
-- that a single-finger drag starting on the inline map still scrolls the review
-  screen (the map is `scrollEnabled={false}`, which should leave the drag to the
-  `ScrollView`, but the arbitration is a native one)
 - that the expand animation reads as continuous — the fullscreen canvas is laid
   out at window size throughout and kept centred while only its clipping frame
   grows, so the track should not move at all
@@ -122,3 +125,24 @@ device harness, and which want a look on the water:
 - that the camera resets per leg. This is `key={leg.ordinal}` on the consumer
   (`SailedLegReviewPager.tsx`), so it is a remount rather than logic, and there
   is nothing to assert without a component harness
+
+## Second pass, 18 August 2026
+
+From the first run on device:
+
+- **The inline map opened on the whole world.** The framing latch counted a fit
+  that never landed: `fitToCoordinates` before the native map is ready is a
+  silent no-op, so the map marked itself framed and then refused the `onMapReady`
+  fit that would have worked. The latch now needs the frame to be `ready` before
+  anything counts as framed, and the inline map carries an `initialRegion`
+  derived from the track so there is no world-sized frame to see even for one
+  draw.
+- **Inline touch removed entirely** — see the revised decision above.
+- **The expand flash** was `onMapReady` firing before any tile had drawn, so the
+  overlay appeared blank over the inline map. Reveal now waits for `onMapLoaded`
+  and fades in over 140 ms, with the backstop raised to 900 ms for iOS, which
+  does not send that event.
+- **The collapse landing** was measured on the bordered box rather than the map
+  inside it, and measured once at press time. It is now the map's own rect,
+  re-measured on the way out as well as in, so a scroll between opening and
+  closing cannot leave the frame shrinking towards where the map used to be.

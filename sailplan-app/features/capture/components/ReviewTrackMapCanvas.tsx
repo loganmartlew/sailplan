@@ -9,8 +9,12 @@ interface ReviewTrackMapCanvasProps {
   ref: Ref<MapView>;
   track: readonly ReviewTrackSegment[];
   marks: readonly ReviewMapMark[];
-  /** Panning belongs to the fullscreen frame; inline gets pinch only. */
-  scrollEnabled: boolean;
+  /**
+   * Only the fullscreen frame takes touches. Inline stays a thumbnail: a map
+   * that small answers nothing a gesture could ask, and letting it take touches
+   * only steals them from the review screen's scroll.
+   */
+  interactive: boolean;
   initialRegion?: Region;
   style?: StyleProp<ViewStyle>;
   accessibilityLabel: string;
@@ -29,7 +33,7 @@ export function ReviewTrackMapCanvas({
   ref,
   track,
   marks,
-  scrollEnabled,
+  interactive,
   initialRegion,
   style,
   accessibilityLabel,
@@ -44,8 +48,9 @@ export function ReviewTrackMapCanvas({
       style={style}
       initialRegion={initialRegion}
       mapType='standard'
-      scrollEnabled={scrollEnabled}
-      zoomEnabled
+      pointerEvents={interactive ? 'auto' : 'none'}
+      scrollEnabled={interactive}
+      zoomEnabled={interactive}
       rotateEnabled={false}
       pitchEnabled={false}
       toolbarEnabled={false}

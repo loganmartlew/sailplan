@@ -40,6 +40,8 @@ interface ReviewTrackMapProps {
 }
 
 const EDGE_PADDING = { top: 56, right: 56, bottom: 40, left: 56 };
+/** Matches the `h-56` inline box. */
+const INLINE_MAP_HEIGHT = 224;
 
 type FrameKey = 'inline' | 'fullscreen';
 
@@ -52,6 +54,12 @@ interface MapFrame {
   readonly map: RefObject<MapView | null>;
   size: FrameSize;
   region: MapRegion | null;
+  /**
+   * Whether the native map will act on a camera call yet. Fitting before this
+   * is a silent no-op, so the latch must not count it as framed — that is what
+   * used to leave the inline map sitting on the whole world.
+   */
+  ready: boolean;
   /**
    * A region settling because we moved the camera is not the sailor moving it.
    * Without this every programmatic fit would latch the camera against itself.
@@ -78,10 +86,23 @@ export function ReviewTrackMap({
 
   const inlineMap = useRef<MapView>(null);
   const fullscreenMap = useRef<MapView>(null);
-  const inlineBox = useRef<View>(null);
+  /** The map's own rect, so the overlay starts on exactly the pixels it shows. */
+  const inlineCanvasBox = useRef<View>(null);
   const frames = useRef<Record<FrameKey, MapFrame>>({
-    inline: { map: inlineMap, size: { width: 0, height: 0 }, region: null, programmatic: false },
-    fullscreen: { map: fullscreenMap, size: { width: 0, height: 0 }, region: null, programmatic: false },
+    inline: {
+      map: inlineMap,
+      size: { width: 0, height: 0 },
+      region: null,
+      ready: false,
+      programmatic: false,
+    },
+    fullscreen: {
+      map: fullscreenMap,
+      size: { width: 0, height: 0 },
+      region: null,
+      ready: false,
+      programmatic: false,
+    },
   });
   const camera = useRef<ReviewMapCameraState>(initialReviewMapCamera);
   const previousFocus = useRef<ReviewMapFocus>(focus);
@@ -161,11 +182,11 @@ export function ReviewTrackMap({
     const step = stepReviewMapCamera(
       camera.current,
       event,
-      frameCoordinates.length > 0,
+      frameCoordinates.length > 0 && activeFrame().ready,
     );
     camera.current = step.state;
     if (step.fit) frameTrack();
-  }, [frameCoordinates.length, frameTrack]);
+  }, [activeFrame, frameCoordinates.length, frameTrack]);
 
   // One effect for both, because switching focus also changes the coordinates:
   // running them separately would fire a spurious track change alongside it.
@@ -185,8 +206,16 @@ export function ReviewTrackMap({
     dispatch('gesture');
   };
 
+  const measureInlineCanvas = (then: (rect: ScreenRect) => void) => {
+    // Measured on demand rather than kept from layout: the rect is stale the
+    // moment the sailor scrolls the review screen, on the way in and out both.
+    inlineCanvasBox.current?.measureInWindow((x, y, width, height) =>
+      then({ x, y, width, height }),
+    );
+  };
+
   const expand = () => {
-    inlineBox.current?.measureInWindow((x, y, width, height) => {
+    measureInlineCanvas(rect => {
       const inline = frames.current.inline;
       // The inline map may not have reported a region yet on a fast press.
       // Deriving the fit it is about to settle on keeps the fullscreen frame
@@ -196,7 +225,7 @@ export function ReviewTrackMap({
       frames.current.fullscreen.size = screen;
       frames.current.fullscreen.region = null;
       setOpenRegion(from ? rescaleRegion(from, inline.size, screen) : undefined);
-      setOrigin({ x, y, width, height });
+      setOrigin(rect);
       setExpanded(true);
     });
   };
@@ -212,6 +241,7 @@ export function ReviewTrackMap({
         0,
       );
     }
+    measureInlineCanvas(rect => setOrigin(rect));
     setClosing(true);
   }, [screen]);
 
@@ -221,11 +251,18 @@ export function ReviewTrackMap({
     setOrigin(null);
   }, []);
 
-  const measureFrame = (key: FrameKey) => (size: FrameSize) => {
-    frames.current[key].size = size;
-  };
-
   const hasTrack = frameCoordinates.length > 0;
+  // The map takes this only on its first mount, so it is the frame the sailor
+  // sees before any fit lands. Height is the fixed h-56 box; width is close
+  // enough that the fit arriving behind it is an adjustment, not a jump.
+  const inlineInitialRegion = useRef<Region | undefined>(undefined);
+  if (hasTrack && !inlineInitialRegion.current) {
+    inlineInitialRegion.current = regionForCoordinates(
+      frameCoordinates,
+      { width: screen.width, height: INLINE_MAP_HEIGHT },
+      EDGE_PADDING,
+    ) ?? undefined;
+  }
   const focusLabel = focus === 'leg' ? 'this leg' : 'whole course';
   const recenter = () => dispatch('recenter');
 
@@ -251,30 +288,32 @@ export function ReviewTrackMap({
   return (
     <View className='gap-2'>
       {focusToggle}
-      <View
-        ref={inlineBox}
-        collapsable={false}
-        className='h-56 overflow-hidden rounded-xl border border-border bg-muted'
-      >
+      <View className='h-56 overflow-hidden rounded-xl border border-border bg-muted'>
         {hasTrack ? (
           <>
-            <ReviewTrackMapCanvas
-              ref={inlineMap}
-              track={track}
-              marks={visibleMarks}
-              scrollEnabled={false}
-              style={{ flex: 1 }}
-              onLayout={event => {
-                // The map's own box, not the bordered one around it: the region
-                // maths divides by this, so a couple of pixels of border would
-                // put the fullscreen scale slightly out.
-                measureFrame('inline')(event.nativeEvent.layout);
-                dispatch('layout');
-              }}
-              onMapReady={() => dispatch('layout')}
-              onRegionChangeComplete={onRegionSettled('inline')}
-              accessibilityLabel={`GPS track, ${focusLabel}. Pinch to zoom.`}
-            />
+            <View ref={inlineCanvasBox} collapsable={false} className='flex-1'>
+              <ReviewTrackMapCanvas
+                ref={inlineMap}
+                track={track}
+                marks={visibleMarks}
+                interactive={false}
+                initialRegion={inlineInitialRegion.current}
+                style={{ flex: 1 }}
+                onLayout={event => {
+                  // The map's own box, not the bordered one around it: the
+                  // region maths divides by this, so a couple of pixels of
+                  // border would put the fullscreen scale slightly out.
+                  frames.current.inline.size = event.nativeEvent.layout;
+                  dispatch('layout');
+                }}
+                onMapReady={() => {
+                  frames.current.inline.ready = true;
+                  dispatch('layout');
+                }}
+                onRegionChangeComplete={onRegionSettled('inline')}
+                accessibilityLabel={`Read-only GPS track, ${focusLabel}. Expand to explore it.`}
+              />
+            </View>
             <View className='absolute bottom-2 right-2 gap-2'>
               <ReviewMapControl
                 label='Expand GPS track'
@@ -310,6 +349,10 @@ export function ReviewTrackMap({
           onClosed={onClosed}
           onRecenter={recenter}
           onLayout={() => dispatch('layout')}
+          onMapReady={() => {
+            frames.current.fullscreen.ready = true;
+            dispatch('layout');
+          }}
           onRegionChangeComplete={onRegionSettled('fullscreen')}
         />
       )}
