@@ -269,7 +269,9 @@ export function SailedLegReviewPager({ sessionId }: SailedLegReviewPagerProps) {
         </View>
 
         <ReviewTrackMap
-          key={leg.ordinal}
+          // Namespaced: the editor below remounts on the same leg change, and
+          // a bare ordinal makes the two siblings share a key.
+          key={`map-${leg.ordinal}`}
           samples={samples.data}
           spans={allVisibleSpans}
           sails={sailsQuery?.data ?? []}
@@ -284,7 +286,7 @@ export function SailedLegReviewPager({ sessionId }: SailedLegReviewPagerProps) {
           // survive a page-turn: leg B can have the same block count as leg A
           // with a gap where A had an editable block, which leaves the editor
           // holding an unselectable index and rendering nothing at all.
-          key={leg.ordinal}
+          key={`editor-${leg.ordinal}`}
           spans={band}
           sails={sailsQuery?.data ?? []}
           samples={legSamples}
