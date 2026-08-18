@@ -151,11 +151,29 @@ From the first run on device:
 
 - **The frame no longer waits for the map.** Holding the animation until
   `onMapLoaded` made the expand control feel dead for as long as the tiles took.
-  The frame now grows on the press and the map fades in when it has something to
-  show, so the control answers immediately and the grey-then-black surface a
-  `MapView` paints before its tiles never appears at full opacity.
+  Growing an empty frame instead was worse — the animation ran while there was
+  nothing in it to see, so the map simply appeared at full size. Superseded by
+  the warm-up below.
 - **The frame lands where the inline map is**, by measuring the portal host's
   own window position and subtracting it — `measureInWindow` reports window
   coordinates while the frame is laid out inside the host, and a status bar or
   header between the two origins was landing it high by exactly that much.
 - Chips and fullscreen controls sit tighter to the edges.
+
+## Fourth pass, 18 August 2026
+
+**The fullscreen map warms up before it is needed.** Everything tried so far
+traded the wait against the animation: wait for tiles and the control feels
+dead, grow without them and the animation plays to an empty frame. Both come
+from mounting the map on the press.
+
+It is now mounted as soon as the inline map is ready, parked at full size,
+invisible and inert, loading the tiles the grown frame will need. The inline
+map's region is pushed to it — rescaled to its own frame — every time the
+inline camera settles, so at the moment of the press there is no camera work
+left to do: the frame snaps onto the inline map and grows, around a map that
+already has something in it.
+
+The cost is a second `MapView` alive per reviewed leg. That is the price of the
+animation; if it shows up as memory pressure on older Android, the thing to
+give up is the warm-up, and with it the expansion animation.

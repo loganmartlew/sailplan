@@ -26,8 +26,8 @@ const MAP_FADE_MS = 220;
 const CHROME_MS = 120;
 /**
  * `onMapLoaded` is Android-only, so on iOS nothing would ever fade the map in.
- * This is the backstop, and it no longer holds the animation up — only how long
- * the frame can stay empty.
+ * This only bounds how long a cold press can look empty; a warm map is already
+ * faded in long before the sailor reaches the control.
  */
 const MAP_FADE_BACKSTOP_MS = 900;
 
@@ -48,8 +48,14 @@ function interpolateRect(from: ScreenRect, to: ScreenRect, t: number): ScreenRec
 
 interface ReviewTrackMapOverlayProps {
   mapRef: RefObject<MapView | null>;
-  /** Where on screen the inline map sits, measured at press time. */
+  /** Where on screen the inline map sits, re-measured on the way in and out. */
   origin: ScreenRect;
+  /**
+   * Whether the overlay is on screen. While false it is mounted, laid out at
+   * full size and loading tiles, but invisible and inert — that warm-up is what
+   * lets the frame grow around a map that already has something in it.
+   */
+  expanded: boolean;
   screen: FrameSize;
   track: readonly ReviewTrackSegment[];
   marks: readonly ReviewMapMark[];
@@ -80,6 +86,7 @@ interface ReviewTrackMapOverlayProps {
 export function ReviewTrackMapOverlay({
   mapRef,
   origin,
+  expanded,
   screen,
   track,
   marks,
@@ -104,6 +111,8 @@ export function ReviewTrackMapOverlay({
    */
   const mapOpacity = useSharedValue(0);
   const hasFaded = useRef(false);
+  /** The frame itself: invisible while warming, shown the instant it grows. */
+  const visible = useSharedValue(0);
   /**
    * Where the portal host sits in window coordinates. `measureInWindow` gives
    * the inline map's rect in the window, but the frame is laid out inside the
@@ -127,13 +136,24 @@ export function ReviewTrackMapOverlay({
     return () => clearTimeout(timer);
   }, [fadeMapIn]);
 
-  // The frame grows on the press, not on the map. Waiting for tiles made the
-  // control feel dead for as long as they took to arrive.
+  // Parked at full size while warming, so the map loads the tiles the grown
+  // frame will need. Expanding snaps the frame back onto the inline map and
+  // grows from there, with something already in it to watch.
   useEffect(() => {
-    progress.value = withTiming(1, { duration: EXPAND_MS }, grown => {
-      if (grown) chrome.value = withTiming(1, { duration: CHROME_MS });
+    if (!expanded) {
+      progress.value = 1;
+      visible.value = 0;
+      return;
+    }
+    progress.value = 0;
+    visible.value = 1;
+    const frame = requestAnimationFrame(() => {
+      progress.value = withTiming(1, { duration: EXPAND_MS }, grown => {
+        if (grown) chrome.value = withTiming(1, { duration: CHROME_MS });
+      });
     });
-  }, [chrome, progress]);
+    return () => cancelAnimationFrame(frame);
+  }, [chrome, expanded, progress, visible]);
 
   useEffect(() => {
     if (!closing) return;
@@ -145,12 +165,13 @@ export function ReviewTrackMapOverlay({
   }, [chrome, closing, onClosed, progress]);
 
   useEffect(() => {
+    if (!expanded) return;
     const subscription = BackHandler.addEventListener('hardwareBackPress', () => {
       onRequestClose();
       return true;
     });
     return () => subscription.remove();
-  }, [onRequestClose]);
+  }, [expanded, onRequestClose]);
 
   const frameStyle = useAnimatedStyle(() => {
     const rect = interpolateRect(origin, full, progress.value);
@@ -160,6 +181,7 @@ export function ReviewTrackMapOverlay({
       width: rect.width,
       height: rect.height,
       borderRadius: INLINE_CORNER_RADIUS * (1 - progress.value),
+      opacity: visible.value,
     };
   });
   const chromeStyle = useAnimatedStyle(() => ({ opacity: chrome.value }));
@@ -178,6 +200,7 @@ export function ReviewTrackMapOverlay({
         ref={host}
         style={StyleSheet.absoluteFill}
         collapsable={false}
+        pointerEvents={expanded ? 'auto' : 'none'}
         onLayout={() => {
           host.current?.measureInWindow((x, y) => {
             hostOffset.value = { x, y };

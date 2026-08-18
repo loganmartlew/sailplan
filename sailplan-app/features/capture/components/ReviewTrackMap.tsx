@@ -80,9 +80,14 @@ export function ReviewTrackMap({
   const window = useWindowDimensions();
   const [focus, setFocus] = useState<ReviewMapFocus>('leg');
   const [expanded, setExpanded] = useState(false);
+  /**
+   * The fullscreen map is mounted and loading well before the sailor presses
+   * expand. Growing a frame around a map that has not drawn yet animates
+   * nothing anyone can see, so the warm-up is what buys the animation.
+   */
+  const [warm, setWarm] = useState(false);
   const [closing, setClosing] = useState(false);
   const [origin, setOrigin] = useState<ScreenRect | null>(null);
-  const [openRegion, setOpenRegion] = useState<Region | undefined>(undefined);
 
   const inlineMap = useRef<MapView>(null);
   const fullscreenMap = useRef<MapView>(null);
@@ -196,14 +201,28 @@ export function ReviewTrackMap({
     dispatch(event);
   }, [dispatch, focus, frameCoordinates]);
 
+  /**
+   * Point the warm fullscreen map at what the inline map is showing, scaled to
+   * its own frame. Kept in step continuously so expanding is a pure animation:
+   * no camera work between the press and the frame moving.
+   */
+  const syncWarmFullscreen = useCallback(() => {
+    const { inline, fullscreen } = frames.current;
+    if (expanded || !inline.region || inline.size.height <= 0) return;
+    fullscreen.programmatic = true;
+    fullscreen.map.current?.animateToRegion(
+      rescaleRegion(inline.region, inline.size, screen),
+      0,
+    );
+  }, [expanded, screen]);
+
   const onRegionSettled = (key: FrameKey) => (region: Region) => {
     const frame = frames.current[key];
     frame.region = region;
-    if (frame.programmatic) {
-      frame.programmatic = false;
-      return;
-    }
-    dispatch('gesture');
+    const wasProgrammatic = frame.programmatic;
+    frame.programmatic = false;
+    if (key === 'inline') syncWarmFullscreen();
+    if (!wasProgrammatic) dispatch('gesture');
   };
 
   const measureInlineCanvas = (then: (rect: ScreenRect) => void) => {
@@ -216,15 +235,6 @@ export function ReviewTrackMap({
 
   const expand = () => {
     measureInlineCanvas(rect => {
-      const inline = frames.current.inline;
-      // The inline map may not have reported a region yet on a fast press.
-      // Deriving the fit it is about to settle on keeps the fullscreen frame
-      // opening on what the sailor can already see, rather than on a fresh fit.
-      const from = inline.region
-        ?? regionForCoordinates(frameCoordinates, inline.size, EDGE_PADDING);
-      frames.current.fullscreen.size = screen;
-      frames.current.fullscreen.region = null;
-      setOpenRegion(from ? rescaleRegion(from, inline.size, screen) : undefined);
       setOrigin(rect);
       setExpanded(true);
     });
@@ -262,6 +272,13 @@ export function ReviewTrackMap({
       { width: screen.width, height: INLINE_MAP_HEIGHT },
       EDGE_PADDING,
     ) ?? undefined;
+  }
+  // Same for the warm fullscreen map, so the tiles it loads while waiting are
+  // the ones the sailor is about to expand into.
+  const fullscreenInitialRegion = useRef<Region | undefined>(undefined);
+  if (hasTrack && !fullscreenInitialRegion.current) {
+    fullscreenInitialRegion.current =
+      regionForCoordinates(frameCoordinates, screen, EDGE_PADDING) ?? undefined;
   }
   const focusLabel = focus === 'leg' ? 'this leg' : 'whole course';
   const recenter = () => dispatch('recenter');
@@ -304,11 +321,13 @@ export function ReviewTrackMap({
                   // region maths divides by this, so a couple of pixels of
                   // border would put the fullscreen scale slightly out.
                   frames.current.inline.size = event.nativeEvent.layout;
+                  measureInlineCanvas(setOrigin);
                   dispatch('layout');
                 }}
                 onMapReady={() => {
                   frames.current.inline.ready = true;
                   dispatch('layout');
+                  setWarm(true);
                 }}
                 onRegionChangeComplete={onRegionSettled('inline')}
                 accessibilityLabel={`Read-only GPS track, ${focusLabel}. Expand to explore it.`}
@@ -334,14 +353,15 @@ export function ReviewTrackMap({
         )}
       </View>
 
-      {expanded && origin && (
+      {warm && hasTrack && origin && (
         <ReviewTrackMapOverlay
           mapRef={fullscreenMap}
           origin={origin}
+          expanded={expanded}
           screen={screen}
           track={track}
           marks={visibleMarks}
-          initialRegion={openRegion}
+          initialRegion={fullscreenInitialRegion.current}
           accessibilityLabel={`GPS track fullscreen, ${focusLabel}. Pan and pinch to zoom.`}
           focusToggle={focusToggle}
           closing={closing}
@@ -351,7 +371,8 @@ export function ReviewTrackMap({
           onLayout={() => dispatch('layout')}
           onMapReady={() => {
             frames.current.fullscreen.ready = true;
-            dispatch('layout');
+            frames.current.fullscreen.size = screen;
+            syncWarmFullscreen();
           }}
           onRegionChangeComplete={onRegionSettled('fullscreen')}
         />
