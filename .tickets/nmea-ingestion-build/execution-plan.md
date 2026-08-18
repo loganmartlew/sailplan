@@ -179,6 +179,57 @@ cannot see it. Use `/code-review` against the merge-base of the cluster.
 
 ---
 
+## Follow-on wave: after the first real race (18 August 2026)
+
+Tickets `01`–`17` shipped and the race was sailed — >2 hrs of data, capture
+itself worked. Review did not: **4 legs detected for a 7-leg race**, data
+misfiled against the legs, and the map too small to check GPS coverage. Three
+tickets, outside the original twenty:
+
+| # | Ticket | Blocked by | Status |
+| --- | --- | --- | --- |
+| `21` | [Real-race replay harness](issues/21-real-race-replay-harness.md) | nothing | done |
+| `22` | [Course-anchored leg detection](issues/22-course-anchored-leg-detection.md) | nothing | done |
+| `23` | [Interactive review map](issues/23-interactive-review-map.md) | nothing | ready-for-agent |
+
+`23` is unblocked; `21` and `22` are done. `21` landed 18 August 2026: Saturday's log and course are
+now a committed fixture, the whole pipeline replays off-device in 3.7 s, and the
+sailed truth — 8 roundings, 7 legs — is read off the track itself. It confirmed
+every cause `22` predicted and added one warning `22` has to design around:
+greedy closest-approach does **not** reproduce that truth on a course whose marks
+are rounded twice. It also turned up something unexplained — off-device the same
+code finds **9** legs where the phone reported 4, so the phone's stored samples
+may not be what this log replays to, and two live defects in the DB layer that
+`22` has to fix first — the review path never reads mark lat/lon, and
+`courseMark.order` is all zeros on every course built through the UI. `22` now
+carries the full hand-off: fixture, truth, algorithm, prerequisites, and the test
+to flip. Promotion tickets `18`–`20` remain unbuilt and are unaffected.
+
+`22` landed the same day. With a course linked, boundaries now come from where
+the boat was against the marks — local minima per mark, then a monotonic
+least-distance assignment over marks × candidates — and on the real race that
+recovers **all 8 roundings within 1 s and all 7 legs correctly named**. Both DB
+prerequisites are fixed (mark positions reach the review path; `courseMark.order`
+is backfilled by migration and read as `(order, id)`), review can be re-detected
+from the pager, and spec §6 records the reversal on GPS-based segmentation for
+the course-linked case. The 9-vs-4 leg question is narrowed, not closed: the race
+was recorded on the **preview** build, which is not debuggable, so its stored rows
+cannot be read. Rebuilding the session in the dev app from the raw log reproduced
+9 legs exactly, which clears replay and the DB write path and leaves the question
+with the preview build's own data.
+
+One correction from Logan the same day: the first North Head on that course is a
+**via point** (routing around the peninsula), not a race mark, so the course is 7
+legs as entered and 6 as raced. `22` anchors on all entries anyway — the
+raced-versus-entered distinction waits on the via-points feature.
+
+**Do not debug this by copying the preview database to the dev app.** The reasons
+are recorded in `21` — the short version is that the raw log is already the
+evidence, `replayCaptureSession` already replays it off-device, and the preview
+APK is a release build that `adb run-as` cannot reach.
+
+---
+
 ## Things to carry, not rediscover
 
 - **A foreground service does not keep the socket alive in Doze.** MT5 measured
@@ -209,7 +260,18 @@ cannot see it. Use `/code-review` against the merge-base of the cluster.
   constant so that is a one-line change.
 - **The trim defaults (25 s / 10 s) and the leg-detection tolerance are one
   decision.** The end trim exists to absorb the ±33 s detection error. Retune
-  them together or not at all.
+  them together or not at all. `22` changes where boundaries come from when a
+  course is linked, so it changes the error the trim is absorbing — revisit the
+  pair there, not separately.
+- **Legs are materialised exactly once.** `materializeCaptureReview` returns
+  early on `session.reviewMaterializedAt`, so changing detection does **not**
+  re-detect an existing session. Any detection change needs a re-detect path to
+  be testable on a phone; `22` owns building one.
+- **Leg detection was only ever measured against the simulator.** The spec's
+  "14/14 roundings, 0 spurious, median error 33 s" came from the
+  windward-leeward script — the geometry median-`|TWA|` handles best. The first
+  real race found 4 of 7 legs. Treat simulator-measured detection numbers as a
+  floor, not a validation.
 - **Four risks land on race morning**, all recoverable at the berth and none once
   the lines are off: the plotter's Serial-output checkbox gating the Ethernet
   stream, an endpoint unknown until the day, `MWV,T` absent or status `V`, and a

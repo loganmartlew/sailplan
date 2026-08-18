@@ -595,30 +595,76 @@ on design**: Android's template allows at most three actions against a wardrobe
 of 8–11 sails, and under the no-propagation rule a wrong stamp is worse than no
 stamp.
 
-### 6. Sailed-leg detection (`10`)
+### 6. Sailed-leg detection (`10`, revised by `22`)
 
-Over a **±90 s window**, a boundary is a change in **median `|TWA|` of ≥25°**;
-minimum leg **180 s**; data gaps are boundaries. **The sign is ignored** — that
-is the whole trick: a tack flips TWA's sign and keeps its magnitude; a rounding
-changes the magnitude. Sign is *which tack*; magnitude is *point of sail*; a
-course leg is a point of sail. Measured: 14/14 roundings found, 0 spurious,
-median timing error 33 s.
+**With a course linked, boundaries are measured against the marks** (`22`). A
+course of N marks is a race of N-1 legs by construction, and leg *i* is named for
+marks *i* → *i+1* because that is where the boat physically went. Each mark's
+distinct approaches — every stretch of track that closes on it and recedes — are
+its candidate roundings, and one per mark is chosen so that all are **strictly
+increasing in time** at the least total distance (a small dynamic program over
+marks × candidates). Greedy "closest approach after the previous mark" is
+**wrong and must not be retried**: on Saturday's race the first pass of a mark is
+143 m out and the second is 16 m, so a forward scan hands the first mark the
+second pass and drags every later mark forward until one collapses.
 
-Rejected and not to be retried: segmenting on **heading** (a tack and a rounding
-are both ~90°, so it merges nothing) and on **GPS net-travel bearing** (14/14 but
-with 14 spurious boundaries). Net bearing remains the correct backstop for the
-one case `|TWA|` misses — consecutive legs at the same angle on opposite gybes,
-such as an out-and-back reach — and is **recorded but not built in v1**.
+The guard radius (**750 m**) is a sanity guard against a stale or
+mis-georeferenced mark, not the thing that rejects a decoy pass — the monotonic
+sequence is. It must stay generous: a **via point**, entered so a course clears a
+headland, is passed rather than rounded (143 m on Saturday, easily 500 m on a
+course drawn with more margin), and a radius tight enough to reject a 191 m
+pre-start decoy would reject genuine via points too. Passes of the same mark are
+separated by receding **200 m** and returning, not by leaving the radius, because
+a short course may never leave it. Anchoring is on **every course entry, via
+points included** — the course model cannot yet tell a via point from a race
+mark, and guessing is not attempted; a via-point-split leg is reported as two.
+
+Recording either side of the course is outside every leg: the first leg starts at
+the first rounding, so pre-start manoeuvring is not a leg, and there is no
+wrap-around leg from the finish back to the start.
+
+**Without a course**, and for a mark the boat never came near, detection is the
+original `|TWA|` segmenter, unchanged: over a **±90 s window**, a boundary is a
+change in **median `|TWA|` of ≥25°**; minimum leg **180 s**; data gaps are
+boundaries. **The sign is ignored** — that is the whole trick: a tack flips TWA's
+sign and keeps its magnitude; a rounding changes the magnitude. Sign is *which
+tack*; magnitude is *point of sail*; a course leg is a point of sail.
+
+**Why the course-anchored path exists.** `|TWA|` measured 14/14 roundings with 0
+spurious — against the **simulator's windward-leeward script**, which is the
+geometry it handles best and is **not representative**. On the first real race
+(`saturday-race.log`, now the reference fixture) the same code found 9 legs for a
+7-leg course, landed 5 of 8 roundings, and — because naming was positional —
+misfiled every leg after the first miss. Two roundings sat inside a single
+segment of near-constant median `|TWA|`: two legs of run with nothing between
+them, and two beats across one 51-minute segment. That is `|TWA|`'s structural
+blind spot — consecutive legs at the same point of sail — and no threshold
+tuning reaches it.
+
+This **reverses** the earlier rejection of GPS-based segmentation for the
+course-linked case, and the reversal is not to be re-litigated. It does not
+resurrect what was rejected: net-travel bearing inferred boundaries from track
+shape alone and produced 14 spurious boundaries, whereas this matches the track
+against **known** mark positions, which is a different problem. Segmenting on
+**heading** stays rejected (a tack and a rounding are both ~90°, so it merges
+nothing), and so does net-travel bearing for the no-course case.
 
 **Mark names need the linked course.** Inferring them from where the boat rounded
 was tried and fails (roundings smeared into 4 clusters where 2 marks exist). With
 no course, legs fall back to "Beat 3 / Run 3", renameable.
 
-**Dropout continuations (spec call, closing `10`'s known gap).** Two legs
-separated only by a data-gap boundary, whose median `|TWA|` values fall in the
-same 10° band, are marked as a continuation of one leg and share its name and
-ordinal presentation. This is `10`'s explicitly-flagged "cheap to fix at build
-time" defect.
+**Detection is re-runnable.** Review materialises legs once, so a detection fix
+would otherwise never reach a session already on the phone. A re-detect action
+rebuilds a session's legs and spans, discarding unconfirmed drafts and warning
+first when confirmed legs would be lost — a confirmation is a judgement about
+*those* boundaries and cannot be carried onto different ones.
+
+**Dropout continuations (spec call, closing `10`'s known gap).** On the `|TWA|`
+path, two legs separated only by a data-gap boundary, whose median `|TWA|` values
+fall in the same 10° band, are marked as a continuation of one leg and share its
+name and ordinal presentation. This is `10`'s explicitly-flagged "cheap to fix at
+build time" defect. A course-anchored leg has no continuations: the marks either
+side say it is one leg, so a dropout inside it is a gap in that leg.
 
 ### 7. Attribution: stamps are evidence, spans are claims (`19`)
 
@@ -1132,7 +1178,9 @@ Ruled out for this spec. Each returns only as a fresh effort.
   designed but not built.
 - **A whole-session splice.** Explicitly rejected for the above reason.
 - **GPS net-travel-bearing leg detection** as a backstop for consecutive legs at
-  the same angle on opposite gybes. The correct remedy, recorded, not built.
+  the same angle on opposite gybes, *with no course linked*. Recorded, not built.
+  With a course linked this case is now solved by anchoring on the marks (§6,
+  ticket `22`), which is where it actually bit on the first real race.
 - **Real map tiles** under the review track. The map is GPS-only: no chart, no
   land.
 - **Sail actions on the notification.** Mechanically legal, rejected on design.

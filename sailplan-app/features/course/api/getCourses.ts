@@ -61,7 +61,8 @@ export function useCourseMarks(courseId?: number | null) {
   return useLiveQuery(
     db.query.courseMark.findMany({
       where: eq(courseMark.courseId, courseId ?? -1),
-      orderBy: [asc(courseMark.order)],
+      // `(order, id)` — see the note in `captureReview.ts`.
+      orderBy: [asc(courseMark.order), asc(courseMark.id)],
       with: {
         mark: true,
       },

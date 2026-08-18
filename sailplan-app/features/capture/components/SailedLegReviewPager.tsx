@@ -10,10 +10,12 @@ import {
   Text,
   Toggle,
 } from '~/components/ui';
+import { useConfirm } from '~/hooks/useConfirm';
 import { useSails } from '~/features/sail';
 import {
   confirmSailedLegPresentation,
   materializeCaptureReview,
+  redetectCaptureReview,
   useSailedLegReview,
 } from '../api/captureReview';
 import { splitLegBand, unifyLegParts } from '../util/legBand';
@@ -46,6 +48,7 @@ interface SailedLegReviewPagerProps {
 export function SailedLegReviewPager({ sessionId }: SailedLegReviewPagerProps) {
   const { legs, samples, courseMarks } = useSailedLegReview(sessionId);
   const sailsQuery = useSails();
+  const confirm = useConfirm();
   const [index, setIndex] = useState(0);
   const [name, setName] = useState('');
   const [used, setUsed] = useState(true);
@@ -55,12 +58,45 @@ export function SailedLegReviewPager({ sessionId }: SailedLegReviewPagerProps) {
   const [draftSpans, setDraftSpans] = useState<Record<number, readonly EditableSailSpan[]>>({});
   const positioned = useRef(false);
 
-  useEffect(() => {
+  const resetPager = () => {
     positioned.current = false;
     setMaterializing(true);
     setIndex(0);
     setFinished(false);
+    // Drafts are keyed by stored leg id, and re-detection issues new ones.
     setDraftSpans({});
+  };
+
+  const confirmedCount = legs.data.filter(item => item.confirmedAt !== null).length;
+  const redetect = async () => {
+    if (
+      confirmedCount > 0 &&
+      !(await confirm({
+        title: 'Detect legs again?',
+        message:
+          `This session has ${confirmedCount} confirmed ` +
+          `${confirmedCount === 1 ? 'leg' : 'legs'}. Detecting again rebuilds every leg ` +
+          'from the recording, so those confirmations and the sails assigned to them are lost.',
+        confirmText: 'Detect again',
+        cancelText: 'Keep them',
+        destructive: true,
+      }))
+    ) return;
+    resetPager();
+    InteractionManager.runAfterInteractions(() => {
+      setSessionMissing(!redetectCaptureReview(sessionId));
+      setMaterializing(false);
+    });
+  };
+
+  const redetectButton = (
+    <Button variant='ghost' onPress={redetect}>
+      <Text>Detect legs again</Text>
+    </Button>
+  );
+
+  useEffect(() => {
+    resetPager();
     // Leg detection and draft attribution run synchronously inside a SQLite
     // transaction, and a multi-hour session is a lot of samples. Running that
     // straight from the effect blocks the screen's entry animation on a blank
@@ -158,6 +194,7 @@ export function SailedLegReviewPager({ sessionId }: SailedLegReviewPagerProps) {
           <Text>
             There was usable data, but no point of sail lasted for the three-minute minimum.
           </Text>
+          {redetectButton}
         </CardContent>
       </Card>
     );
@@ -196,6 +233,7 @@ export function SailedLegReviewPager({ sessionId }: SailedLegReviewPagerProps) {
           <Button variant='outline' onPress={() => setFinished(false)}>
             <Text>Review last leg</Text>
           </Button>
+          {redetectButton}
         </CardContent>
       </Card>
     );
@@ -280,6 +318,7 @@ export function SailedLegReviewPager({ sessionId }: SailedLegReviewPagerProps) {
             <Text>{isLast ? 'Finish' : 'Next'}</Text>
           </Button>
         </View>
+        {redetectButton}
       </CardContent>
     </Card>
   );

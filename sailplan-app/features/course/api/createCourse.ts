@@ -33,7 +33,10 @@ export async function createCourseMark(
       .from(courseMark)
       .where(eq(courseMark.courseId, courseMarkInsert.courseId));
 
-    order = maxOrders[0]?.maxOrder ? maxOrders[0].maxOrder + 1 : 0;
+    // `?? -1`, not a falsy check: an existing max order of 0 is a real order,
+    // and treating it as absent gave every mark after the first the order 0 —
+    // which left mark sequence to SQLite's tiebreak on every course built here.
+    order = (maxOrders[0]?.maxOrder ?? -1) + 1;
   }
 
   const courseMarks = await db

@@ -10,7 +10,8 @@ remembered mode.
 
 **Blocked by:** `14`.
 
-**Status:** done
+**Status:** done — read-only rule since revised by
+[`23`](23-interactive-review-map.md)
 
 - [x] The map is **read-only** and follows the pager
 - [x] Each sail-attribution span draws in its own colour, matching the span row

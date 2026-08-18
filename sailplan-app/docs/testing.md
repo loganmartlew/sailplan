@@ -27,6 +27,28 @@ easy to get subtly wrong — not UI rendering. Existing suites:
 | Sail suggestion      | `features/sailSuggestion/util/__tests__/` (`suggestSails`, `evaluateSail`, `rankSails`, `limitScoring`) |
 | Suggestion guards    | `features/sailSuggestion/util/guards/__tests__/symmetryGuard.test.ts`    |
 
+## The real-race fixture
+
+`features/capture/util/__tests__/fixtures/saturday-race.log` is a real 2 h 15 m
+race off the boat's own Zeus 3, with its course and the sailed truth beside it in
+`saturday-race.manifest.json`. `saturdayRaceReplay.test.ts` replays the whole
+capture pipeline over it in under 4 seconds, which is how leg-detection defects
+get diagnosed without rebuilding an APK.
+
+Since ticket `22` it asserts the **truth**, not a recorded defect:
+`detectsTheSailedLegs` expects the manifest's 7 legs with their names and
+boundary times, so a regression in course-anchored detection fails on the real
+race rather than on a synthetic one. `grounds the manifest truth in the track`
+re-derives the truth from the log on every run, so the fixture cannot drift; if
+that test breaks, replay broke, not detection.
+
+One gotcha it exists to hide: a log the app recorded carries **no arrival times**
+— the recorder writes the plotter's bytes through untouched, unlike `nmea-sim`'s
+tagged logs. Replay it through `rawLogReplayInput` (`features/capture/util/rawLogReplay.ts`),
+which reconstructs timing from the GPS clock. Feeding a real log straight to
+`replayCaptureSession` with `assumedSentencePeriodMs` silently stretches the
+recording several times over and makes every duration meaningless.
+
 ## Opt-in evaluation suites (`*.eval.ts`)
 
 Alongside the default suites there is an **opt-in accuracy sweep** for the

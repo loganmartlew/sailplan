@@ -21,7 +21,9 @@ the detection tolerance are one decision; retune them together or not at all.
 
 **Blocked by:** `05`, `13`.
 
-**Status:** done
+**Status:** done — detection since superseded for the course-linked case by
+[`22`](22-course-anchored-leg-detection.md). The `|TWA|` criteria below found
+4 legs in a real 7-leg race; they remain the no-course path.
 
 - [x] Legs detected over a **±90 s window** on a change in **median `|TWA|` of
       ≥25°**; minimum leg **180 s**; data gaps are boundaries

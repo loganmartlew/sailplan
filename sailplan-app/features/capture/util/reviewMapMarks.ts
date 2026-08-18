@@ -16,7 +16,12 @@ export interface ReviewMapCoordinate {
 const MARK_FRAME_DISTANCE_METRES = 2_000;
 const EARTH_RADIUS_METRES = 6_371_000;
 
-function distanceMetres(a: ReviewMapCoordinate, b: ReviewMapCoordinate): number {
+/**
+ * Great-circle distance. Exported because leg diagnostics and course-anchored
+ * rounding detection have to measure track-to-mark distance the same way this
+ * frame guard does — two haversines are two things to keep in step.
+ */
+export function distanceMetres(a: ReviewMapCoordinate, b: ReviewMapCoordinate): number {
   const toRadians = (degrees: number) => degrees * Math.PI / 180;
   const latitudeDelta = toRadians(b.latitude - a.latitude);
   const longitudeDelta = toRadians(b.longitude - a.longitude);

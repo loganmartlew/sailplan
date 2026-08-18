@@ -1,0 +1,40 @@
+{
+  "name": "saturday-race",
+  "description": "Ground truth for the first real race captured with the app — Saturday 15 August 2026 on the Waitematā, course \"13 - 15/08\". `saturday-race.log` beside this file is the plotter's bytes exactly as the capture recorder wrote them: a B&G Zeus 3 stream with no `\\c:` tag block, so replay timing comes from the GPS clock (see `rawLogReplay.ts`). `marks` is the linked course in sailed order, transcribed from the dev app's `courseMark`/`mark` rows — `id` is the `courseMark` row id, which is what `detectSailedLegs` reports as `courseMarkId`. A course of 8 marks is a race of 7 legs; the review pipeline reported 4, which is what this fixture exists to diagnose (tickets 21 and 22).",
+  "capturedAt": "2026-08-15T00:36:44.000Z",
+  "timeZone": "Pacific/Auckland",
+  "courseName": "13 - 15/08",
+  "courseId": 3,
+  "truthSource": "Derived from the log itself for ticket 21: every fix's distance to every course mark, taking each mark's nearest pass. The eight passes fall in course order with no ambiguity — 7-143 m at the marks, versus 190 m or worse for any other near pass — so `roundings` is the sailed truth and `sailedLegs` is that truth as legs. Two decoy passes are what a naive detector trips on: Resolution again at 191 m (00:49:16Z, still manoeuvring before the start proper) and North Head at 153 m (02:10:15Z) while running down the Salt Works to Orakei leg.",
+  "legCount": 7,
+  "viaPointNote": "Confirmed by Logan 18 August 2026: courseMark 7 (the FIRST North Head) was not a race mark. It is a via point, entered so the course routes around the North Head peninsula on the way to Salt Works; the boat passed it at 143 m because the headland forces that line, not because it rounded a buoy. courseMark 9 (the second North Head) is the actual race buoy. So this course is 7 legs as entered and 6 legs as raced — Resolution to Salt Works is one race leg, split in two by the via point. The course model cannot yet tell the two apart (a via-points / additional-marks feature is in progress on another branch); until it can, detection should anchor on all 8 entries, which files the data correctly and splits one race leg in two rather than merging two into one.",
+  "marks": [
+    { "id": 6, "markId": 18, "name": "Resolution", "latitude": -36.84433333, "longitude": 174.79816667, "direction": null },
+    { "id": 7, "markId": 6, "name": "North Head", "latitude": -36.82716667, "longitude": 174.818, "direction": null },
+    { "id": 8, "markId": 11, "name": "Salt Works", "latitude": -36.79666667, "longitude": 174.82266667, "direction": "starboard" },
+    { "id": 9, "markId": 6, "name": "North Head", "latitude": -36.82716667, "longitude": 174.818, "direction": "starboard" },
+    { "id": 10, "markId": 11, "name": "Salt Works", "latitude": -36.79666667, "longitude": 174.82266667, "direction": "starboard" },
+    { "id": 11, "markId": 17, "name": "Orakei", "latitude": -36.84233333, "longitude": 174.812, "direction": "starboard" },
+    { "id": 12, "markId": 2, "name": "Bayswater", "latitude": -36.82966667, "longitude": 174.76283333, "direction": "port" },
+    { "id": 13, "markId": 1, "name": "Westhaven", "latitude": -36.83166667, "longitude": 174.7485, "direction": null }
+  ],
+  "roundings": [
+    { "courseMarkId": 6, "name": "Resolution", "at": "2026-08-15T00:41:54.000Z", "metres": 20 },
+    { "courseMarkId": 7, "name": "North Head", "at": "2026-08-15T01:04:01.000Z", "metres": 143 },
+    { "courseMarkId": 8, "name": "Salt Works", "at": "2026-08-15T01:15:54.000Z", "metres": 7 },
+    { "courseMarkId": 9, "name": "North Head", "at": "2026-08-15T01:38:13.000Z", "metres": 16 },
+    { "courseMarkId": 10, "name": "Salt Works", "at": "2026-08-15T01:51:14.000Z", "metres": 10 },
+    { "courseMarkId": 11, "name": "Orakei", "at": "2026-08-15T02:20:05.000Z", "metres": 38 },
+    { "courseMarkId": 12, "name": "Bayswater", "at": "2026-08-15T02:42:08.000Z", "metres": 93 },
+    { "courseMarkId": 13, "name": "Westhaven", "at": "2026-08-15T02:49:32.000Z", "metres": 112 }
+  ],
+  "sailedLegs": [
+    { "ordinal": 1, "name": "Resolution → North Head", "courseMarkId": 7, "startTime": "2026-08-15T00:41:54.000Z", "endTime": "2026-08-15T01:04:01.000Z" },
+    { "ordinal": 2, "name": "North Head → Salt Works", "courseMarkId": 8, "startTime": "2026-08-15T01:04:01.000Z", "endTime": "2026-08-15T01:15:54.000Z" },
+    { "ordinal": 3, "name": "Salt Works → North Head", "courseMarkId": 9, "startTime": "2026-08-15T01:15:54.000Z", "endTime": "2026-08-15T01:38:13.000Z" },
+    { "ordinal": 4, "name": "North Head → Salt Works", "courseMarkId": 10, "startTime": "2026-08-15T01:38:13.000Z", "endTime": "2026-08-15T01:51:14.000Z" },
+    { "ordinal": 5, "name": "Salt Works → Orakei", "courseMarkId": 11, "startTime": "2026-08-15T01:51:14.000Z", "endTime": "2026-08-15T02:20:05.000Z" },
+    { "ordinal": 6, "name": "Orakei → Bayswater", "courseMarkId": 12, "startTime": "2026-08-15T02:20:05.000Z", "endTime": "2026-08-15T02:42:08.000Z" },
+    { "ordinal": 7, "name": "Bayswater → Westhaven", "courseMarkId": 13, "startTime": "2026-08-15T02:42:08.000Z", "endTime": "2026-08-15T02:49:32.000Z" }
+  ]
+}
