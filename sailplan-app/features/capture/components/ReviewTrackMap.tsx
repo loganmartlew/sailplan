@@ -225,6 +225,13 @@ export function ReviewTrackMap({
     if (!wasProgrammatic) dispatch('gesture');
   };
 
+  // Back to matching the inline map once the overlay is out of the way, ready
+  // for the next press. Skipped while expanded, where it would fight the
+  // sailor's own gestures.
+  useEffect(() => {
+    if (!expanded) syncWarmFullscreen();
+  }, [expanded, syncWarmFullscreen]);
+
   const measureInlineCanvas = (then: (rect: ScreenRect) => void) => {
     // Measured on demand rather than kept from layout: the rect is stale the
     // moment the sailor scrolls the review screen, on the way in and out both.
@@ -258,7 +265,9 @@ export function ReviewTrackMap({
   const onClosed = useCallback(() => {
     setExpanded(false);
     setClosing(false);
-    setOrigin(null);
+    // The origin is deliberately kept. Clearing it unmounted the overlay, and
+    // with it the warm map, so every expand after the first got a cold one --
+    // which reads as the frame never growing at all.
   }, []);
 
   const hasTrack = frameCoordinates.length > 0;
