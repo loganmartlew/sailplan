@@ -177,3 +177,15 @@ already has something in it.
 The cost is a second `MapView` alive per reviewed leg. That is the price of the
 animation; if it shows up as memory pressure on older Android, the thing to
 give up is the warm-up, and with it the expansion animation.
+
+### Do not measure during layout
+
+Measuring the inline map from its own `onLayout` to seed the overlay's origin
+crashed the screen on a page turn: under Fabric `measureInWindow` can call back
+synchronously, so the `setState` in it landed inside the commit phase and React
+threw `Should not already be working.` — leaving the screen scrollable but
+inert.
+
+Only the press needs a real rect, and it already measures for itself. While
+warming, the frame is parked at full size and invisible, so where it would
+collapse to does not arise.

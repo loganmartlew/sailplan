@@ -330,7 +330,6 @@ export function ReviewTrackMap({
                   // region maths divides by this, so a couple of pixels of
                   // border would put the fullscreen scale slightly out.
                   frames.current.inline.size = event.nativeEvent.layout;
-                  measureInlineCanvas(setOrigin);
                   dispatch('layout');
                 }}
                 onMapReady={() => {
@@ -362,10 +361,14 @@ export function ReviewTrackMap({
         )}
       </View>
 
-      {warm && hasTrack && origin && (
+      {warm && hasTrack && (
         <ReviewTrackMapOverlay
           mapRef={fullscreenMap}
-          origin={origin}
+          // Only the press needs a real rect. While warming the frame is parked
+          // at full size and invisible, so where it would collapse to does not
+          // arise -- and measuring for it during layout put a setState inside
+          // the commit phase, which React refuses outright.
+          origin={origin ?? { x: 0, y: 0, ...screen }}
           expanded={expanded}
           screen={screen}
           track={track}
