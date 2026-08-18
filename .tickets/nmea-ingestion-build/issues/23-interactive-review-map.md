@@ -9,7 +9,7 @@ screen can answer.
 
 **Blocked by:** nothing. Independent of `21` and `22`.
 
-**Status:** built — pending on-device verification (see Comments)
+**Status:** done
 
 ## Why this reverses `16`
 
@@ -50,7 +50,7 @@ Settled 18 August 2026, before implementation.
   glitch per expand for jitter on every scroll. Instead the fullscreen map
   mounts at the identical region and stays invisible until `onMapLoaded`, so the
   track is already where it was when the frame starts growing. A pushed route
-  was rejected separately: it would re-query the database and draw the *stored*
+  was rejected separately: it would re-query the database and draw the _stored_
   spans, disagreeing with the draft band the sailor is editing (`draftSpans` is
   unsaved state in `SailedLegReviewPager`).
 - **Expanding never refits.** Any `fitToCoordinates` on open is exactly the jump
