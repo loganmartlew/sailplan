@@ -230,6 +230,37 @@ APK is a release build that `adb run-as` cannot reach.
 
 ---
 
+## Second follow-on wave: the review screen after real use (19 August 2026)
+
+Review *worked* on Saturday's data once `22` landed — 7 legs, correctly named.
+Using it is the problem. Four tickets:
+
+| # | Ticket | Blocked by | Status |
+| --- | --- | --- | --- |
+| `24` | [Review screen prototype](issues/24-review-screen-prototype.md) | nothing | ready-for-agent |
+| `25` | [Review screen rework](issues/25-review-screen-rework.md) | `24` | ready-for-agent |
+| `26` | [What this leg is worth](issues/26-leg-point-preview.md) | `18`, `25` | ready-for-agent |
+| `27` | [Review placement](issues/27-review-placement.md) | nothing | needs-triage |
+
+`24 → 25` is the critical path and neither is blocked. **`18` is deliberately not
+cannibalised**: the leg-level point preview that motivated much of this sits in
+`26`, behind `18`, so promotion's pipeline is built once, by the ticket that owns
+it. Everything the sailor complained about *except* the point preview is
+independent of promotion and ships in `25`.
+
+The load-bearing decision is in `25`: **`confirmedAt` splits into per-leg
+`reviewedAt` and session-level promotion.** It reverses `14`'s
+*advancing-the-pager-is-confirming* rule, which real use showed has no vocabulary
+for pausing or roaming a 7-leg session. Watch the third consumer — `captureResume`
+blocks resuming an auto-ended recording once a leg is confirmed, and if that
+guard is lost, a resumed recording silently destroys hand-drawn spans via
+`redetectCaptureReview`. `25` requires a test for exactly that.
+
+`CONTEXT.md` was updated ahead of the work: **Reviewed** and **Promotion** added,
+**Sail-attribution span** rewritten.
+
+---
+
 ## Things to carry, not rediscover
 
 - **A foreground service does not keep the socket alive in Doze.** MT5 measured
@@ -272,6 +303,17 @@ APK is a release build that `adb run-as` cannot reach.
   windward-leeward script — the geometry median-`|TWA|` handles best. The first
   real race found 4 of 7 legs. Treat simulator-measured detection numbers as a
   floor, not a validation.
+- **The steadiness mask has never been measured on real data.**
+  `findSteadyStretches` already runs per leg at materialisation
+  (`draftAttribution.ts:314`) and already returns `medianBoatSpeed` /
+  `medianTws` / `medianAbsTwa`, but no test exercises it and nobody knows how
+  much of a real race it accepts. `saturday-race.log` is committed and replays
+  off-device in 3.7 s, so this is cheap to answer. `24` gates its chart overlay
+  on it; `18` and `26` both need the number.
+- **The speed trace's top-right label is the axis ceiling, not a speed.**
+  `traceGeometry.ts:5,50` computes `topSpeed = max(observed, 4) × 1.15`, so the
+  trace reports a number ~15 % above anything sailed. Do not read it as a
+  maximum, and do not reuse `topSpeed` as one. `24`/`25` fix the label.
 - **Four risks land on race morning**, all recoverable at the berth and none once
   the lines are off: the plotter's Serial-output checkbox gating the Ethernet
   stream, an endpoint unknown until the day, `MWV,T` absent or status `V`, and a
