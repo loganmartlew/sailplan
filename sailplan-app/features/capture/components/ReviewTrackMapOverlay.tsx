@@ -1,6 +1,6 @@
 import { Portal } from '@rn-primitives/portal';
 import { type ReactNode, type RefObject, useCallback, useEffect, useRef } from 'react';
-import { BackHandler } from 'react-native';
+import { BackHandler, StyleSheet, View } from 'react-native';
 import type MapView from 'react-native-maps';
 import type { Region } from 'react-native-maps';
 import Animated, {
@@ -98,6 +98,15 @@ export function ReviewTrackMapOverlay({
   const revealed = useSharedValue(0);
   const chrome = useSharedValue(0);
   const hasRevealed = useRef(false);
+  /**
+   * Where the portal host sits in window coordinates. `measureInWindow` gives
+   * the inline map's rect in the window, but the frame is laid out inside the
+   * host, and the two origins need not coincide — a status bar or a header
+   * between them lands the frame off by exactly that much. Measuring the
+   * discrepancy beats assuming it away.
+   */
+  const hostOffset = useSharedValue({ x: 0, y: 0 });
+  const host = useRef<View>(null);
 
   const full: ScreenRect = { x: 0, y: 0, width: screen.width, height: screen.height };
 
@@ -110,9 +119,16 @@ export function ReviewTrackMapOverlay({
   const reveal = useCallback(() => {
     if (hasRevealed.current) return;
     hasRevealed.current = true;
-    revealed.value = withTiming(1, { duration: FADE_MS });
-    progress.value = withTiming(1, { duration: EXPAND_MS }, finished => {
-      if (finished) chrome.value = withTiming(1, { duration: CHROME_MS });
+    // A frame's grace after the map says it has drawn, then fade in on top of
+    // the inline map — which it matches exactly, so there is nothing to see —
+    // and only start growing once that fade is done.
+    requestAnimationFrame(() => {
+      revealed.value = withTiming(1, { duration: FADE_MS }, faded => {
+        if (!faded) return;
+        progress.value = withTiming(1, { duration: EXPAND_MS }, grown => {
+          if (grown) chrome.value = withTiming(1, { duration: CHROME_MS });
+        });
+      });
     });
   }, [chrome, progress, revealed]);
 
@@ -141,8 +157,8 @@ export function ReviewTrackMapOverlay({
   const frameStyle = useAnimatedStyle(() => {
     const rect = interpolateRect(origin, full, progress.value);
     return {
-      left: rect.x,
-      top: rect.y,
+      left: rect.x - hostOffset.value.x,
+      top: rect.y - hostOffset.value.y,
       width: rect.width,
       height: rect.height,
       borderRadius: INLINE_CORNER_RADIUS * (1 - progress.value),
@@ -160,8 +176,20 @@ export function ReviewTrackMapOverlay({
 
   return (
     <Portal name='review-track-map'>
+      <View
+        ref={host}
+        style={StyleSheet.absoluteFill}
+        collapsable={false}
+        onLayout={() => {
+          host.current?.measureInWindow((x, y) => {
+            hostOffset.value = { x, y };
+          });
+        }}
+      >
+      {/* No background of its own: until the map paints, what shows through is
+          the inline map it grew out of, rather than an empty box. */}
       <Animated.View
-        className='absolute overflow-hidden border border-border bg-muted'
+        className='absolute overflow-hidden'
         style={frameStyle}
       >
         <Animated.View
@@ -205,6 +233,7 @@ export function ReviewTrackMapOverlay({
           />
         </Animated.View>
       </Animated.View>
+      </View>
     </Portal>
   );
 }
