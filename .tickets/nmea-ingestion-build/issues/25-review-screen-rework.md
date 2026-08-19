@@ -10,7 +10,30 @@ and *this data is cleared to enter the polar*. Review becomes something you can
 pause, wander and come back to without losing work; committing stays one
 deliberate session-level decision, made later, in `18`.
 
-**Blocked by:** `24`.
+**Blocked by:** `24` — **done**. `24` accepted **variant D**, "the list is home,
+one route names the leg": see its
+[Accepted section](24-review-screen-prototype.md#accepted--variant-d-19-august-2026)
+for the reasoning, and
+[`24-review-screen-shape.html`](../../nmea-ingestion/prototypes/24-review-screen-shape.html)
+(`?variant=D`) for the drawing. D was not one of the three this ticket's parent
+asked for; it came out of the round rather than into it.
+
+Three things `24` settled that change what is written below:
+
+1. **D is the split this ticket already described.** No terminal action, review
+   ends by going back, leg list on the session screen, `Promote` as the
+   session's one CTA — all drawn.
+2. **`reviewedAt` should mean *edited*, not *visited*.** `24` derives it from
+   the spans having changed. Setting it on a mere visit marks legs with no hand
+   work to lose, which is the wrong answer for both the re-detect warning and
+   the resume guard.
+3. **The steadiness overlay is justified and is drawn** — the mask fires on
+   every leg of the real race. But `24`'s follow-up probe found the mask far
+   tighter than spec §8 assumed: the whole race attributed to one sail yields
+   **10 polar points against §8's expected ~45**, almost entirely because of
+   `MAX_TWS_DEVIATION = 1`. That is `18`'s to act on, not this ticket's — but
+   this ticket draws the overlay, so it will be visibly sparse and that is
+   correct, not a drawing bug.
 
 **Status:** ready-for-agent
 
@@ -61,7 +84,10 @@ than the sailor's claim.
 ### Navigation and persistence
 
 - [ ] Free previous/next leg navigation at the top of the review screen, in the
-      shape `24` accepted
+      shape `24` accepted — D puts ‹ › in the route header and pages by
+      `replace`, so the back stack stays at one and a leg keeps its own path.
+      `24` left open whether the ‹ › earn their place at all once returning to
+      the list is cheap
 - [ ] Moving between legs **persists** spans, name and `used` — no confirm action
 - [ ] `sailedLeg.confirmedAt` becomes `reviewedAt`, set by navigating away from a
       leg. Migration preserves existing confirmations as reviews
@@ -82,7 +108,9 @@ than the sailor's claim.
 
 ### Structure
 
-- [ ] `24`'s accepted variant, including the session/leg split it settled
+- [ ] `24`'s accepted variant **D**, including the session/leg split it settled:
+      the session screen is the list, and one route named for the leg sits under
+      it
 - [ ] A **leg list** on the session screen: name, duration, review state, and a
       jump into any leg. Today the only way to learn what is in a session is to
       page through it
@@ -97,8 +125,9 @@ than the sailor's claim.
 - [ ] `24`'s accepted treatment: truthful axis, gridlines, the max labelled as a
       max rather than the `× 1.15` ceiling, and no-sail shading that does not read
       as background chrome
-- [ ] The steadiness overlay, **if** `24`'s measurement against
-      `saturday-race.log` justified it
+- [x] The steadiness overlay — `24`'s measurement justified it (fires on every
+      leg; 22.0 % of leg time, 72 stretches, zero legs with none). Draw the
+      shipped mask, not a loosened one; `18` owns the threshold
 
 ### Consistency with the rest of the app
 
