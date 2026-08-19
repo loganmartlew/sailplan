@@ -43,7 +43,10 @@ type Segment = { startTime: number; endTime: number; values: ValidSample[] };
 const medianTwa = (values: readonly ValidSample[]) =>
   median(values.map(sample => Math.abs(sample.twa)));
 
-export const getReviewBand = (twa: number) => Math.floor(twa / 10);
+/** Width of a review band, in degrees of TWA. */
+export const REVIEW_BAND_DEG = 10;
+
+export const getReviewBand = (twa: number) => Math.floor(twa / REVIEW_BAND_DEG);
 
 type TwaBoundary = { at: number; change: number };
 

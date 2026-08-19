@@ -11,6 +11,12 @@ import {
   proposeDraftAttribution,
   type SailStampEvidence,
 } from './draftAttribution';
+import {
+  proposePolarPoints,
+  type ProposedPolarPoint,
+  type PromotionSpan,
+} from './promotion';
+import { findSteadyStretches } from './steadyState';
 
 export type WindFrame =
   | 'water'
@@ -56,6 +62,12 @@ export type ReplayCaptureInput = {
   assumedSentencePeriodMs?: number;
   stamps?: readonly SailStampEvidence[];
   courseMarks?: readonly SailedLegCourseMark[];
+  /**
+   * The spans promotion should treat as confirmed, standing in for the review
+   * the app runs against stored rows. Omitted, the draft attribution stands as
+   * its own proposal — which is what a test of the detection chain wants.
+   */
+  spanEdits?: readonly PromotionSpan[];
 };
 
 export type ReplayCaptureResult = {
@@ -64,6 +76,7 @@ export type ReplayCaptureResult = {
   windFrame: WindFrame;
   sailedLegs: DetectedSailedLeg[];
   draftSpans: DetectedSailedLeg['draftSpans'];
+  proposedPoints: ProposedPolarPoint[];
 };
 
 type FieldName = keyof Omit<ReplayCaptureSample, 'timestamp' | 'rawOffset'>;
@@ -506,10 +519,14 @@ export function replayCaptureSession(input: ReplayCaptureInput): ReplayCaptureRe
     }
   }
   parser.finish();
+  // One mask, three consumers: attribution's regime detection, promotion, and
+  // (in the app) manual selection all read this same sail-independent pass.
+  const mask = findSteadyStretches(parser.samples);
   const sailedLegs = proposeDraftAttribution(
     parser.samples,
     detectSailedLegs(parser.samples, input.courseMarks),
     input.stamps ?? [],
+    mask,
   );
   return {
     samples: parser.samples,
@@ -517,5 +534,13 @@ export function replayCaptureSession(input: ReplayCaptureInput): ReplayCaptureRe
     windFrame: classifyWindFrame(parser.samples),
     sailedLegs,
     draftSpans: sailedLegs.flatMap(leg => leg.draftSpans),
+    proposedPoints: proposePolarPoints(
+      parser.samples,
+      input.spanEdits
+        ?? sailedLegs.flatMap(leg =>
+          leg.draftSpans.map(span => ({ ...span, legOrdinal: leg.ordinal })),
+        ),
+      mask,
+    ),
   };
 }

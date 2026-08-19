@@ -5,6 +5,7 @@ export * from './api/createSailPolar';
 export * from './api/deleteSailPolar';
 export * from './api/getSailPolars';
 export * from './api/polarImportBatch';
+export * from './api/capturePolarPoints';
 export * from './api/preparePolarCsvImport';
 export * from './components/SailPolarListItem';
 export * from './components/NewSailPolarDialog';

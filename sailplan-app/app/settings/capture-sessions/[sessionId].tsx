@@ -4,6 +4,7 @@ import { Badge, Card, CardContent, H2, H3, Muted, Text } from '~/components/ui';
 import { useBoatProfile } from '~/features/boatProfile';
 import {
   captureWindFrameLabel,
+  CapturePromotion,
   SailedLegReviewPager,
   formatCaptureDuration,
   formatCaptureWindRange,
@@ -81,7 +82,10 @@ export default function CaptureSessionScreen() {
           </CardContent>
         </Card>
       ) : (
-        <SailedLegReviewPager sessionId={sessionId} />
+        <>
+          <SailedLegReviewPager sessionId={sessionId} />
+          <CapturePromotion sessionId={sessionId} />
+        </>
       )}
 
       {session.warnsGroundWind && (

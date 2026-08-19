@@ -1,5 +1,6 @@
 import fs from 'fs';
 import path from 'path';
+import { median } from '../statistics';
 import {
   classifyWindFrame,
   replayCaptureSession,
@@ -422,6 +423,108 @@ describe('replayCaptureSession', () => {
         (_, index) => `${index % 2 === 0 ? 'Beat' : 'Run'} ${Math.floor(index / 2) + 1}`,
       ),
     );
+  }, 30_000);
+
+  it('promotes the race script into polar points a leg at a time', () => {
+    // The full windward-leeward script, this time with boat speed and heading
+    // on the wire rather than the constants the attribution fixture holds, so
+    // the steadiness mask and the bin medians are measuring real sailing.
+    const manifest = JSON.parse(
+      fs.readFileSync(path.join(__dirname, 'fixtures/wl-race-sailed.manifest.json'), 'utf8'),
+    ) as {
+      grid: { sail: string; tws: number; twa: number; trueSpeed: number }[];
+      sailChanges: { t: number; sail: string }[];
+    };
+    const sailIds: Record<string, number> = { J1: 7, A3: 8 };
+    const result = replayCaptureSession({
+      sessionStartWallClock: start,
+      sentences: [fs.readFileSync(path.join(__dirname, 'fixtures/wl-race-sailed.log'), 'utf8')],
+      // A minute into each leg — where a sailor stamps a sail that is up and
+      // drawing, not one still going up.
+      stamps: manifest.sailChanges.map(change => ({
+        timestamp: start + (change.t + 60) * 1_000,
+        sailId: sailIds[change.sail],
+      })),
+    });
+
+    const perLeg = result.sailedLegs.map(
+      leg => result.proposedPoints.filter(point => point.legOrdinal === leg.ordinal).length,
+    );
+    // The recorded yield of this race, at the scale the review screen has to
+    // read at. Spec section 8 estimates ~45 points at a median of 2 from a
+    // two-hour race; that number predates this script and is not reproduced by
+    // it — 7,660 s of oscillating wind spreads the evidence over 297 bins, of
+    // which 31 reach the 30-sample minimum. The shape it is quoted for holds:
+    // a handful of points per leg, and legs that legitimately yield none.
+    expect(result.proposedPoints).toHaveLength(31);
+    expect(median(perLeg)).toBe(1);
+    expect(Math.max(...perLeg)).toBeLessThanOrEqual(4);
+    expect(perLeg.filter(count => count === 0)).toHaveLength(4);
+
+    // Beats carry the jib and runs the kite: a point that lands on the wrong
+    // sail is worse than no point at all.
+    const beatSails = new Set(
+      result.proposedPoints.filter(point => point.legOrdinal % 2 === 1).map(point => point.sailId),
+    );
+    expect([...beatSails]).toEqual([sailIds.J1]);
+    const runSails = new Set(
+      result.proposedPoints.filter(point => point.legOrdinal % 2 === 0).map(point => point.sailId),
+    );
+    expect([...runSails]).toEqual([sailIds.A3]);
+
+    // Against the simulator's own truth for the same bins. Half a knot of
+    // spread is the trim dwell the script deliberately holds — the filter
+    // rejects manoeuvres, not a badly trimmed steady stretch.
+    const errors = result.proposedPoints.flatMap(point => {
+      const truth = manifest.grid.find(
+        row => sailIds[row.sail] === point.sailId && row.tws === point.tws && row.twa === point.twa,
+      );
+      return truth ? [Math.abs(point.speed - truth.trueSpeed)] : [];
+    });
+    expect(errors.length).toBeGreaterThan(result.proposedPoints.length - 3);
+    expect(median(errors)).toBeLessThan(0.25);
+  }, 30_000);
+
+  it('promotes the spans handed to it rather than its own draft', () => {
+    // What the app does with stored, confirmed spans: the review's judgement
+    // replaces the draft attribution, and only what it claims can yield points.
+    const log = fs.readFileSync(path.join(__dirname, 'fixtures/wl-race-sailed.log'), 'utf8');
+    const drafted = replayCaptureSession({
+      sessionStartWallClock: start,
+      sentences: [log],
+      stamps: [{ timestamp: start + 60_000, sailId: 7 }],
+    });
+    expect(drafted.proposedPoints.length).toBeGreaterThan(0);
+
+    const firstLeg = drafted.sailedLegs[0];
+    const confirmed = replayCaptureSession({
+      sessionStartWallClock: start,
+      sentences: [log],
+      spanEdits: [
+        {
+          legOrdinal: firstLeg.ordinal,
+          startTime: firstLeg.startTime,
+          endTime: firstLeg.endTime,
+          sailId: 9,
+        },
+      ],
+    });
+    // One leg claimed for one sail, and nothing outside it — no stamps were
+    // passed at all, so the draft attribution would have claimed nothing.
+    expect(confirmed.proposedPoints.length).toBeGreaterThan(0);
+    expect([...new Set(confirmed.proposedPoints.map(point => point.sailId))]).toEqual([9]);
+    expect(
+      [...new Set(confirmed.proposedPoints.map(point => point.legOrdinal))],
+    ).toEqual([firstLeg.ordinal]);
+  }, 30_000);
+
+  it('proposes nothing from spans the sailor never attributed', () => {
+    const result = replayCaptureSession({
+      sessionStartWallClock: start,
+      sentences: [fs.readFileSync(path.join(__dirname, 'fixtures/wl-race-sailed.log'), 'utf8')],
+    });
+    expect(result.sailedLegs).toHaveLength(20);
+    expect(result.proposedPoints).toEqual([]);
   }, 30_000);
 
   it('fails safely against the race script with late, early, and missing stamps', () => {

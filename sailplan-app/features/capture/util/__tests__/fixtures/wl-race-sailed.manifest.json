@@ -1,0 +1,451 @@
+{
+ "name": "wl-race-closed",
+ "seed": 7788,
+ "durationSec": 7660,
+ "description": "Ground truth for the windward-leeward race script, stripped to what promotion needs. `grid` is the simulator's own 1 kn x 4-degree reduction over its steady-state samples; `sailChanges` is when each sail went up.",
+ "course": {
+  "twd": 225,
+  "tws": 12,
+  "twdOscillationDeg": 8,
+  "twdOscillationPeriodSec": 300,
+  "twsOscillationKn": 1.5,
+  "twsOscillationPeriodSec": 420,
+  "startLat": -41.2865,
+  "startLon": 174.7762,
+  "variationDeg": 21.5,
+  "currentSetDeg": null,
+  "currentDriftKn": 0,
+  "transitionSec": 10,
+  "manoeuvreRecoverSec": 15,
+  "trimDwellSec": 30,
+  "repeat": true,
+  "legs": [
+   {
+    "durationSec": 120,
+    "headingDeg": 180,
+    "sail": "J1"
+   },
+   {
+    "durationSec": 120,
+    "headingDeg": 270,
+    "sail": "J1"
+   },
+   {
+    "durationSec": 120,
+    "headingDeg": 180,
+    "sail": "J1"
+   },
+   {
+    "durationSec": 120,
+    "headingDeg": 270,
+    "sail": "J1"
+   },
+   {
+    "durationSec": 143,
+    "headingDeg": 0,
+    "sail": "A3"
+   },
+   {
+    "durationSec": 143,
+    "headingDeg": 90,
+    "sail": "A3"
+   }
+  ]
+ },
+ "grid": [
+  {
+   "sail": "A3",
+   "tws": 11,
+   "twa": 128,
+   "samples": 213,
+   "trueSpeed": 8.856,
+   "measuredMeanSpeed": 8.823
+  },
+  {
+   "sail": "A3",
+   "tws": 11,
+   "twa": 132,
+   "samples": 99,
+   "trueSpeed": 8.919,
+   "measuredMeanSpeed": 8.899
+  },
+  {
+   "sail": "A3",
+   "tws": 11,
+   "twa": 136,
+   "samples": 164,
+   "trueSpeed": 8.942,
+   "measuredMeanSpeed": 9.125
+  },
+  {
+   "sail": "A3",
+   "tws": 11,
+   "twa": 140,
+   "samples": 209,
+   "trueSpeed": 8.841,
+   "measuredMeanSpeed": 8.74
+  },
+  {
+   "sail": "A3",
+   "tws": 11,
+   "twa": 144,
+   "samples": 188,
+   "trueSpeed": 8.705,
+   "measuredMeanSpeed": 8.599
+  },
+  {
+   "sail": "A3",
+   "tws": 12,
+   "twa": 128,
+   "samples": 99,
+   "trueSpeed": 10.101,
+   "measuredMeanSpeed": 10.276
+  },
+  {
+   "sail": "A3",
+   "tws": 12,
+   "twa": 132,
+   "samples": 122,
+   "trueSpeed": 9.929,
+   "measuredMeanSpeed": 9.915
+  },
+  {
+   "sail": "A3",
+   "tws": 12,
+   "twa": 136,
+   "samples": 51,
+   "trueSpeed": 9.797,
+   "measuredMeanSpeed": 9.802
+  },
+  {
+   "sail": "A3",
+   "tws": 12,
+   "twa": 140,
+   "samples": 87,
+   "trueSpeed": 9.765,
+   "measuredMeanSpeed": 9.654
+  },
+  {
+   "sail": "A3",
+   "tws": 12,
+   "twa": 144,
+   "samples": 103,
+   "trueSpeed": 9.556,
+   "measuredMeanSpeed": 9.038
+  },
+  {
+   "sail": "A3",
+   "tws": 13,
+   "twa": 128,
+   "samples": 292,
+   "trueSpeed": 10.885,
+   "measuredMeanSpeed": 10.792
+  },
+  {
+   "sail": "A3",
+   "tws": 13,
+   "twa": 132,
+   "samples": 162,
+   "trueSpeed": 10.854,
+   "measuredMeanSpeed": 10.632
+  },
+  {
+   "sail": "A3",
+   "tws": 13,
+   "twa": 136,
+   "samples": 171,
+   "trueSpeed": 10.962,
+   "measuredMeanSpeed": 11.108
+  },
+  {
+   "sail": "A3",
+   "tws": 13,
+   "twa": 140,
+   "samples": 225,
+   "trueSpeed": 10.938,
+   "measuredMeanSpeed": 10.603
+  },
+  {
+   "sail": "A3",
+   "tws": 13,
+   "twa": 144,
+   "samples": 156,
+   "trueSpeed": 10.487,
+   "measuredMeanSpeed": 9.832
+  },
+  {
+   "sail": "A3",
+   "tws": 14,
+   "twa": 128,
+   "samples": 6,
+   "trueSpeed": 11.233,
+   "measuredMeanSpeed": 11.047
+  },
+  {
+   "sail": "A3",
+   "tws": 14,
+   "twa": 136,
+   "samples": 4,
+   "trueSpeed": 11.233,
+   "measuredMeanSpeed": 11.677
+  },
+  {
+   "sail": "A3",
+   "tws": 14,
+   "twa": 140,
+   "samples": 6,
+   "trueSpeed": 10.985,
+   "measuredMeanSpeed": 9.94
+  },
+  {
+   "sail": "A3",
+   "tws": 14,
+   "twa": 144,
+   "samples": 3,
+   "trueSpeed": 10.728,
+   "measuredMeanSpeed": 9.207
+  },
+  {
+   "sail": "J1",
+   "tws": 11,
+   "twa": 36,
+   "samples": 289,
+   "trueSpeed": 6.277,
+   "measuredMeanSpeed": 6.335
+  },
+  {
+   "sail": "J1",
+   "tws": 11,
+   "twa": 40,
+   "samples": 261,
+   "trueSpeed": 6.298,
+   "measuredMeanSpeed": 6.027
+  },
+  {
+   "sail": "J1",
+   "tws": 11,
+   "twa": 44,
+   "samples": 235,
+   "trueSpeed": 6.26,
+   "measuredMeanSpeed": 6.192
+  },
+  {
+   "sail": "J1",
+   "tws": 11,
+   "twa": 48,
+   "samples": 297,
+   "trueSpeed": 6.25,
+   "measuredMeanSpeed": 6.368
+  },
+  {
+   "sail": "J1",
+   "tws": 11,
+   "twa": 52,
+   "samples": 433,
+   "trueSpeed": 6.27,
+   "measuredMeanSpeed": 6.214
+  },
+  {
+   "sail": "J1",
+   "tws": 12,
+   "twa": 36,
+   "samples": 75,
+   "trueSpeed": 6.477,
+   "measuredMeanSpeed": 6.867
+  },
+  {
+   "sail": "J1",
+   "tws": 12,
+   "twa": 40,
+   "samples": 207,
+   "trueSpeed": 6.494,
+   "measuredMeanSpeed": 6.497
+  },
+  {
+   "sail": "J1",
+   "tws": 12,
+   "twa": 44,
+   "samples": 158,
+   "trueSpeed": 6.512,
+   "measuredMeanSpeed": 6.378
+  },
+  {
+   "sail": "J1",
+   "tws": 12,
+   "twa": 48,
+   "samples": 107,
+   "trueSpeed": 6.51,
+   "measuredMeanSpeed": 6.252
+  },
+  {
+   "sail": "J1",
+   "tws": 12,
+   "twa": 52,
+   "samples": 279,
+   "trueSpeed": 6.496,
+   "measuredMeanSpeed": 6.525
+  },
+  {
+   "sail": "J1",
+   "tws": 13,
+   "twa": 36,
+   "samples": 218,
+   "trueSpeed": 6.755,
+   "measuredMeanSpeed": 6.628
+  },
+  {
+   "sail": "J1",
+   "tws": 13,
+   "twa": 40,
+   "samples": 307,
+   "trueSpeed": 6.708,
+   "measuredMeanSpeed": 6.698
+  },
+  {
+   "sail": "J1",
+   "tws": 13,
+   "twa": 44,
+   "samples": 201,
+   "trueSpeed": 6.715,
+   "measuredMeanSpeed": 6.798
+  },
+  {
+   "sail": "J1",
+   "tws": 13,
+   "twa": 48,
+   "samples": 286,
+   "trueSpeed": 6.733,
+   "measuredMeanSpeed": 6.85
+  },
+  {
+   "sail": "J1",
+   "tws": 13,
+   "twa": 52,
+   "samples": 420,
+   "trueSpeed": 6.723,
+   "measuredMeanSpeed": 6.718
+  },
+  {
+   "sail": "J1",
+   "tws": 14,
+   "twa": 36,
+   "samples": 3,
+   "trueSpeed": 6.8,
+   "measuredMeanSpeed": 5.651
+  },
+  {
+   "sail": "J1",
+   "tws": 14,
+   "twa": 40,
+   "samples": 6,
+   "trueSpeed": 6.8,
+   "measuredMeanSpeed": 7.173
+  },
+  {
+   "sail": "J1",
+   "tws": 14,
+   "twa": 44,
+   "samples": 3,
+   "trueSpeed": 6.8,
+   "measuredMeanSpeed": 6.815
+  },
+  {
+   "sail": "J1",
+   "tws": 14,
+   "twa": 48,
+   "samples": 6,
+   "trueSpeed": 6.8,
+   "measuredMeanSpeed": 7.266
+  },
+  {
+   "sail": "J1",
+   "tws": 14,
+   "twa": 52,
+   "samples": 9,
+   "trueSpeed": 6.8,
+   "measuredMeanSpeed": 7.014
+  }
+ ],
+ "sailChanges": [
+  {
+   "t": 0,
+   "sail": "J1"
+  },
+  {
+   "t": 480,
+   "sail": "A3"
+  },
+  {
+   "t": 766,
+   "sail": "J1"
+  },
+  {
+   "t": 1246,
+   "sail": "A3"
+  },
+  {
+   "t": 1532,
+   "sail": "J1"
+  },
+  {
+   "t": 2012,
+   "sail": "A3"
+  },
+  {
+   "t": 2298,
+   "sail": "J1"
+  },
+  {
+   "t": 2778,
+   "sail": "A3"
+  },
+  {
+   "t": 3064,
+   "sail": "J1"
+  },
+  {
+   "t": 3544,
+   "sail": "A3"
+  },
+  {
+   "t": 3830,
+   "sail": "J1"
+  },
+  {
+   "t": 4310,
+   "sail": "A3"
+  },
+  {
+   "t": 4596,
+   "sail": "J1"
+  },
+  {
+   "t": 5076,
+   "sail": "A3"
+  },
+  {
+   "t": 5362,
+   "sail": "J1"
+  },
+  {
+   "t": 5842,
+   "sail": "A3"
+  },
+  {
+   "t": 6128,
+   "sail": "J1"
+  },
+  {
+   "t": 6608,
+   "sail": "A3"
+  },
+  {
+   "t": 6894,
+   "sail": "J1"
+  },
+  {
+   "t": 7374,
+   "sail": "A3"
+  }
+ ]
+}

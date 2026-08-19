@@ -4,7 +4,7 @@ import {
   legInterior,
   type DetectedSailedLeg,
 } from './sailedLegDetection';
-import { findSteadyStretches } from './steadyState';
+import { findSteadyStretches, type SteadyStretch } from './steadyState';
 import { medianOrNull } from './statistics';
 
 export type SailStampEvidence = {
@@ -94,7 +94,7 @@ function speedChangeRatio(from: number, to: number): number | null {
  * transition at a settled speed — it is a hoist, a drop or a manoeuvre — so it
  * is the interval that feeds neither sail.
  */
-function regimeTransitions(steady: ReturnType<typeof findSteadyStretches>) {
+function regimeTransitions(steady: readonly SteadyStretch[]) {
   return steady.slice(0, -1).flatMap((stretch, index) => {
     const next = steady[index + 1];
     const speedShift = speedChangeRatio(stretch.medianBoatSpeed, next.medianBoatSpeed);
@@ -126,7 +126,7 @@ function stampsOutsideTransitions(
 function spansForOneStampedSail(
   leg: DetectedSailedLeg,
   legStamps: readonly SailStampEvidence[],
-  steady: ReturnType<typeof findSteadyStretches>,
+  steady: readonly SteadyStretch[],
 ) {
   const boundaries = regimeTransitions(steady);
   if (boundaries.length === 0) return guardedSpans(leg, legStamps[0].sailId);
@@ -231,7 +231,7 @@ function stampSupportedSpans(
 function spansBetweenStampedSails(
   leg: DetectedSailedLeg,
   legStamps: readonly SailStampEvidence[],
-  steady: ReturnType<typeof findSteadyStretches>,
+  steady: readonly SteadyStretch[],
 ) {
   const orderedStamps = [...legStamps].sort((first, second) => first.timestamp - second.timestamp);
   const sailChanges = orderedStamps.filter((stamp, index) =>
@@ -300,10 +300,20 @@ function spansBetweenStampedSails(
   return withGuards(leg, spans);
 }
 
+/**
+ * Draft spans for every leg, from the sail stamps and the steadiness mask.
+ *
+ * The mask is the session's, not this leg's: it runs **once**, over the whole
+ * recording and sail-independently, and the three things that read it — regime
+ * detection here, promotion, and manual selection — all read the same one.
+ * Computing it per leg would let the same second of sailing be settled for one
+ * consumer and not for another.
+ */
 export function proposeDraftAttribution(
   samples: readonly ReplayCaptureSample[],
   legs: readonly DetectedSailedLeg[],
   stamps: readonly SailStampEvidence[],
+  mask: readonly SteadyStretch[] = findSteadyStretches(samples),
 ): DetectedSailedLeg[] {
   const evidence = legs.map(leg => {
     const legSamples = samplesInLeg(samples, leg);
@@ -311,7 +321,9 @@ export function proposeDraftAttribution(
       stamp.timestamp >= leg.startTime && stamp.timestamp < leg.endTime,
     );
     const sailIds = [...new Set(legStamps.map(stamp => stamp.sailId))];
-    const steady = findSteadyStretches(legSamples);
+    const steady = mask.filter(stretch =>
+      stretch.endTime > leg.startTime && stretch.startTime < leg.endTime,
+    );
     return {
       sailId: sailIds.length === 1 && steady.length > 0 ? sailIds[0] : null,
       hasStamp: legStamps.length > 0,

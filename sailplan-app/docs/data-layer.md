@@ -56,8 +56,10 @@ courseGroup ─┴─< course ─< courseMark >─ mark
 Landed by the NMEA ingestion migrations. Recording writes `captureSession`,
 `captureSample`, `connectionEvent` and `sailStamp`; opening a session's review
 materialises `sailedLeg` and `sailSpan` once (`materializeCaptureReview`), and
-confirming a leg rewrites its spans. Promotion into `sailPolar` is not built
-yet, so capture data reaching the polar tables is still the abnormal state.
+confirming a leg rewrites its spans. **Promotion** then writes the confirmed
+spans into `sailPolar` through `replaceCapturePolarPoints` — the one path that
+sets `sourceKind: 'capture'` and the owning `captureSessionId`, and the reason a
+second promotion replaces a session's rows instead of stacking on them.
 
 | Table               | Key columns                                                                                                                                     | Notes                                                                                                          |
 | ------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------- |
