@@ -47,8 +47,20 @@ app/
     ├── units.tsx                   Speed/area/distance/coordinate units
     ├── appearance.tsx              Theme (light/dark)
     ├── defaults.tsx                Default hemispheres / coordinate format
-    └── about.tsx                   About / links
+    ├── about.tsx                   About / links
+    ├── raw-logs.tsx                Raw capture logs on disk
+    └── capture-sessions/
+        ├── index.tsx               Session list
+        └── [sessionId]/
+            ├── index.tsx           Session: facts, warnings, map, leg list, promote
+            └── leg/[ordinal].tsx   Review one sailed leg
 ```
+
+**Review pages by `replace`, not `push`.** The session screen is review's home,
+and the ‹ › in a leg's header call `router.replace` on the same route with a new
+ordinal. The back stack therefore never grows past one leg deep, back always
+means "back to the list", and a leg stays deep-linkable because its ordinal is
+in the path.
 
 The five tabs themselves are configured in [`app/_layout.tsx`](../app/_layout.tsx)
 (`Tabs.Screen` per group, with icons from `~/lib/icons`).

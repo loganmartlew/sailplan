@@ -11,7 +11,12 @@ remembered mode.
 **Blocked by:** `14`.
 
 **Status:** done — read-only rule since revised by
-[`23`](23-interactive-review-map.md)
+[`23`](23-interactive-review-map.md). The criteria below are **carried forward
+unchanged** by [`25`](25-review-screen-rework.md), which replaced the pager with
+a route per leg: wherever they say *"follows the pager"*, read *"follows the leg
+being reviewed"*. `25` also moved the focus chip to a full-width segmented
+control matching the rest of the app, and put a whole-course map on the session
+screen. Nothing about the read-only rule changed.
 
 - [x] The map is **read-only** and follows the pager
 - [x] Each sail-attribution span draws in its own colour, matching the span row

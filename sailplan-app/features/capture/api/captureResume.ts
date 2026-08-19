@@ -3,7 +3,7 @@ import { useLiveQuery } from 'drizzle-orm/expo-sqlite';
 import { db } from '~/lib/db';
 import { captureSession } from '~/schema';
 import type { CaptureSession } from '../model/capture';
-import { isCaptureSessionResumable } from '../model/captureResume';
+import { hasReviewedData, isCaptureSessionResumable } from '../model/captureResume';
 import { getCaptureResumeFacts } from './captureSession';
 
 export function useCaptureResumeOffer(boatProfileId: number, courseId: number) {
@@ -21,7 +21,7 @@ export function useCaptureResumeOffer(boatProfileId: number, courseId: number) {
     latest.courseId === courseId &&
     isCaptureSessionResumable(latest, {
       hasLaterSession: false,
-      hasConfirmedData: latest.sailedLegs.some(leg => leg.confirmedAt !== null),
+      hasReviewedData: hasReviewedData(latest.sailedLegs),
     })
       ? latest
       : null;

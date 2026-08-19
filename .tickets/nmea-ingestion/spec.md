@@ -244,14 +244,19 @@ blended at an explicit, named weight where measured data has coverage.
 58. As a sailor, I want to mark a whole leg as not used with the toggle sitting
     next to its point count, so that the consequence of skipping it is visible
     while I decide.
-59. As a sailor, I want advancing to the next leg to be what confirms the current
-    one, so that review is a single pass rather than a pass plus a confirmation
-    chore.
-60. As a sailor who leaves review half-finished, I want the legs I already passed
-    to stay confirmed and the rest to stay drafts, so that I can come back later
-    without redoing work.
+59. ~~As a sailor, I want advancing to the next leg to be what confirms the
+    current one, so that review is a single pass rather than a pass plus a
+    confirmation chore.~~ **Reversed by `25` after the first real race.** As a
+    sailor, I want moving between legs in any order to save my work, so that I
+    can check leg 3 against leg 5, put the phone down, and come back tomorrow.
+    Advancing being the only way to record work meant there was no way to step
+    back through a session without either losing edits or re-confirming legs,
+    and no way to pause a review at all.
+60. As a sailor who leaves review half-finished, I want every leg I edited to
+    keep what I did to it and the rest to stay drafts, so that I can come back
+    later without redoing work.
 61. As a sailor who revisits a leg and changes it, I want the new version to
-    replace the old confirmation, so that the last thing I said is what counts.
+    replace the old, so that the last thing I said is what counts.
 62. As a sailor, I want SailPlan's proposed spans to fail closed to *not used*
     when the evidence is thin, so that a guess never becomes a polar point.
 63. As a sailor, I want SailPlan never to pick a sail because that sail's existing
@@ -740,23 +745,51 @@ changing sail are one act — moving a divider.)*
   that is too short to hold a bin **says so** rather than silently contributing
   nothing — a no-sail block is *meant* to be short, so warning about one only
   teaches sailors to ignore the warning.
-- **The band sits under a speed trace** (`stw`, ~90 px, the same time axis,
-  no-sail regions shaded). Added after round 5 on the evidence of ticket `15`:
+- **The band sits under a speed trace** (`stw`, ~90 px, the same time axis). Added after round 5 on the evidence of ticket `15`:
   alone, the band is an abstract bar with no referent — nothing says *when* in
   the leg the boat went slow, which is the only question a divider can answer.
   The trace also forces the band to stay strictly linear in time, so selection
   belongs to a segmented strip beneath it rather than to the band itself, and a
   10 s block still gets a full-size tap. Complementary to the map, which answers
   *where* rather than *when*.
+- **The trace carries a truthful axis** (`25`, from `24`'s round): gridlines and
+  labelled speed and time axes, a ceiling that is the next gridline above the
+  speed actually sailed, and the observed maximum drawn where it is and labelled
+  as a maximum. The shipped label was `max(observed, 4) × 1.15` — "9 kn" over a
+  leg whose fastest moment was 7.8 — which presented a headroom constant as a
+  speed someone had done. The **steadiness mask is lit under the trace**, so the
+  seconds that become polar points are visible and dragging a divider across one
+  visibly costs or buys a point. Attribution is *not* drawn on the trace:
+  shading every unattributed span washed the whole chart out in exactly the
+  state every leg opens in. It is hatched on the band instead.
 - A leg interrupted by a data gap is stored as several `sailedLeg` rows but
   **reviewed as one leg**, the uncovered time standing as a fixed "no data"
   block: never selected, moved, or merged through. It is therefore a permanent
   divider, and confirming is just splitting the band at it.
 - A leg is **used by default**, with the toggle beside its point count where the
   consequence is visible.
-- The **map is read-only and follows the pager**. Each span draws in its own
-  colour. A chip on the map switches focus-leg ⟷ whole-course, so it is a
-  per-glance choice rather than a remembered mode.
+- **The session screen is the list; one route names the leg.** Amended by `25`
+  from `24`'s accepted variant D, after the first real race. The session screen
+  carries the facts, the warnings, the whole-course map and a **row per leg**
+  reporting what that leg yields — its sails, its steady bins, whether it has
+  been edited — because paging through a session was the only way to learn what
+  was in it. Tapping a leg enters one review route with the leg in its path; the
+  header's ‹ › page by `replace`, so the back stack never grows past one and
+  back always means "back to the list".
+- **Nothing confirms, and review has no terminal action.** Edits save as they
+  are made — spans, name and `used` — so review can be paused, wandered and
+  resumed. There is no Finish and no "Review complete". The session's one
+  primary action is **Promote**, which is also the only screen that shows what
+  would be written.
+- **`reviewedAt` means *edited*, not *visited*.** It is set only by a save that
+  actually changes the leg, and it is what gates promotion, positions the
+  re-detect warning, and blocks resuming an auto-ended recording. Deriving it
+  from a visit would mark legs with no hand work to lose, which is the wrong
+  answer for all three — and would let the app's own draft attribution into the
+  polar on a leg the sailor merely glanced at.
+- **The map is read-only and follows the leg**. Each span draws in its own
+  colour. A full-width segmented control switches focus-leg ⟷ whole-course, so
+  it is a per-glance choice rather than a remembered mode.
 - **Promotion review is per sail, per 10° TWA band**: a table carrying the band,
   the TWS range feeding it, what this race says, what the table says, the delta,
   and the point count. A scatter of dots gives nothing to argue with.
@@ -1241,6 +1274,13 @@ amendment, not the original:
   start control behind a selected course**, so at the only entry point that
   exists it is mandatory — and added a precondition FD8 did not have: the boat
   profile must carry plotter setup or recording cannot begin.
+
+A fourth amendment came out of real use rather than out of a founding decision:
+**`14`'s *advance = confirm*** was **reversed by `25`**. Confirmation had two
+consumers with two different meanings — "the sailor has hand work here" and
+"this data is cleared for the polar" — and welding the first to a Next button
+made review a one-way pass that could not be paused or wandered. The first is
+now `reviewedAt`, set by an edit; the second belongs to promotion.
 
 FD3 (sampling) and FD7 (derivation) were *settled* rather than amended, by `05`
 and `07` respectively. FD6 (foreground service) was confirmed on real hardware by

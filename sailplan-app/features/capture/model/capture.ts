@@ -70,12 +70,12 @@ export const sailStampInsertSchema: z.ZodType<SailStampInsert> = z.object({
 });
 export const sailedLegSchema: z.ZodType<SailedLeg> = z.object({
   id: z.number(), captureSessionId: z.number(), ordinal: z.number(), startTime: z.number(), endTime: z.number(),
-  name: z.string().nullable(), courseMarkId: z.number().nullable(), confirmedAt: z.number().nullable(),
+  name: z.string().nullable(), courseMarkId: z.number().nullable(), reviewedAt: z.number().nullable(),
   used: z.boolean(),
 });
 export const sailedLegInsertSchema: z.ZodType<SailedLegInsert> = z.object({
   captureSessionId: z.number(), ordinal: z.number(), startTime: z.number(), endTime: z.number(),
-  name: z.string().nullable(), courseMarkId: z.number().nullable(), confirmedAt: z.number().nullable(),
+  name: z.string().nullable(), courseMarkId: z.number().nullable(), reviewedAt: z.number().nullable(),
   used: z.boolean().optional(),
 });
 export const sailSpanSchema: z.ZodType<SailSpan> = z.object({

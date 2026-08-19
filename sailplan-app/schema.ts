@@ -226,7 +226,11 @@ export const sailedLeg = sqliteTable(
     endTime: integer('endTime').notNull(),
     name: text('name'),
     courseMarkId: integer('courseMarkId').references(() => courseMark.id),
-    confirmedAt: integer('confirmedAt'),
+    // When the sailor last changed something here — spans, name, or `used`.
+    // Attention, not quality: it gates promotion and guards a resume against
+    // re-detection, so it must mean "there is hand work here to lose" rather
+    // than "this screen was opened once".
+    reviewedAt: integer('reviewedAt'),
     // The sailor's own call on whether this leg feeds the polar. It cannot be
     // inferred from the spans: a leg confirmed as used whose spans are all
     // still the unattributed default is indistinguishable from a leg struck

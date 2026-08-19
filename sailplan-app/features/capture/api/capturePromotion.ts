@@ -10,7 +10,7 @@ import {
 import { db } from '~/lib/db';
 import { captureSample, sail, sailedLeg, sailPolar } from '~/schema';
 import {
-  confirmedSpans,
+  reviewedSpans,
   proposePolarPoints,
   type ProposedPolarPoint,
 } from '../util/promotion';
@@ -65,7 +65,7 @@ export function useCapturePromotion(sessionId: number) {
 
   // The mask and the binning are a synchronous pass over every sample in the
   // session, which on a two-hour race is long enough to be felt. The review
-  // pager defers its own materialisation for the same reason; computing here
+  // review screen defers its own materialisation for the same reason; computing here
   // during the first render would spend that cost on the screen's entry
   // animation instead.
   const [settled, setSettled] = useState(false);
@@ -80,7 +80,7 @@ export function useCapturePromotion(sessionId: number) {
       settled
         ? proposePolarPoints(
             samples.data,
-            confirmedSpans(legs.data),
+            reviewedSpans(legs.data),
             findSteadyStretches(samples.data),
           )
         : [],
@@ -100,8 +100,8 @@ export function useCapturePromotion(sessionId: number) {
     comparison,
     // Counted by ordinal, not by row: a leg interrupted by a data gap is
     // stored as several rows and reviewed — and counted — as one leg.
-    confirmedLegCount: new Set(
-      legs.data.filter(leg => leg.confirmedAt !== null).map(leg => leg.ordinal),
+    reviewedLegCount: new Set(
+      legs.data.filter(leg => leg.reviewedAt !== null).map(leg => leg.ordinal),
     ).size,
     legCount: new Set(legs.data.map(leg => leg.ordinal)).size,
     /** Points this session has already contributed, from an earlier promotion. */

@@ -95,9 +95,9 @@ export type ProposedPolarPoint = {
  * A stored sailed leg, as promotion needs to read it. Deliberately structural:
  * the row type carries a dozen columns promotion has no opinion about.
  */
-export type ConfirmableLeg = {
+export type ReviewableLeg = {
   ordinal: number;
-  confirmedAt: number | null;
+  reviewedAt: number | null;
   used: boolean;
   sailSpans: readonly { startTime: number; endTime: number; sailId: number | null }[];
 };
@@ -105,17 +105,17 @@ export type ConfirmableLeg = {
 /**
  * The spans promotion is allowed to take points from.
  *
- * Only confirmed spans can produce points — an unreviewed leg's draft
- * attribution is a guess the sailor has not stood behind — and only legs the
- * sailor kept. Striking a leg out is how they say "this one was not sailing",
- * and it has to mean the leg contributes nothing rather than merely looking
- * different on screen.
+ * Only a **reviewed** leg's spans can produce points — an unreviewed leg still
+ * carries the app's draft attribution, which is a hypothesis the sailor has not
+ * stood behind — and only legs the sailor kept. Striking a leg out is how they
+ * say "this one was not sailing", and it has to mean the leg contributes
+ * nothing rather than merely looking different on screen.
  */
-export function confirmedSpans(
-  legs: readonly ConfirmableLeg[],
+export function reviewedSpans(
+  legs: readonly ReviewableLeg[],
 ): PromotionSpan[] {
   return legs
-    .filter(leg => leg.confirmedAt !== null && leg.used)
+    .filter(leg => leg.reviewedAt !== null && leg.used)
     .flatMap(leg =>
       leg.sailSpans.map(span => ({
         legOrdinal: leg.ordinal,

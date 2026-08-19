@@ -37,6 +37,13 @@ interface ReviewTrackMapProps {
   destinationCourseMarkId: number | null;
   legStartTime: number;
   legEndTime: number;
+  /**
+   * The session screen shows the whole course and has no leg to switch back
+   * to, so it opens on `course` and drops the toggle rather than offering a
+   * choice between one view and itself.
+   */
+  initialFocus?: ReviewMapFocus;
+  showFocusToggle?: boolean;
 }
 
 const EDGE_PADDING = { top: 56, right: 56, bottom: 40, left: 56 };
@@ -75,10 +82,12 @@ export function ReviewTrackMap({
   destinationCourseMarkId,
   legStartTime,
   legEndTime,
+  initialFocus = 'leg',
+  showFocusToggle = true,
 }: ReviewTrackMapProps) {
   const theme = useTheme();
   const window = useWindowDimensions();
-  const [focus, setFocus] = useState<ReviewMapFocus>('leg');
+  const [focus, setFocus] = useState<ReviewMapFocus>(initialFocus);
   const [expanded, setExpanded] = useState(false);
   /**
    * The fullscreen map is mounted and loading well before the sailor presses
@@ -292,24 +301,28 @@ export function ReviewTrackMap({
   const focusLabel = focus === 'leg' ? 'this leg' : 'whole course';
   const recenter = () => dispatch('recenter');
 
-  const focusToggle = (
+  // Full width and under the heading, the shape Plan's Leg/Course and the
+  // polar chart's Polar/Scatter already use. The small right-aligned chip it
+  // replaces was the app's only segmented control of its own kind, and being
+  // inside a card made it read as a setting rather than a view switch.
+  const focusToggle = showFocusToggle ? (
     <ToggleGroup
       type='single'
       value={focus}
       onValueChange={value => {
         if (value === 'leg' || value === 'course') setFocus(value);
       }}
-      className='self-end border border-border bg-background'
+      variant='primary'
       accessibilityLabel='GPS track focus'
     >
-      <ToggleGroupItem value='leg' accessibilityLabel='Show this leg'>
-        <Text className='text-xs'>This leg</Text>
+      <ToggleGroupItem value='leg' className='grow' accessibilityLabel='Show this leg'>
+        <Text>This leg</Text>
       </ToggleGroupItem>
-      <ToggleGroupItem value='course' accessibilityLabel='Show whole course'>
-        <Text className='text-xs'>Whole course</Text>
+      <ToggleGroupItem value='course' className='grow' accessibilityLabel='Show whole course'>
+        <Text>Whole course</Text>
       </ToggleGroupItem>
     </ToggleGroup>
-  );
+  ) : null;
 
   return (
     <View className='gap-2'>

@@ -1,0 +1,11 @@
+-- `sailedLeg.confirmedAt` becomes `reviewedAt` (ticket 25).
+--
+-- The column had two meanings welded together: "the sailor has hand work here"
+-- (resume position, the re-detect warning, the resume block) and "this data is
+-- cleared for the polar". Only the first is a per-leg fact; the second belongs
+-- to promotion, which is one session-level decision. Renaming keeps the first.
+--
+-- A rename rather than a drop-and-add: an existing confirmation *is* a review,
+-- and dropping it would tell `redetectCaptureReview` that a session full of
+-- hand-drawn spans has nothing to lose.
+ALTER TABLE `sailedLeg` RENAME COLUMN "confirmedAt" TO "reviewedAt";

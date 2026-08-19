@@ -1,4 +1,4 @@
-import { confirmedSpans, proposePolarPoints } from '../promotion';
+import { reviewedSpans, proposePolarPoints } from '../promotion';
 import type { ReplayCaptureSample } from '../replayCaptureSession';
 
 const start = 1_700_000_000_000;
@@ -175,31 +175,31 @@ describe('proposePolarPoints', () => {
   });
 });
 
-describe('confirmedSpans', () => {
-  const leg = (overrides: Partial<Parameters<typeof confirmedSpans>[0][number]>) => ({
+describe('reviewedSpans', () => {
+  const leg = (overrides: Partial<Parameters<typeof reviewedSpans>[0][number]>) => ({
     ordinal: 1,
-    confirmedAt: 1_000,
+    reviewedAt: 1_000,
     used: true,
     sailSpans: [{ startTime: start, endTime: start + 60_000, sailId: 7 }],
     ...overrides,
   });
 
-  it('takes the spans of a confirmed leg the sailor kept', () => {
-    expect(confirmedSpans([leg({})])).toEqual([
+  it('takes the spans of a reviewed leg the sailor kept', () => {
+    expect(reviewedSpans([leg({})])).toEqual([
       { legOrdinal: 1, startTime: start, endTime: start + 60_000, sailId: 7 },
     ]);
   });
 
-  it('takes nothing from a leg the sailor has not confirmed', () => {
-    expect(confirmedSpans([leg({ confirmedAt: null })])).toEqual([]);
+  it('takes nothing from a leg the sailor has not reviewed', () => {
+    expect(reviewedSpans([leg({ reviewedAt: null })])).toEqual([]);
   });
 
   it('takes nothing from a leg struck out of the polar', () => {
-    expect(confirmedSpans([leg({ used: false })])).toEqual([]);
+    expect(reviewedSpans([leg({ used: false })])).toEqual([]);
   });
 
   it('keeps the parts of a gap-split leg under one ordinal', () => {
-    const spans = confirmedSpans([
+    const spans = reviewedSpans([
       leg({}),
       leg({ sailSpans: [{ startTime: start + 90_000, endTime: start + 150_000, sailId: 7 }] }),
     ]);

@@ -19,6 +19,13 @@ interface SailPickerSheetProps {
   action: string;
   emptyMessage: string;
   disabled?: boolean;
+  /**
+   * A tile above the sails for "none of these". Review needs it — clearing a
+   * block is the same act as attributing one, and giving it a second control
+   * beside the picker made the two read as different kinds of thing. Stamping
+   * has nothing to clear, so it passes none.
+   */
+  clearOption?: { label: string; action: string; onSelect: () => void };
   onClose: () => void;
   onSelect: (sail: PickableSail) => void;
 }
@@ -37,6 +44,7 @@ export function SailPickerSheet({
   action,
   emptyMessage,
   disabled = false,
+  clearOption,
   onClose,
   onSelect,
 }: SailPickerSheetProps) {
@@ -75,6 +83,19 @@ export function SailPickerSheet({
             columnWrapperStyle={{ gap: 12 }}
             contentContainerStyle={{ gap: 12, paddingBottom: 16 }}
             showsVerticalScrollIndicator
+            ListHeaderComponent={
+              clearOption ? (
+                <Pressable
+                  className='mb-3 h-16 items-center justify-center rounded-2xl border border-dashed border-border active:opacity-80'
+                  disabled={disabled}
+                  onPress={clearOption.onSelect}
+                  accessibilityRole='button'
+                  accessibilityLabel={clearOption.action}
+                >
+                  <Text className='text-lg font-semibold'>{clearOption.label}</Text>
+                </Pressable>
+              ) : null
+            }
             renderItem={({ item }) => (
               <Pressable
                 className='h-24 flex-1 overflow-hidden rounded-2xl border border-border active:opacity-80'

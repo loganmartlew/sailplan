@@ -195,9 +195,9 @@ export async function dismissCaptureResume(
 
 export async function getCaptureResumeFacts(session: CaptureSession): Promise<{
   hasLaterSession: boolean;
-  hasConfirmedData: boolean;
+  hasReviewedData: boolean;
 }> {
-  const [later, confirmed] = await Promise.all([
+  const [later, reviewed] = await Promise.all([
     db.query.captureSession.findFirst({
       where: eq(captureSession.boatProfileId, session.boatProfileId),
       orderBy: (row, { desc }) => [desc(row.startedAt)],
@@ -205,13 +205,13 @@ export async function getCaptureResumeFacts(session: CaptureSession): Promise<{
     db.query.sailedLeg.findFirst({
       where: and(
         eq(sailedLeg.captureSessionId, session.id),
-        isNotNull(sailedLeg.confirmedAt),
+        isNotNull(sailedLeg.reviewedAt),
       ),
     }),
   ]);
   return {
     hasLaterSession: Boolean(later && later.startedAt > session.startedAt),
-    hasConfirmedData: Boolean(confirmed),
+    hasReviewedData: Boolean(reviewed),
   };
 }
 

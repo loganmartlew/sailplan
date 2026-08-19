@@ -62,10 +62,16 @@ export default function Layout() {
         }}
       />
       <Stack.Screen
-        name='capture-sessions/[sessionId]'
+        name='capture-sessions/[sessionId]/index'
         options={{
           title: 'Session',
         }}
+      />
+      {/* The leg names its own route and sets its own title — the leg being
+          reviewed is the most useful string on that screen. */}
+      <Stack.Screen
+        name='capture-sessions/[sessionId]/leg/[ordinal]'
+        options={{ title: 'Sailed leg' }}
       />
     </Stack>
   );

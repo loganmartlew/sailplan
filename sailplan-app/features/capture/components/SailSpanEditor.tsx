@@ -6,9 +6,12 @@ import {
   ScrollView,
   View,
 } from 'react-native';
+import Svg, { Defs, Line as SvgLine, Pattern, Rect } from 'react-native-svg';
 import { Button, Muted, Text } from '~/components/ui';
 import type { Sail } from '~/features/sail';
+import { NAV_THEME } from '~/lib/constants';
 import { ChevronDown } from '~/lib/icons';
+import { useColorScheme } from '~/lib/useColorScheme';
 import { cn } from '~/lib/utils';
 import {
   assignSpanSail,
@@ -23,6 +26,7 @@ import {
   splitSpan,
   splitTime,
 } from '../util/spanEditing';
+import type { SteadyWindow } from '../util/legReview';
 import { axisFraction, type TraceSample } from '../util/traceGeometry';
 import { formatCaptureDuration } from '../util/formatCaptureDuration';
 import { SailPickerSheet } from './SailPickerSheet';
@@ -32,6 +36,8 @@ interface SailSpanEditorProps {
   spans: readonly EditableSailSpan[];
   sails: readonly Pick<Sail, 'id' | 'name' | 'color'>[];
   samples: readonly TraceSample[];
+  /** The session's steadiness mask, lit under the trace. */
+  mask: readonly SteadyWindow[];
   onChange: (spans: readonly EditableSailSpan[]) => void;
 }
 
@@ -47,6 +53,47 @@ function stepLabel(stepMs: number): string {
   return `${stepMs > 0 ? '+' : '−'}${Math.abs(stepMs) / 1_000}s`;
 }
 
+/**
+ * Diagonal stripes over a block carrying no sail.
+ *
+ * The "nothing is attributed here" signal used to be an 18 % wash across the
+ * speed trace, which meant it was invisible in precisely the state every leg
+ * opens in — everything unattributed, so the whole chart shaded and reading as
+ * background. A hatch on the block itself reads the same at one block or five.
+ */
+function BandHatch({
+  id,
+  width,
+  color,
+}: {
+  id: string;
+  width: number;
+  color: string;
+}) {
+  return (
+    <Svg width={Math.max(1, width)} height={BAND_HEIGHT} className='absolute inset-0'>
+      <Defs>
+        <Pattern
+          id={id}
+          width={8}
+          height={8}
+          patternUnits='userSpaceOnUse'
+          patternTransform='rotate(45)'
+        >
+          <SvgLine x1={0} y1={0} x2={0} y2={8} stroke={color} strokeWidth={2} />
+        </Pattern>
+      </Defs>
+      <Rect
+        x={0}
+        y={0}
+        width={Math.max(1, width)}
+        height={BAND_HEIGHT}
+        fill={`url(#${id})`}
+      />
+    </Svg>
+  );
+}
+
 /** The nearest block that can be selected — a no-data block never can. */
 function nearestEditableIndex(
   spans: readonly EditableSailSpan[],
@@ -60,7 +107,9 @@ function nearestEditableIndex(
   return 0;
 }
 
-export function SailSpanEditor({ spans, sails, samples, onChange }: SailSpanEditorProps) {
+export function SailSpanEditor({ spans, sails, samples, mask, onChange }: SailSpanEditorProps) {
+  const { isDarkColorScheme } = useColorScheme();
+  const hatchColor = NAV_THEME[isDarkColorScheme ? 'dark' : 'light'].mutedForeground;
   const [selectedIndex, setSelectedIndex] = useState(() =>
     nearestEditableIndex(spans, Math.min(1, spans.length - 1)),
   );
@@ -167,7 +216,7 @@ export function SailSpanEditor({ spans, sails, samples, onChange }: SailSpanEdit
       {/* The trace draws at the band's own measured width: they are one axis,
           and a divider a few pixels off the dip that justifies it is most of
           the trace's value gone. */}
-      <SpanTrace spans={visibleSpans} samples={samples} width={bandWidth} />
+      <SpanTrace spans={visibleSpans} samples={samples} mask={mask} width={bandWidth} />
 
       <View
         ref={band}
@@ -199,6 +248,13 @@ export function SailSpanEditor({ spans, sails, samples, onChange }: SailSpanEdit
                 backgroundColor: sail?.color || undefined,
               }}
             >
+              {sail === undefined && span.gap !== true && (
+                <BandHatch
+                  id={`hatch-${index}-${span.startTime}`}
+                  width={width}
+                  color={hatchColor}
+                />
+              )}
               {width >= LABEL_MIN_WIDTH_PX && (
                 <View className={cn('max-w-full rounded px-1', sail && 'bg-background/80')}>
                   <Text className='text-xs font-semibold' numberOfLines={1}>
@@ -287,31 +343,26 @@ export function SailSpanEditor({ spans, sails, samples, onChange }: SailSpanEdit
           <Muted>Block {selectedIndex + 1} of {visibleSpans.length}</Muted>
         </View>
 
-        <View className='flex-row gap-2'>
-          <Button
-            className='flex-1 flex-row items-center justify-start gap-2'
-            size='sm'
-            variant='outline'
-            onPress={() => setSheetOpen(true)}
-            accessibilityLabel='Choose the sail for this block'
-          >
-            {selectedSail && (
-              <View
-                className='h-3 w-3 rounded-full'
-                style={{ backgroundColor: selectedSail.color }}
-              />
-            )}
-            <Text className='flex-1'>{selectedSail?.name ?? 'No sail'}</Text>
-            <ChevronDown className='text-muted-foreground' size={16} />
-          </Button>
-          <Button
-            size='sm'
-            variant={selected.sailId === null ? 'secondary' : 'outline'}
-            onPress={() => onChange(assignSpanSail(visibleSpans, selectedIndex, null))}
-          >
-            <Text>No sail</Text>
-          </Button>
-        </View>
+        {/* One control, not two. The dropdown already showed `No sail` as its
+            current value, and the button beside it repeated the same words —
+            which read as a different control doing something else. Clearing a
+            block now lives inside the picker, where choosing a sail does. */}
+        <Button
+          className='flex-row items-center justify-start gap-2'
+          size='sm'
+          variant='outline'
+          onPress={() => setSheetOpen(true)}
+          accessibilityLabel='Choose the sail for this block'
+        >
+          {selectedSail && (
+            <View
+              className='h-3 w-3 rounded-full'
+              style={{ backgroundColor: selectedSail.color }}
+            />
+          )}
+          <Text className='flex-1'>{selectedSail?.name ?? 'No sail'}</Text>
+          <ChevronDown className='text-muted-foreground' size={16} />
+        </Button>
 
         {(['start', 'end'] as const).map(edge => {
           const label = edge === 'start' ? 'Start' : 'End';
@@ -389,6 +440,14 @@ export function SailSpanEditor({ spans, sails, samples, onChange }: SailSpanEdit
         action='Attribute this block to'
         subtitle='This attributes the whole block, not one instant.'
         emptyMessage='Add a sail before attributing blocks.'
+        clearOption={{
+          label: 'No sail',
+          action: 'Leave this block unattributed',
+          onSelect: () => {
+            onChange(assignSpanSail(visibleSpans, selectedIndex, null));
+            setSheetOpen(false);
+          },
+        }}
         onClose={() => setSheetOpen(false)}
         onSelect={sail => {
           onChange(assignSpanSail(visibleSpans, selectedIndex, sail.id));

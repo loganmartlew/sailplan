@@ -58,7 +58,7 @@ export function CapturePromotion({ sessionId }: CapturePromotionProps) {
   const {
     points: proposed,
     comparison,
-    confirmedLegCount,
+    reviewedLegCount,
     legCount,
     promotedPointCount,
     loading,
@@ -97,7 +97,7 @@ export function CapturePromotion({ sessionId }: CapturePromotionProps) {
         <View className='gap-1'>
           <H3>Promote to your polars</H3>
           <Muted>
-            {confirmedLegCount} of {legCount} {legCount === 1 ? 'leg' : 'legs'} confirmed
+            {reviewedLegCount} of {legCount} {legCount === 1 ? 'leg' : 'legs'} edited
             {promotedPointCount > 0
               ? ` · ${promotedPointCount} already promoted from this session`
               : ''}
@@ -118,8 +118,8 @@ export function CapturePromotion({ sessionId }: CapturePromotionProps) {
         ) : comparison.length === 0 ? (
           <View className='gap-2'>
             <Text>
-              {confirmedLegCount === 0
-                ? 'Confirm the legs you want in your polars first.'
+              {reviewedLegCount === 0
+                ? 'Open the legs you want in your polars and attribute their sails first.'
                 : 'No band reached the evidence it needs, so this session proposes nothing.'}
             </Text>
             <Muted>

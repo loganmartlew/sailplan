@@ -2,7 +2,7 @@ import type { SailSpanInsert } from '../model/capture';
 import type { EditableSailSpan } from './spanEditing';
 
 /**
- * The rows a confirm writes for one stored leg part.
+ * The rows a draft save writes for one stored leg part.
  *
  * Editable spans are the stored rows themselves, so they still carry `id` —
  * and every operation that makes a block out of another one (`splitSpan`,
