@@ -195,3 +195,16 @@ than the sailor's claim.
 - `SailPickerSheet` gained an optional `clearOption`, which is where the removed
   second `No sail` button went: clearing a block and attributing one are the
   same act and now live in the same control.
+- **The resume-position consumer has no successor.** `confirmedAt`'s fourth
+  reader — *open on the first unconfirmed leg* — was deleted rather than
+  re-pointed at `reviewedAt`. Under D there is nothing to position: the list is
+  home, every leg is one tap away, and "which leg am I on" is the question D
+  argued stops mattering. The list is in sailing order and does not sort or
+  scroll unreviewed legs to the top. Named here because the criterion says all
+  the consumers read `reviewedAt`, and this one reads nothing.
+- **The list says *steady bins*, not points**, and the session screen says once
+  what a steady bin is. `24`'s own correction is why: 88 steady bins on the
+  reference race yield 10 polar points, so a row labelled "bins" beside a
+  promotion screen offering 10 points would read as a contradiction. The number
+  is an upper bound on what promotion could take from a leg, and is labelled as
+  one.

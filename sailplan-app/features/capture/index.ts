@@ -42,4 +42,5 @@ export * from './components/SailedLegReview';
 export * from './components/CapturePromotion';
 export * from './components/ReviewTrackMap';
 export * from './hooks/useCaptureInset';
+export * from './hooks/useCaptureReview';
 export * from './hooks/useRawLogManager';

@@ -1,12 +1,11 @@
 import { Pressable, View } from 'react-native';
 import { Badge, Card, CardContent, Muted, Text } from '~/components/ui';
 import type { Sail } from '~/features/sail';
+import { formatCount } from '~/lib/format';
 import { ChevronRight } from '~/lib/icons';
 import { cn } from '~/lib/utils';
 import type { SailedLegSummary } from '../util/legReview';
 import { formatCaptureDuration } from '../util/formatCaptureDuration';
-
-const countFormat = new Intl.NumberFormat('en-NZ');
 
 interface SailedLegListProps {
   legs: readonly SailedLegSummary[];
@@ -17,10 +16,14 @@ interface SailedLegListProps {
 /**
  * What is in this session, without paging through it.
  *
- * Rows report **what a leg yields** — its sails, the polar bins its attributed
- * blocks would produce, whether the sailor has edited it — rather than whether
- * it has been ticked. There is no per-leg act left to tick: leaving a leg saves
- * it, and standing behind the data is one session-level decision at promotion.
+ * Rows report **what a leg holds** — its sails, how much of its settled sailing
+ * carries one, whether the sailor has edited it — rather than whether it has
+ * been ticked. There is no per-leg act left to tick: leaving a leg saves it, and
+ * standing behind the data is one session-level decision at promotion.
+ *
+ * The bin count is deliberately labelled *steady bins*, not points: it is 15 s
+ * of settled sailing, an upper bound on what promotion could take, and calling
+ * it points would overstate the leg several times over.
  */
 export function SailedLegList({ legs, sails, onOpen }: SailedLegListProps) {
   return (
@@ -31,6 +34,7 @@ export function SailedLegList({ legs, sails, onOpen }: SailedLegListProps) {
           accessibilityRole='button'
           accessibilityLabel={
             `Review ${leg.name}, ${formatCaptureDuration(leg.durationMs)}`
+            + `, ${leg.attributedBins} of ${leg.steadyBins} steady bins attributed`
             + `, ${leg.reviewed ? 'edited' : 'not edited yet'}`
           }
           onPress={() => onOpen(leg)}
@@ -64,7 +68,7 @@ export function SailedLegList({ legs, sails, onOpen }: SailedLegListProps) {
                   {' · '}
                   {formatCaptureDuration(leg.durationMs)}
                   {' · '}
-                  {countFormat.format(leg.sampleCount)} samples
+                  {formatCount(leg.sampleCount)} samples
                 </Muted>
                 <View className='flex-row flex-wrap items-center gap-1.5'>
                   {leg.sailIds.length === 0 ? (
@@ -90,7 +94,7 @@ export function SailedLegList({ legs, sails, onOpen }: SailedLegListProps) {
                   )}
                   <Badge variant={leg.attributedBins > 0 ? 'secondary' : 'outline'}>
                     <Text>
-                      {leg.attributedBins}/{leg.steadyBins} bins
+                      {leg.attributedBins}/{leg.steadyBins} steady bins
                     </Text>
                   </Badge>
                 </View>

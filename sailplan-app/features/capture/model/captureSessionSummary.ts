@@ -14,6 +14,8 @@ export interface CaptureSessionAggregate {
 export interface CaptureSessionSummary {
   id: number;
   name: string;
+  /** The course this session recorded, if one was linked. */
+  courseId: number | null;
   startedAt: number;
   durationMs: number;
   sampleCount: number;
@@ -113,6 +115,7 @@ export function summarizeCaptureSession({
   return {
     id: session.id,
     name: session.name,
+    courseId: session.courseId,
     startedAt: session.startedAt,
     durationMs: Math.max(0, (session.endedAt ?? session.startedAt) - session.startedAt),
     sampleCount,

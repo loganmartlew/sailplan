@@ -1,6 +1,7 @@
 import { router, type Href } from 'expo-router';
 import { FlatList, Pressable, View } from 'react-native';
 import { Badge, Card, CardContent, H2, Muted, Text } from '~/components/ui';
+import { formatCount } from '~/lib/format';
 import { ChevronRight, Wind } from '~/lib/icons';
 import type { CaptureSessionSummary } from '../model/captureSessionSummary';
 import { formatCaptureDuration } from '../util/formatCaptureDuration';
@@ -10,8 +11,6 @@ interface CaptureSessionListProps {
   isLoading: boolean;
   bottomInset: number;
 }
-
-const countFormat = new Intl.NumberFormat('en-NZ');
 
 export function formatCaptureWindRange(
   windRange: CaptureSessionSummary['windRange'],
@@ -104,7 +103,7 @@ function CaptureSessionRow({ session }: { session: CaptureSessionSummary }) {
             </View>
             <Text className='text-sm'>
               {formatCaptureDuration(session.durationMs)} ·{' '}
-              {countFormat.format(session.sampleCount)}{' '}
+              {formatCount(session.sampleCount)}{' '}
               {session.sampleCount === 1 ? 'sample' : 'samples'} ·{' '}
               {formatCaptureWindRange(session.windRange)}
             </Text>

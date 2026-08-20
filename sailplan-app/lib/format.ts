@@ -128,3 +128,15 @@ export const formatDistance = (
   }).format(distance * factor);
   return `${formatted} ${label}`;
 };
+
+// #####################
+// ####### COUNT #######
+// #####################
+
+const countFormat = new Intl.NumberFormat('en-NZ');
+
+/**
+ * A plain thousands-separated count. Capture talks in tens of thousands of
+ * samples, and four screens had each declared their own `Intl.NumberFormat`.
+ */
+export const formatCount = (count: number): string => countFormat.format(count);

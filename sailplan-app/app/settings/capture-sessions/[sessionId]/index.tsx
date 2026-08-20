@@ -2,6 +2,7 @@ import { useLocalSearchParams } from 'expo-router';
 import { ScrollView, View } from 'react-native';
 import { Badge, Card, CardContent, H2, H3, Muted, Text } from '~/components/ui';
 import { useBoatProfile } from '~/features/boatProfile';
+import { formatCount } from '~/lib/format';
 import {
   captureWindFrameLabel,
   CapturePromotion,
@@ -9,11 +10,9 @@ import {
   formatCaptureDuration,
   formatCaptureWindRange,
   useCaptureInset,
-  useCaptureSessionCourseName,
+  useCourseName,
   useCaptureSessionSummaries,
 } from '~/features/capture';
-
-const countFormat = new Intl.NumberFormat('en-NZ');
 
 /** Uppercase muted key over its value, matching Plan's `TRUE WIND SPEED`. */
 function SessionFact({ label, value }: { label: string; value: string }) {
@@ -31,7 +30,7 @@ export default function CaptureSessionScreen() {
   const { boatProfile } = useBoatProfile();
   const summaries = useCaptureSessionSummaries(boatProfile?.id ?? null);
   const session = summaries.data.find(item => item.id === sessionId);
-  const courseName = useCaptureSessionCourseName(sessionId);
+  const courseName = useCourseName(session?.courseId ?? null);
   const captureInset = useCaptureInset();
 
   if (!session) {
@@ -102,7 +101,7 @@ export default function CaptureSessionScreen() {
             />
             <SessionFact
               label='Samples'
-              value={countFormat.format(session.sampleCount)}
+              value={formatCount(session.sampleCount)}
             />
             <SessionFact
               label='True wind speed'

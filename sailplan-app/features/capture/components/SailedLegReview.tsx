@@ -11,9 +11,11 @@ import {
   Toggle,
 } from '~/components/ui';
 import { useSails } from '~/features/sail';
+import { formatCount } from '~/lib/format';
 import { ChevronLeft, ChevronRight } from '~/lib/icons';
-import { saveSailedLegDraft, useCaptureReview } from '../api/captureReview';
+import { updateSailedLegDraft } from '../api/captureReview';
 import { useCaptureInset } from '../hooks/useCaptureInset';
+import { useCaptureReview } from '../hooks/useCaptureReview';
 import { splitLegBand, unifyLegParts } from '../util/legBand';
 import { sailedLegName } from '../util/legReview';
 import { createGuardedDraftSpans } from '../util/sailedLegDetection';
@@ -21,7 +23,6 @@ import type { EditableSailSpan } from '../util/spanEditing';
 import { ReviewTrackMap } from './ReviewTrackMap';
 import { SailSpanEditor } from './SailSpanEditor';
 
-const countFormat = new Intl.NumberFormat('en-NZ');
 /** Long enough that typing a leg name is not a write per keystroke. */
 const NAME_SAVE_DELAY_MS = 600;
 
@@ -107,7 +108,7 @@ export function SailedLegReview({ sessionId, ordinal }: SailedLegReviewProps) {
   // away; the name is debounced, and flushed when the leg changes or the
   // screen goes — the pending payload names its own leg rows, so a late flush
   // still lands on the leg it came from.
-  const pending = useRef<Parameters<typeof saveSailedLegDraft>[0] | null>(null);
+  const pending = useRef<Parameters<typeof updateSailedLegDraft>[0] | null>(null);
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const flush = () => {
     if (timer.current) {
@@ -115,7 +116,7 @@ export function SailedLegReview({ sessionId, ordinal }: SailedLegReviewProps) {
       timer.current = null;
     }
     if (pending.current) {
-      saveSailedLegDraft(pending.current);
+      updateSailedLegDraft(pending.current);
       pending.current = null;
     }
   };
@@ -245,10 +246,15 @@ export function SailedLegReview({ sessionId, ordinal }: SailedLegReviewProps) {
           <View className='flex-1 gap-0.5'>
             <Muted className='text-xs'>
               Leg {index + 1} of {presentations.length} ·{' '}
-              {countFormat.format(sampleCount)} samples
+              {formatCount(sampleCount)} samples
             </Muted>
+            {/* One word for `reviewedAt` across every surface — the list's
+                badge, the session heading's count, and here. "Saved" said the
+                same thing in a third vocabulary. */}
             <Muted className='text-xs'>
-              {edited ? 'Saved' : 'Opening default — nothing changed yet'}
+              {edited
+                ? 'Edited — your changes are saved'
+                : 'Opening default — nothing changed yet'}
             </Muted>
           </View>
           <Toggle
@@ -265,14 +271,25 @@ export function SailedLegReview({ sessionId, ordinal }: SailedLegReviewProps) {
         </View>
 
         {leg.courseMarkId === null && (
-          <Input
-            accessibilityLabel='Sailed leg name'
-            value={name}
-            onChangeText={next => {
-              setName(next);
-              if (next.trim()) save({ name: next }, true);
-            }}
-          />
+          <View className='gap-1'>
+            <Input
+              accessibilityLabel='Sailed leg name'
+              value={name}
+              onChangeText={next => {
+                setName(next);
+                if (next.trim()) save({ name: next }, true);
+              }}
+            />
+            {/* An empty field is not a rename to nothing — a leg has to be
+                callable something. The stored name is kept and the field says
+                so, rather than the save silently doing nothing. */}
+            {name.trim() === '' && (
+              <Muted className='text-xs'>
+                A leg needs a name. Until you type one it stays{' '}
+                {sailedLegName(leg)}.
+              </Muted>
+            )}
+          </View>
         )}
 
         <View className='gap-2'>
@@ -322,7 +339,7 @@ export function SailedLegReview({ sessionId, ordinal }: SailedLegReviewProps) {
 
         {!used && (
           <Muted>
-            These {countFormat.format(sampleCount)} samples will stay in the
+            These {formatCount(sampleCount)} samples will stay in the
             recording for later attribution.
           </Muted>
         )}

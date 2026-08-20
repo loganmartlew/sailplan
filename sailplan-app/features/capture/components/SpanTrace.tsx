@@ -40,6 +40,11 @@ interface SpanTraceProps {
  * unattributed span washed the whole chart out in exactly the state every leg
  * opens in. That signal belongs to the band below, where it can be read.
  *
+ * A **data gap** still shades, because it is not attribution: it is time no
+ * sample covers, the trace has nothing to draw across it, and it is a permanent
+ * divider the sailor cannot move. Unlike unattributed spans it is rare, so
+ * shading it says something rather than washing the chart out.
+ *
  * SVG takes colours as values, not classes, so the theme's own tokens are read
  * from `NAV_THEME` rather than a second palette being invented here.
  */
@@ -94,6 +99,19 @@ export function SpanTrace({ spans, samples, mask, width }: SpanTraceProps) {
             </G>
           );
         })}
+        {spans.map(span =>
+          span.gap === true ? (
+            <Rect
+              key={`gap-${span.startTime}`}
+              x={Math.max(0, x(span.startTime) - PAD_LEFT)}
+              y={0}
+              width={Math.max(1, x(span.endTime) - x(span.startTime))}
+              height={PLOT_HEIGHT}
+              fill={theme.mutedForeground}
+              fillOpacity={0.4}
+            />
+          ) : null,
+        )}
         {geometry.speedGridlines.map(line => (
           <Line
             key={`speed-${line.value}`}

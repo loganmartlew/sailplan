@@ -5,7 +5,8 @@ import { View } from 'react-native';
 import { Button, Card, CardContent, H3, Muted, Text } from '~/components/ui';
 import { useConfirm } from '~/hooks/useConfirm';
 import { useSails } from '~/features/sail';
-import { redetectCaptureReview, useCaptureReview } from '../api/captureReview';
+import { redetectCaptureReview } from '../api/captureReview';
+import { useCaptureReview } from '../hooks/useCaptureReview';
 import { ReviewTrackMap } from './ReviewTrackMap';
 import { SailedLegList } from './SailedLegList';
 
@@ -96,10 +97,21 @@ export function CaptureSessionReview({ sessionId }: CaptureSessionReviewProps) {
         initialFocus='course'
         showFocusToggle={false}
       />
-      <H3>
-        {summaries.length} sailed {summaries.length === 1 ? 'leg' : 'legs'}
-        {reviewedCount > 0 ? ` · ${reviewedCount} edited` : ''}
-      </H3>
+      <View className='gap-1'>
+        <H3>
+          {summaries.length} sailed {summaries.length === 1 ? 'leg' : 'legs'}
+          {reviewedCount > 0 ? ` · ${reviewedCount} edited` : ''}
+        </H3>
+        {/* Said once, here, rather than left for the sailor to infer from a
+            pill: a steady bin is 15 s of settled sailing, and promotion needs
+            several in the same wind and angle before it writes one point. The
+            reference race gives 88 bins and 10 points. */}
+        <Muted className='text-xs'>
+          A steady bin is 15 seconds of settled sailing. Promotion needs several
+          in the same wind and angle to write one polar point, so points come out
+          far fewer than bins.
+        </Muted>
+      </View>
       <SailedLegList
         legs={summaries}
         sails={sailsQuery?.data ?? []}

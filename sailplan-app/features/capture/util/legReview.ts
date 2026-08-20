@@ -56,11 +56,18 @@ export function groupSailedLegParts<T extends { ordinal: number }>(
 }
 
 /**
- * Whole polar bins a window of time would yield, given the steadiness mask.
+ * Whole 15-second **steady bins** a window of time contains, given the mask.
  *
- * Whole, because a bin is the unit promotion writes: a stretch overlapping a
- * block by 10 s buys nothing, and reporting it as "a bit" would tell the sailor
- * a divider bought something it did not.
+ * Whole, because a part-bin buys nothing: a stretch overlapping a block by 10 s
+ * contributes no settled sailing at all, and reporting it as "a bit" would tell
+ * the sailor a divider bought something it did not.
+ *
+ * **A steady bin is not a polar point.** It is 15 s of sailing the mask
+ * accepted — an *upper bound* on what promotion could take from this window,
+ * never a promise. `promotion.ts` then bins by TWS and TWA and needs
+ * `MIN_BIN_SAMPLES` before any bin proposes a point, so the real race that
+ * yields 88 steady bins yields 10 points. Anything reporting this number to the
+ * sailor has to say *steady bins*, not points.
  */
 export function steadyBinsWithin(
   mask: readonly SteadyWindow[],
@@ -94,10 +101,11 @@ export interface SailedLegSummary {
 /**
  * What each leg of a session holds, for the list that is now review's home.
  *
- * The rows report **what a leg yields** — sails, bins, whether it was touched —
- * rather than whether it was ticked: there is no per-leg act to tick. Bins come
- * from the session's own mask, the same one promotion reads, so a row cannot
- * promise a point promotion would not write.
+ * The rows report **what a leg holds** — sails, steady bins, whether it was
+ * edited — rather than whether it was ticked: there is no per-leg act to tick.
+ * The bins come from the session's own mask, the same one promotion reads, so
+ * they are the right scale to compare legs by; see {@link steadyBinsWithin} for
+ * why they are an upper bound on points rather than a count of them.
  */
 export function summarizeSailedLegs({
   legs,

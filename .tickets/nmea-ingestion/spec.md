@@ -745,7 +745,7 @@ changing sail are one act — moving a divider.)*
   that is too short to hold a bin **says so** rather than silently contributing
   nothing — a no-sail block is *meant* to be short, so warning about one only
   teaches sailors to ignore the warning.
-- **The band sits under a speed trace** (`stw`, ~90 px, the same time axis). Added after round 5 on the evidence of ticket `15`:
+- **The band sits under a speed trace** (`stw`, a ~96 px plot inside a ~119 px box once the axes are labelled, on the same time axis). Added after round 5 on the evidence of ticket `15`:
   alone, the band is an abstract bar with no referent — nothing says *when* in
   the leg the boat went slow, which is the only question a divider can answer.
   The trace also forces the band to stay strictly linear in time, so selection
