@@ -46,15 +46,3 @@ export default function MarkMap() {
     </View>
   );
 }
-
-type x =
-  | string
-  | number
-  | { value: string }
-  | { latitude: number; longitude: number }
-  | {
-      locationType: 'custom' | 'none' | 'mark';
-      markId: number | null;
-      location: { latitude: number; longitude: number } | null;
-    }
-  | null;

@@ -1,5 +1,5 @@
 import { router, Stack, type Href } from 'expo-router';
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Pressable, ScrollView, View } from 'react-native';
 import {
   Card,
@@ -110,7 +110,7 @@ export function SailedLegReview({ sessionId, ordinal }: SailedLegReviewProps) {
   // still lands on the leg it came from.
   const pending = useRef<Parameters<typeof updateSailedLegDraft>[0] | null>(null);
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const flush = () => {
+  const flush = useCallback(() => {
     if (timer.current) {
       clearTimeout(timer.current);
       timer.current = null;
@@ -119,8 +119,8 @@ export function SailedLegReview({ sessionId, ordinal }: SailedLegReviewProps) {
       updateSailedLegDraft(pending.current);
       pending.current = null;
     }
-  };
-  useEffect(() => flush, [sessionId, ordinal]);
+  }, []);
+  useEffect(() => flush, [flush, sessionId, ordinal]);
 
   const legSamples = useMemo(
     () => presentation
@@ -131,6 +131,55 @@ export function SailedLegReview({ sessionId, ordinal }: SailedLegReviewProps) {
         )
       : [],
     [presentation, samples.data],
+  );
+
+  const goTo = useCallback(
+    (target: number) => {
+      flush();
+      router.replace(
+        `/settings/capture-sessions/${sessionId}/leg/${presentations[target][0].ordinal}` as Href,
+      );
+    },
+    [flush, sessionId, presentations],
+  );
+
+  const stepButton = useCallback(
+    (direction: -1 | 1, Icon: typeof ChevronLeft, label: string) => {
+      const target = index + direction;
+      const enabled = target >= 0 && target < presentations.length;
+      return (
+        <Pressable
+          className='px-1 py-2'
+          disabled={!enabled}
+          accessibilityRole='button'
+          accessibilityLabel={label}
+          onPress={() => goTo(target)}
+        >
+          <Icon
+            className={enabled ? 'text-foreground' : 'text-muted-foreground/40'}
+            size={24}
+          />
+        </Pressable>
+      );
+    },
+    [goTo, index, presentations.length],
+  );
+
+  // `Stack.Screen` calls `navigation.setOptions` whenever this object's
+  // identity changes, and that sets state on the navigator — so rebuilding it
+  // every render puts a write in every render. Held steady here rather than
+  // left to the compiler to notice.
+  const screenOptions = useMemo(
+    () => ({
+      title: name || (leg ? sailedLegName(leg) : ''),
+      headerRight: () => (
+        <View className='flex-row items-center'>
+          {stepButton(-1, ChevronLeft, 'Previous leg')}
+          {stepButton(1, ChevronRight, 'Next leg')}
+        </View>
+      ),
+    }),
+    [name, leg, stepButton],
   );
 
   if (state === 'preparing') {
@@ -164,10 +213,6 @@ export function SailedLegReview({ sessionId, ordinal }: SailedLegReviewProps) {
   // separately, is the confusion this screen exists to remove.
   const band = unifyLegParts(visibleSpans);
   const sampleCount = legSamples.length;
-  // Read from the stored leg rather than from "this screen wrote something":
-  // `reviewedAt` is set only when a save actually changes the leg, so a toggle
-  // pressed twice honestly still says nothing has changed yet.
-  const edited = presentation.some(part => part.reviewedAt !== null);
 
   const save = (
     next: {
@@ -194,67 +239,19 @@ export function SailedLegReview({ sessionId, ordinal }: SailedLegReviewProps) {
     timer.current = setTimeout(flush, NAME_SAVE_DELAY_MS);
   };
 
-  const goTo = (target: number) => {
-    flush();
-    router.replace(
-      `/settings/capture-sessions/${sessionId}/leg/${presentations[target][0].ordinal}` as Href,
-    );
-  };
-
-  const stepButton = (
-    direction: -1 | 1,
-    Icon: typeof ChevronLeft,
-    label: string,
-  ) => {
-    const target = index + direction;
-    const enabled = target >= 0 && target < presentations.length;
-    return (
-      <Pressable
-        className='px-1 py-2'
-        disabled={!enabled}
-        accessibilityRole='button'
-        accessibilityLabel={label}
-        onPress={() => goTo(target)}
-      >
-        <Icon
-          className={enabled ? 'text-foreground' : 'text-muted-foreground/40'}
-          size={24}
-        />
-      </Pressable>
-    );
-  };
-
   return (
     <>
-      <Stack.Screen
-        options={{
-          title: name || sailedLegName(leg),
-          headerRight: () => (
-            <View className='flex-row items-center'>
-              {stepButton(-1, ChevronLeft, 'Previous leg')}
-              {stepButton(1, ChevronRight, 'Next leg')}
-            </View>
-          ),
-        }}
-      />
+      <Stack.Screen options={screenOptions} />
       <ScrollView
         className='flex-1'
         contentContainerClassName='w-full px-3 py-4 gap-5'
         contentContainerStyle={{ paddingBottom: captureInset }}
       >
         <View className='flex-row items-center justify-between gap-3'>
-          <View className='flex-1 gap-0.5'>
+          <View className='flex-1'>
             <Muted className='text-xs'>
               Leg {index + 1} of {presentations.length} ·{' '}
               {formatCount(sampleCount)} samples
-            </Muted>
-            {/* One word for `reviewedAt` across every surface — the list's
-                badge, the session heading's count, and here. "Saved" said the
-                same thing in a third vocabulary. */}
-            <Muted className='text-xs'>
-              {edited
-                ? 'Edited — your changes are saved'
-                : 'Opening default — nothing changed yet'}
             </Muted>
           </View>
           <Toggle
@@ -271,25 +268,14 @@ export function SailedLegReview({ sessionId, ordinal }: SailedLegReviewProps) {
         </View>
 
         {leg.courseMarkId === null && (
-          <View className='gap-1'>
-            <Input
-              accessibilityLabel='Sailed leg name'
-              value={name}
-              onChangeText={next => {
-                setName(next);
-                if (next.trim()) save({ name: next }, true);
-              }}
-            />
-            {/* An empty field is not a rename to nothing — a leg has to be
-                callable something. The stored name is kept and the field says
-                so, rather than the save silently doing nothing. */}
-            {name.trim() === '' && (
-              <Muted className='text-xs'>
-                A leg needs a name. Until you type one it stays{' '}
-                {sailedLegName(leg)}.
-              </Muted>
-            )}
-          </View>
+          <Input
+            accessibilityLabel='Sailed leg name'
+            value={name}
+            onChangeText={next => {
+              setName(next);
+              if (next.trim()) save({ name: next }, true);
+            }}
+          />
         )}
 
         <View className='gap-2'>
@@ -336,13 +322,6 @@ export function SailedLegReview({ sessionId, ordinal }: SailedLegReviewProps) {
             }}
           />
         </View>
-
-        {!used && (
-          <Muted>
-            These {formatCount(sampleCount)} samples will stay in the
-            recording for later attribution.
-          </Muted>
-        )}
       </ScrollView>
     </>
   );

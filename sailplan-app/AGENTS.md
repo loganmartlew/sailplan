@@ -104,6 +104,12 @@ Full detail: [`docs/architecture.md`](docs/architecture.md).
   `cn()` from `~/lib/utils`.
 - **Icons** are re-exported from `~/lib/icons` (Lucide, wrapped so `className`
   works). Add new ones there.
+- **Helper text is conditional.** Muted copy under a control earns its place
+  only when it fires because something is wrong, absent, or about to be
+  destroyed. Permanent text narrating how a control works, restating what a
+  badge already says, or reassuring about a save that always happens is noise —
+  cut it, or redraw the control until it says the thing itself. See
+  [`docs/ui.md`](docs/ui.md#helper-text).
 - **TypeScript is `strict`.** Match the existing functional-component style.
 
 Full detail: [`docs/conventions.md`](docs/conventions.md).
@@ -132,7 +138,7 @@ Full detail: [`docs/conventions.md`](docs/conventions.md).
 | [`docs/data-layer.md`](docs/data-layer.md)     | Schema, migrations, `useLiveQuery`, MMKV, settings      |
 | [`../CONTEXT.md`](../CONTEXT.md)               | **Sailing terms** and how they map to code/tables       |
 | [`docs/features.md`](docs/features.md)         | What each feature slice does                            |
-| [`docs/ui.md`](docs/ui.md)                     | Theming, `components/ui`, `components/form`, icons       |
+| [`docs/ui.md`](docs/ui.md)                     | Theming, `components/ui`, `components/form`, icons, helper text |
 | [`docs/routing.md`](docs/routing.md)           | The screen/route tree                                   |
 | [`docs/testing.md`](docs/testing.md)           | Test setup and conventions                              |
 

@@ -4,20 +4,27 @@ import { useBoatProfile } from '~/features/boatProfile';
 import { db } from '~/lib/db';
 import { sail } from '~/schema';
 
+/**
+ * `null` until a boat profile is active, as callers expect — but the query runs
+ * either way. Returning before `useLiveQuery` made this a conditional hook, so
+ * the first render after a profile was chosen called one more hook than the
+ * render before it.
+ */
 export function useSails() {
   const { boatProfile } = useBoatProfile();
+  const boatProfileId = boatProfile?.id ?? null;
 
-  if (!boatProfile?.id) {
-    return null;
-  }
-
-  return useLiveQuery(
+  const sails = useLiveQuery(
     db.query.sail.findMany({
-      where: eq(sail.boatProfileId, boatProfile.id),
+      // No profile matches -1, so the query returns nothing rather than every
+      // boat's sails.
+      where: eq(sail.boatProfileId, boatProfileId ?? -1),
       orderBy: [asc(sail.name)],
     }),
-    [boatProfile.id],
+    [boatProfileId],
   );
+
+  return boatProfileId === null ? null : sails;
 }
 
 export async function getSail(id: number) {

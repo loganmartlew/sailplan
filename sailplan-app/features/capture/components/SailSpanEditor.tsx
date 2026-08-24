@@ -24,7 +24,6 @@ import {
   nudgeSpanEdge,
   spanFallsShortOfBin,
   splitSpan,
-  splitTime,
 } from '../util/spanEditing';
 import type { SteadyWindow } from '../util/legReview';
 import { axisFraction, type TraceSample } from '../util/traceGeometry';
@@ -328,7 +327,6 @@ export function SailSpanEditor({ spans, sails, samples, mask, onChange }: SailSp
         })}
       </ScrollView>
 
-      <Muted>Drag a handle to move a divider. Tap a numbered block to edit it.</Muted>
       {shortBlocks.length > 0 && (
         <Text className='text-sm text-destructive'>
           {`Block${shortBlocks.length === 1 ? '' : 's'} ${shortBlocks.join(', ')} ${shortBlocks.length === 1 ? 'carries a sail but is' : 'carry sails but are'} too short to hold a 15 second polar bin.`}
@@ -426,11 +424,6 @@ export function SailSpanEditor({ spans, sails, samples, mask, onChange }: SailSp
             <Text>Merge right</Text>
           </Button>
         </View>
-        <Muted>
-          {canSplit
-            ? `Split cuts at the block's midpoint, ${formatCaptureDuration(splitTime(selected) - startTime)} into the leg.`
-            : 'A block needs at least 30 seconds to split into two 15 second halves.'}
-        </Muted>
       </View>
 
       <SailPickerSheet
@@ -438,7 +431,6 @@ export function SailSpanEditor({ spans, sails, samples, mask, onChange }: SailSp
         sails={sails}
         heading='Which sail was flying?'
         action='Attribute this block to'
-        subtitle='This attributes the whole block, not one instant.'
         emptyMessage='Add a sail before attributing blocks.'
         clearOption={{
           label: 'No sail',

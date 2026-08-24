@@ -13,7 +13,7 @@ map; use these docs for depth.
 | [data-layer.md](data-layer.md)             | Drizzle schema, migrations, `useLiveQuery`, MMKV, settings & units     |
 | [`../../CONTEXT.md`](../../CONTEXT.md)     | Sailing vocabulary (TWA, TWS, polar, tack, wind zone…) mapped to code  |
 | [features.md](features.md)                 | Catalogue of every `features/` slice and its responsibility            |
-| [ui.md](ui.md)                             | NativeWind theming, `components/ui`, `components/form`, icons           |
+| [ui.md](ui.md)                             | NativeWind theming, `components/ui`, `components/form`, icons, helper text |
 | [routing.md](routing.md)                   | The Expo Router screen tree                                            |
 | [testing.md](testing.md)                   | Jest setup and test conventions                                        |
 | [sail-suggestion/](sail-suggestion/README.md) | Suggestion-engine review findings + per-package implementation plans |

@@ -110,3 +110,38 @@ Then use it: `import { Wind } from '~/lib/icons'` and style with
 `AppProviders` mounts a `@rn-primitives` `PortalHost`, so dialogs, selects, and
 other overlays render above the app. Use the `Dialog` primitive from
 `components/ui` for modals.
+
+## Helper text
+
+Muted explanatory copy under a control is the easiest thing to add and the
+hardest to notice accumulating. The test is **conditional vs. unconditional**:
+
+- **Conditional text earns its place.** It appears because something is wrong,
+  absent, or about to be destroyed: an edit that will silently contribute
+  nothing (`SailSpanEditor`'s too-short-for-a-bin warning), an empty screen whose
+  emptiness is baffling (`CaptureSessionReview`'s "no point of sail lasted for
+  the three-minute minimum"), a claim about data validity invisible in the data
+  itself (the ground-wind warning), a confirm dialogue naming what is lost. The
+  sailor could not have worked these out by looking at the widget.
+- **Unconditional text describing how a control works usually does not.** If it
+  sits permanently under a control explaining what dragging its handle does, or
+  narrates what a button will do before it is pressed, either the widget is
+  already saying it or the widget should be redrawn until it does.
+
+Corollaries:
+
+- **Say it once, in one vocabulary.** If a fact already shows as a badge on a
+  list row and a count in a heading, a third telling on the detail screen is
+  noise — and re-wording it there ("Saved" for what elsewhere is "Edited") makes
+  it read as a *different* fact.
+- **Instructions belong where someone is stuck**, not ahead of time. Explain the
+  bins-to-points ratio in the promotion empty state, where the sailor is asking
+  why they got nothing — not permanently on the list screen, where they aren't
+  asking yet.
+- **Don't reassure against fears the app doesn't create.** Edits that save on
+  leaving need no "your changes are saved"; nothing in the app deletes samples,
+  so nothing needs to promise it won't.
+- **Accessibility labels are not helper text.** Prefer putting the "drag the
+  handle to move a divider" phrasing on `accessibilityLabel`, where it serves
+  someone who cannot see the handle, over duplicating it in visible copy for
+  someone who can.

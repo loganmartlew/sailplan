@@ -17,7 +17,9 @@ export function BoatProfileLabel() {
     <>
       <Badge
         variant='secondary'
-        className='flex-row items-center gap-2'
+        // The one pressable badge, so it asks for the press feedback the
+        // variants no longer carry.
+        className='flex-row items-center gap-2 active:opacity-80'
         asChild
       >
         <Pressable onPress={() => setPickerOpen(true)}>

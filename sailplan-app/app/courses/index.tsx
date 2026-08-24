@@ -34,8 +34,12 @@ export default function Courses() {
   const coursesQuery = useCourses();
   const captureInset = useCaptureInset();
 
-  const ungroupedCourses =
-    coursesQuery.data?.filter(course => course.courseGroupId === null) ?? [];
+  // Held: a fresh array here re-ran the list `useMemo` below on every render,
+  // which was the whole point of memoising it.
+  const ungroupedCourses = useMemo(
+    () => coursesQuery.data?.filter(course => course.courseGroupId === null) ?? [],
+    [coursesQuery.data],
+  );
 
   const [newGroupDialogOpen, setNewGroupDialogOpen] = useState(false);
 

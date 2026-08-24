@@ -1,4 +1,4 @@
-import { router, Stack } from 'expo-router';
+import { router } from 'expo-router';
 import { View } from 'react-native';
 import { H2 } from '~/components/ui';
 import { useBoatProfile } from '~/features/boatProfile';

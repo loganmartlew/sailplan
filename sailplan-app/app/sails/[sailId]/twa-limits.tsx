@@ -231,7 +231,7 @@ export default function TwaLimitsPage() {
   useEffect(() => {
     if (!sail || !twaLimits || editMode) return;
     reset(buildFormValues(sail, twaLimits, speedUnit));
-  }, [sail, twaLimits, speedUnit, editMode]);
+  }, [reset, sail, twaLimits, speedUnit, editMode]);
 
   // Watch the entered wind range so rows grey out live as it's edited.
   const [watchedMin, watchedMax] = watch(['minTws', 'maxTws']);

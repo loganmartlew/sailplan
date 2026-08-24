@@ -1,9 +1,7 @@
 import { useLocalSearchParams } from 'expo-router';
 import { useState } from 'react';
 import { ScrollView, View } from 'react-native';
-import { Text } from '~/components/ui';
-import { Toggle } from '~/components/ui';
-import { ToggleGroup, ToggleGroupItem } from '~/components/ui';
+import { Text, Toggle, ToggleGroup, ToggleGroupItem } from '~/components/ui';
 import {
   PolarPlotChart,
   ScatterChart,

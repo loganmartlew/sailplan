@@ -5,18 +5,24 @@ import type { SlottableViewProps } from '@rn-primitives/types';
 import { cn } from '~/lib/utils';
 import { TextClassContext } from '~/components/ui/text';
 
+/**
+ * No `active:` in any variant. A badge is not pressable, and NativeWind's
+ * `active:` handling swaps the underlying `View` for a `Pressable` — which,
+ * when a variant changes after the first render (`outline` → `secondary` as a
+ * leg gains a sail), changes the element type mid-life and remounts the
+ * subtree. That remount is what threw "Couldn't find a navigation context".
+ * A badge that needs press feedback gets it from the `Pressable` it wraps
+ * with `asChild`.
+ */
 const badgeVariants = cva(
   'web:inline-flex items-center rounded-full border border-border px-2.5 py-0.5 web:transition-colors web:focus:outline-none web:focus:ring-2 web:focus:ring-ring web:focus:ring-offset-2',
   {
     variants: {
       variant: {
-        default:
-          'border-transparent bg-primary web:hover:opacity-80 active:opacity-80',
-        transparent:
-          'border-transparent bg-accent web:hover:opacity-80 active:opacity-80',
-        secondary: 'bg-secondary web:hover:opacity-80 active:opacity-80',
-        destructive:
-          'border-transparent bg-destructive web:hover:opacity-80 active:opacity-80',
+        default: 'border-transparent bg-primary web:hover:opacity-80',
+        transparent: 'border-transparent bg-accent web:hover:opacity-80',
+        secondary: 'bg-secondary web:hover:opacity-80',
+        destructive: 'border-transparent bg-destructive web:hover:opacity-80',
         outline: 'text-foreground',
       },
     },

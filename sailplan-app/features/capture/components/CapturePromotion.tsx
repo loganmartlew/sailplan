@@ -122,10 +122,6 @@ export function CapturePromotion({ sessionId }: CapturePromotionProps) {
                 ? 'Open the legs you want in your polars and attribute their sails first.'
                 : 'No band reached the evidence it needs, so this session proposes nothing.'}
             </Text>
-            <Muted>
-              A bin needs 30 settled samples — roughly two separate 15-second
-              stretches — before it proposes a point.
-            </Muted>
           </View>
         ) : (
           <View className='gap-4'>

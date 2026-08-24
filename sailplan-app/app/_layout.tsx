@@ -1,5 +1,7 @@
 import '~/global.css';
-import 'react-native-gesture-handler';
+// Must stay the first non-CSS import: react-native-gesture-handler installs
+// its handlers as a side effect of being loaded, before anything renders.
+import { GestureHandlerRootView } from 'react-native-gesture-handler';
 
 import { SplashScreen, Tabs } from 'expo-router';
 import * as React from 'react';
@@ -10,7 +12,6 @@ import { useAppTheme } from '~/hooks/useAppTheme';
 import { AppProviders } from '~/components/AppProviders';
 import { MigrationGate } from '~/components/MigrationGate';
 import { BoatProfileGate } from '~/features/boatProfile/components/BoatProfileGate';
-import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { BottomTabBar } from '@react-navigation/bottom-tabs';
 import { ChartGantt, MapPin, Route, Sailboat, Settings } from '~/lib/icons';
 import {

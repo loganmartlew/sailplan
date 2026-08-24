@@ -1,9 +1,15 @@
 import { View } from 'react-native';
-import { Button, H2, Input, Label, Text } from '~/components/ui';
+import {
+  Button,
+  H2,
+  Input,
+  Label,
+  Text,
+  ToggleGroup,
+  ToggleGroupItem,
+} from '~/components/ui';
 import { useBufferedInput } from '~/hooks/useBufferedInput';
-import { ToggleGroup, ToggleGroupItem } from '~/components/ui';
-import { useSettings } from '~/features/settings';
-import { DEFAULT_SETTINGS } from '~/features/settings';
+import { useSettings, DEFAULT_SETTINGS } from '~/features/settings';
 import { CoordFormatInfoButton } from '~/features/coordinate';
 import { RefreshCw, TextCursorInput } from '~/lib/icons';
 import type {

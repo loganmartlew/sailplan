@@ -10,7 +10,6 @@ import {
 } from '../ui/toggle-group';
 import { Text } from '../ui';
 import { cn } from '~/lib/utils';
-import { ComponentProps } from 'react';
 
 type ToggleGroupProps<TFieldValues extends FieldValues = FieldValues> = Omit<
   BaseToggleGroupProps,

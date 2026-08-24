@@ -138,7 +138,11 @@ describe('prototype 24 data', () => {
             startTime: span.startTime,
             endTime: span.endTime,
             sailId: span.sailId,
-            gap: span.gap === true,
+            // Detection never produces a gap block: a gap is introduced later,
+            // by `unifyLegParts`, when a leg's stored parts are joined back
+            // into one band. Emitted as a constant so a span here has the same
+            // shape as one the app renders.
+            gap: false,
           })),
           steady: l.stretches.map(st => ({
             startTime: st.startTime,

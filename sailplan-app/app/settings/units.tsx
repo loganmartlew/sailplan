@@ -1,6 +1,5 @@
 import { View } from 'react-native';
-import { H2, Label, Text } from '~/components/ui';
-import { ToggleGroup, ToggleGroupItem } from '~/components/ui';
+import { H2, Label, Text, ToggleGroup, ToggleGroupItem } from '~/components/ui';
 import { Ruler } from '~/lib/icons';
 import { useSettings } from '~/features/settings';
 import type { SpeedUnit, AreaUnit, DistanceUnit } from '~/features/settings';

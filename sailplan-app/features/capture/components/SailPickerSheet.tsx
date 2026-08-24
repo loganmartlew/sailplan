@@ -14,7 +14,8 @@ interface SailPickerSheetProps {
   open: boolean;
   sails: readonly PickableSail[];
   heading: string;
-  subtitle: string;
+  /** Omitted where the tiles' own context already says what is being claimed. */
+  subtitle?: string;
   /** Verb the tiles announce, so a screen reader says what tapping does. */
   action: string;
   emptyMessage: string;
@@ -34,7 +35,7 @@ interface SailPickerSheetProps {
  * Thumb-sized, colour-filled sail tiles. Shared by the two places the app asks
  * which sail was up: stamping on the recording bar ("this instant only") and
  * attributing a block in review ("this block"), which differ only in what they
- * are claiming — hence the heading and subtitle being props.
+ * are claiming — hence the heading and the optional subtitle being props.
  */
 export function SailPickerSheet({
   open,
@@ -72,9 +73,11 @@ export function SailPickerSheet({
           <View className='mb-4 items-center gap-3'>
             <View className='h-1.5 w-12 rounded-full bg-muted' />
             <H3 className='pb-0'>{heading}</H3>
-            <Text className='text-center text-sm text-muted-foreground'>
-              {subtitle}
-            </Text>
+            {subtitle !== undefined && (
+              <Text className='text-center text-sm text-muted-foreground'>
+                {subtitle}
+              </Text>
+            )}
           </View>
           <FlatList
             data={sails}

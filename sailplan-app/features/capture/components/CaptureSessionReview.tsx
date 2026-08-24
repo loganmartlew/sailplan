@@ -97,21 +97,10 @@ export function CaptureSessionReview({ sessionId }: CaptureSessionReviewProps) {
         initialFocus='course'
         showFocusToggle={false}
       />
-      <View className='gap-1'>
-        <H3>
-          {summaries.length} sailed {summaries.length === 1 ? 'leg' : 'legs'}
-          {reviewedCount > 0 ? ` · ${reviewedCount} edited` : ''}
-        </H3>
-        {/* Said once, here, rather than left for the sailor to infer from a
-            pill: a steady bin is 15 s of settled sailing, and promotion needs
-            several in the same wind and angle before it writes one point. The
-            reference race gives 88 bins and 10 points. */}
-        <Muted className='text-xs'>
-          A steady bin is 15 seconds of settled sailing. Promotion needs several
-          in the same wind and angle to write one polar point, so points come out
-          far fewer than bins.
-        </Muted>
-      </View>
+      <H3>
+        {summaries.length} sailed {summaries.length === 1 ? 'leg' : 'legs'}
+        {reviewedCount > 0 ? ` · ${reviewedCount} edited` : ''}
+      </H3>
       <SailedLegList
         legs={summaries}
         sails={sailsQuery?.data ?? []}

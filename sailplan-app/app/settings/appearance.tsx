@@ -1,7 +1,6 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { View } from 'react-native';
-import { H2, Label, Text } from '~/components/ui';
-import { ToggleGroup, ToggleGroupItem } from '~/components/ui';
+import { H2, Label, Text, ToggleGroup, ToggleGroupItem } from '~/components/ui';
 import { PaintBucket } from '~/lib/icons';
 import { useColorScheme } from '~/lib/useColorScheme';
 import type { ThemePreference } from '~/features/settings';

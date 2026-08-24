@@ -1,5 +1,5 @@
 import { Image, Pressable, View } from 'react-native';
-import { H2, Label, Separator, Text } from '~/components/ui';
+import { Label, Separator, Text } from '~/components/ui';
 import { ChevronRight, Flag, Github } from '~/lib/icons';
 import Constants from 'expo-constants';
 import * as WebBrowser from 'expo-web-browser';
